@@ -77,10 +77,13 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
 
 const splitIntoStudentBlocks = (text: string): string[] => {
     // Normalize header variations
+    // Normalize header variations
     let normalizedText = text
         // Normalize fuzzy OCR or different PDF text flows for Candidate Name
-        .replace(/CAND[1lI]DATE (NO\. AND|NAME)/gi, "CANDIDATE NAME_MARKER")
-        // Simplify for splitting
+        // Covers: "CANDIDATE NAME", "CANDIDATE No. AND NAME", "CANDIDATE NUMBER AND NAME", "CANDIDATE NO AND NAME"
+        // Also handle potential case insensitivity and typos
+        .replace(/CAND[1lI]DATE\s+(?:(?:NO|NUMBER)\.?\s+(?:AND\s+)?)?NAME/gi, "CANDIDATE NAME_MARKER")
+        // Simplify for splitting if some variations were missed by regex above but hit exact phrases
         .replace(/CANDIDATE NO\. AND NAME/gi, "CANDIDATE NAME_MARKER")
         .replace(/CANDIDATE NAME/gi, "CANDIDATE NAME_MARKER");
 
@@ -97,6 +100,12 @@ const splitIntoStudentBlocks = (text: string): string[] => {
 
     // Filter out chunks that are too short to be a student record
     chunks = chunks.filter(c => c.trim().length > 100);
+
+    // Fallback: If no markers found (chunks empty or just original text without marker), return the whole text as one block
+    if (chunks.length === 0) {
+        // Only if text looks substantial
+        if (text.length > 50) return [text];
+    }
 
     console.log(`Found ${chunks.length} student blocks`);
     return chunks;
@@ -131,11 +140,25 @@ const parseStudentBlock = (text: string): StudentResult => {
     // --- Execution ---
 
     // 1. Name
-    const matchName = text.match(nameRegex);
+    let matchName = text.match(nameRegex);
+    if (!matchName) {
+        // Fallback regex without the MARKER constant if split failed to normalize or we are in fallback block
+        // Try finding "CANDIDATE ... NAME" again just in case
+        const rawNameRegex = /CAND[1lI]DATE\s+(?:(?:NO|NUMBER)\.?\s+(?:AND\s+)?)?NAME\s*(?:[:.]|)?\s*(\d{4})?\s*(?:[:.]|)?\s*([A-Z\s\.:-]+)/i;
+        matchName = text.match(rawNameRegex);
+    }
+
     if (matchName) {
         // Group 1 is number (optional), Group 2 is Name
         // We must be careful not to capture following fields as name usually ends at newline or next label
-        let rawName = matchName[2] || '';
+        let rawName = (matchName[2] || '').trim();
+
+        // Sometimes Name group captures "0001 ASHAQ" if group 1 missed it.
+        // Check if starts with 4 digits
+        const digitMatch = rawName.match(/^(\d{4})\s+(.+)/);
+        if (digitMatch) {
+            rawName = digitMatch[2];
+        }
 
         // Stop name at known next labels if they appear on same line
         const stopWords = ['DATE OF BIRTH', 'UNIQUE CANDIDATE IDENTIFIER', 'CENTRE'];
