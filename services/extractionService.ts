@@ -21,28 +21,29 @@ export interface StudentResult {
 export const extractDataFromFile = async (file: File): Promise<StudentResult[]> => {
     let text = '';
 
-    if (file.type === 'application/pdf') {
-        text = await extractTextFromPdf(file);
-    } else if (file.type.startsWith('image/')) {
-        text = await extractTextFromImage(file);
-    } else {
-        throw new Error('Unsupported file type');
+    try {
+        if (file.type === 'application/pdf') {
+            text = await extractTextFromPdf(file);
+        } else if (file.type.startsWith('image/')) {
+            text = await extractTextFromImage(file);
+        } else {
+            console.warn('Unsupported file type for extraction:', file.type);
+            return [];
+        }
+    } catch (err) {
+        console.error('Error reading file content:', err);
+        return [];
     }
 
-    // Normalize structure before splitting
-    // Ensure header tags are somewhat clean for splitting
-    // Use a unique marker for splitting blocks: "CANDIDATE NO. AND NAME" appears to be mandatory for each student block
-    // If headers are split across lines, we rely on the parser to stitch them or lookahead.
-
-    // Strategy:
-    // 1. Split text into chunks using "CANDIDATE NO. AND NAME" or similar anchors.
-    // 2. Process each chunk.
+    // Debug: Log basic text length
+    console.log(`Extracted ${text.length} chars from ${file.name}`);
 
     const studentBlocks = splitIntoStudentBlocks(text);
     const results: StudentResult[] = [];
 
     for (const block of studentBlocks) {
         const res = parseStudentBlock(block);
+        // Be lenient: return separate result if at least name is found.
         if (res.candidateName && res.candidateName !== 'Unknown Candidate') {
             results.push(res);
         }
@@ -67,43 +68,38 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         const pageText = textContent.items.map((item: any) => item.str).join(' ');
-        // Add a distinct page break marker just in case, though usually regex handles it
-        fullText += pageText + '\n====PAGE_BREAK====\n';
+        // use a marker less likely to interfere with "CANDIDATE NO. AND NAME"
+        fullText += pageText + '\n ';
     }
 
     return fullText;
 };
 
 const splitIntoStudentBlocks = (text: string): string[] => {
-    // We use key phrases to split. 
-    // "CANDIDATE NO. AND NAME" is the most robust start of a record.
-    // We keep the delimiter in the result to parse extraction.
-
-    // Note: OCR might misread CANDIDATE as CAND1DATE etc.
-    // Let's normalize key headers first.
+    // Normalize header variations
     let normalizedText = text
-        .replace(/CAND[1lI]DATE NO\. AND NAME/gi, "CANDIDATE NO. AND NAME")
+        // Normalize fuzzy OCR or different PDF text flows for Candidate Name
+        .replace(/CAND[1lI]DATE (NO\. AND|NAME)/gi, "CANDIDATE NAME_MARKER")
+        // Simplify for splitting
+        .replace(/CANDIDATE NO\. AND NAME/gi, "CANDIDATE NAME_MARKER")
+        .replace(/CANDIDATE NAME/gi, "CANDIDATE NAME_MARKER");
+
+    // Also normalize other fields while we are at it for parsing later
+    normalizedText = normalizedText
         .replace(/UN[1lI]QUE CAND[1lI]DATE IDENTIFIER/gi, "UNIQUE CANDIDATE IDENTIFIER")
         .replace(/DATE OF B[1lI]RTH/gi, "DATE OF BIRTH");
 
-    const parts = normalizedText.split(/CANDIDATE NO\. AND NAME/i);
+    // Split by the simplified marker
+    // Use capturing group to include delimiter if capturing, but here we just want to split.
+    // We use lookahead `(?=...)` key to keep the marker at the start of the block.
+    const splitRegex = /(?=CANDIDATE NAME_MARKER)/i;
+    let chunks = normalizedText.split(splitRegex);
 
-    // The first part might be garbage or header of first page if split removes format.
-    // But wait, split removes the delimiter. We need to prepend it back or just know that the start of the chunk corresponds to name.
+    // Filter out chunks that are too short to be a student record
+    chunks = chunks.filter(c => c.trim().length > 100);
 
-    const blocks: string[] = [];
-
-    // If text starts with it, parts[0] is empty. 
-    // If text has header, parts[0] is header junk.
-
-    // If we identify "CANDIDATE NO. AND NAME" implies start of block.
-    // Each part (except maybe the first if it doesn't contain a record) is a student.
-
-    // Let's use a more manual approach to be safe with preserving content
-    const splitRegex = /(?=CANDIDATE NO\. AND NAME)/i;
-    const chunks = normalizedText.split(splitRegex);
-
-    return chunks.filter(c => c.trim().length > 50); // Filter small noise
+    console.log(`Found ${chunks.length} student blocks`);
+    return chunks;
 };
 
 const parseStudentBlock = (text: string): StudentResult => {
@@ -115,56 +111,66 @@ const parseStudentBlock = (text: string): StudentResult => {
     let dob = '';
     const grades: ExtractedGrade[] = [];
 
-    // 1. Extract Name
-    // Pattern: "CANDIDATE NO. AND NAME" followed by "0001 NAME"
-    // Or on same line: "CANDIDATE NO. AND NAME 0001 NAME"
-    // The split might have put "CANDIDATE NO. AND NAME" at start of this block or just before.
-    // Since we split by lookahead `(?=...)`, the block STARTS with "CANDIDATE NO. AND NAME".
+    // --- Regex Definitions ---
 
-    // Combine first few lines to find headers robustly? 
-    // Actually, searching the whole block string with global regex is easier for fields.
+    // Name: "CANDIDATE NAME_MARKER" [optional no] [NAME]
+    // Example 1: CANDIDATE NAME_MARKER 0001 JOHN DOE
+    // Example 2: CANDIDATE NAME_MARKER JOHN DOE (if no number)
+    // Example 3: CANDIDATE NAME_MARKER 1234 : JOHN DOE (with separator)
+    // We want to capture [NAME]. Name is usually uppercase letters, spaces, maybe colon.
+    // Note: the `splitIntoStudentBlocks` replaced original label with `CANDIDATE NAME_MARKER`
+    const nameRegex = /CANDIDATE NAME_MARKER\s*(?:[:.]|)?\s*(\d{4})?\s*(?:[:.]|)?\s*([A-Z\s\.:-]+)/i;
 
-    // --- Name ---
-    // The regex needs to handle following typical structure:
-    // CANDIDATE NO. AND NAME {number} {NAME}
-    // The number is typically 4 digits.
-    const nameRegex = /CANDIDATE NO\. AND NAME\s.*?(\d{4})\s+([A-Z\s:.-]+)/i;
+    // DOB: "DATE OF BIRTH" [DATE]
+    // or "DATE OF BIRTH" somewhere then date later
+    const dobRegex = /DATE OF BIRTH\s*[:.]?\s*(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4})/i;
+
+    // UCI: "UNIQUE CANDIDATE IDENTIFIER" [UCI]
+    const uciRegex = /UNIQUE CANDIDATE IDENTIFIER\s*[:.]?\s*([A-Z0-9]+)/i;
+
+    // --- Execution ---
+
+    // 1. Name
     const matchName = text.match(nameRegex);
     if (matchName) {
-        // Group 2 is Name
-        candidateName = matchName[2].trim();
+        // Group 1 is number (optional), Group 2 is Name
+        // We must be careful not to capture following fields as name usually ends at newline or next label
+        let rawName = matchName[2] || '';
+
+        // Stop name at known next labels if they appear on same line
+        const stopWords = ['DATE OF BIRTH', 'UNIQUE CANDIDATE IDENTIFIER', 'CENTRE'];
+        for (const sw of stopWords) {
+            const idx = rawName.toUpperCase().indexOf(sw);
+            if (idx !== -1) {
+                rawName = rawName.substring(0, idx);
+            }
+        }
+        candidateName = rawName.trim();
     }
 
-    // --- DOB ---
-    // DATE OF BIRTH {DD/MM/YYYY} or {DD/MM/YY}
-    const dobRegex = /DATE OF BIRTH\s+(\d{2}\/\d{2}\/\d{2,4})/;
+    // 2. DOB
     const matchDob = text.match(dobRegex);
     if (matchDob) {
         dob = matchDob[1];
     } else {
-        // Heuristic: adjacent to UNIQUE CANDIDATE IDENTIFIER?
-        // In the image "DATE OF BIRTH 08/06/2004 UNIQUE..."
-        // Try finding just the date pattern
-        const dateGlobal = text.match(/\d{2}\/\d{2}\/\d{4}/); // Prioritize YYYY
-        if (dateGlobal && !dob) dob = dateGlobal[0];
+        // Fallback: look for generic date pattern near start of string
+        // Just picking the first valid-looking date might work if structure is standard
+        const dateMatch = text.match(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/);
+        if (dateMatch) dob = dateMatch[0];
     }
 
-    // --- UCI ---
-    // UNIQUE CANDIDATE IDENTIFIER {ID}
-    // ID is typically regex: 9\d{4}[A-Z]\d{7}[A-Z0-9] or just alphanumeric
-    const uciRegex = /UNIQUE CANDIDATE IDENTIFIER\s+([A-Z0-9]+)/i;
+    // 3. UCI
     const matchUci = text.match(uciRegex);
     if (matchUci) {
         uci = matchUci[1];
     } else {
-        // Search for pattern if label missing
+        // Fallback: look for UCI pattern
         const uciPattern = /\b9\d{4}[A-Z]\d{7}[A-Z0-9]\b/;
-        const matchDeep = text.match(uciPattern);
-        if (matchDeep) uci = matchDeep[0];
+        const deepMatch = text.match(uciPattern);
+        if (deepMatch) uci = deepMatch[0];
     }
 
-    // --- Grades (AWARD ONLY) ---
-    // We iterate lines for this structure
+    // 4. Grades (AWARD ONLY)
     for (const line of lines) {
         if (line.startsWith('AWARD')) {
             // Structure: AWARD {CODE} {SUBJECT} {MARKS}? {GRADE}
@@ -172,7 +178,7 @@ const parseStudentBlock = (text: string): StudentResult => {
             const content = line.substring(5).trim();
             const parts = content.split(/\s+/);
 
-            if (parts.length >= 3) {
+            if (parts.length >= 2) { // Need at least code and grade/subject
                 const code = parts[0];
                 let grade = '';
                 let subjectEndIndex = -1;
@@ -181,9 +187,7 @@ const parseStudentBlock = (text: string): StudentResult => {
                 // Grade formats: "B(b)", "C(c)", "A*", "A", "U"
                 for (let i = parts.length - 1; i >= 1; i--) {
                     const p = parts[i];
-                    // Matches Grade like A, B(b), U, A*
-                    // Note: "225/300" is NOT a grade.
-                    if (/^[A-E,U](\([a-z]\))?$/.test(p) || p === 'A*') {
+                    if (/^[A-E,U]\*?(\([a-z]\))?$/.test(p) || p === 'A*') {
                         grade = p;
                         subjectEndIndex = i;
                         break;
@@ -193,8 +197,7 @@ const parseStudentBlock = (text: string): StudentResult => {
                 if (grade && subjectEndIndex > 0) {
                     // Identify Subject
                     // Everything between Code (0) and Marks/Grade
-                    // Marks usually look like 225/300 or just number 225? "225/300" in image
-                    // Ignore parts that are numbers or fraction
+                    // Marks usually look like 225/300 or just number 225
                     const rawSubjectParts = parts.slice(1, subjectEndIndex);
                     const subjectParts = rawSubjectParts.filter(p => !/^[\d\/]+$/.test(p));
 
@@ -212,6 +215,6 @@ const parseStudentBlock = (text: string): StudentResult => {
         uci: uci || 'Unknown UCI',
         dob: dob || 'Unknown DOB',
         grades,
-        rawText: text.substring(0, 200) + '...' // Snippet for debug
+        rawText: text.substring(0, 500) // snippet
     };
 };
