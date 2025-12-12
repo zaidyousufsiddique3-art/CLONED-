@@ -119,8 +119,11 @@ const DocumentsPortal: React.FC = () => {
 
         try {
             setUploading(true);
+            // Replace forward slashes with unicode division slash to allow "slashes" in folder names
+            const safeFolderName = newFolderName.trim().replace(/\//g, '\u2215');
+
             // Create a placeholder file to "create" the folder
-            const folderPath = `${currentPath}${newFolderName.trim()}/.keep`;
+            const folderPath = `${currentPath}${safeFolderName}/.keep`;
             const folderRef = ref(storage, folderPath);
             // Upload a hollow file
             await uploadBytes(folderRef, new Blob(['']));
@@ -260,7 +263,7 @@ const DocumentsPortal: React.FC = () => {
                         value={newFolderName}
                         onChange={(e) => setNewFolderName(e.target.value)}
                         placeholder="Folder Name (e.g., 2024 Results)"
-                        className="flex-1 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
+                        className="flex-1 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
                         autoFocus
                     />
                     <button
