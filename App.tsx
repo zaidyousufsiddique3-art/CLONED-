@@ -12,6 +12,7 @@ import UserManagement from './pages/UserManagement';
 import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
 import DocumentsPortal from './pages/DocumentsPortal';
+import PredictedGradesPortal from './pages/PredictedGradesPortal';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { user } = useAuth();
@@ -78,6 +79,12 @@ const AppRoutes = () => {
       <Route path="/documents" element={
         <ProtectedRoute>
           <Layout><DocumentsPortal /></Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/predicted-grades" element={
+        <ProtectedRoute>
+          <Layout><PredictedGradesPortal /></Layout>
         </ProtectedRoute>
       } />
     </Routes>
