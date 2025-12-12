@@ -14,7 +14,8 @@ import {
   Menu,
   Sun,
   Moon,
-  Bell
+  Bell,
+  Folder
 } from 'lucide-react';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -115,6 +116,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <>
                 <NavItem to="/requests" icon={FileText} label="All Requests" />
                 <NavItem to="/users" icon={Users} label="User Management" />
+                <NavItem to="/documents" icon={Folder} label="Documents Portal" />
               </>
             )}
           </div>

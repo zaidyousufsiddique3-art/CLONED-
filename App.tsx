@@ -11,6 +11,7 @@ import RequestDetail from './pages/RequestDetail';
 import UserManagement from './pages/UserManagement';
 import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
+import DocumentsPortal from './pages/DocumentsPortal';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { user } = useAuth();
@@ -25,40 +26,40 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      
+
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Layout><Dashboard /></Layout>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/new-request" element={
         <ProtectedRoute>
-           <Layout><NewRequest /></Layout>
+          <Layout><NewRequest /></Layout>
         </ProtectedRoute>
       } />
 
       <Route path="/requests" element={
         <ProtectedRoute>
-           <Layout><RequestsList /></Layout>
+          <Layout><RequestsList /></Layout>
         </ProtectedRoute>
       } />
 
       <Route path="/my-requests" element={
         <ProtectedRoute>
-           <Layout><RequestsList /></Layout>
+          <Layout><RequestsList /></Layout>
         </ProtectedRoute>
       } />
 
       <Route path="/requests/:id" element={
         <ProtectedRoute>
-           <Layout><RequestDetail /></Layout>
+          <Layout><RequestDetail /></Layout>
         </ProtectedRoute>
       } />
 
       <Route path="/users" element={
         <ProtectedRoute>
-           <Layout><UserManagement /></Layout>
+          <Layout><UserManagement /></Layout>
         </ProtectedRoute>
       } />
 
@@ -71,6 +72,12 @@ const AppRoutes = () => {
       <Route path="/notifications" element={
         <ProtectedRoute>
           <Layout><Notifications /></Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/documents" element={
+        <ProtectedRoute>
+          <Layout><DocumentsPortal /></Layout>
         </ProtectedRoute>
       } />
     </Routes>
