@@ -90,15 +90,19 @@ const PredictedGradesPortal: React.FC = () => {
                     const blob = await response.blob();
                     const file = new File([blob], itemRef.name, { type: blob.type });
 
-                    // Extract
-                    const data = await extractDataFromFile(file);
+                    // Extract - returns array now
+                    const results = await extractDataFromFile(file);
 
-                    if (data.candidateName && data.candidateName !== 'Unknown Candidate') {
-                        foundStudents.push({
-                            id: itemRef.fullPath,
-                            fileName: itemRef.name,
-                            fileRef: itemRef,
-                            extractedData: data
+                    if (results && results.length > 0) {
+                        results.forEach((data, idx) => {
+                            if (data.candidateName && data.candidateName !== 'Unknown Candidate') {
+                                foundStudents.push({
+                                    id: `${itemRef.fullPath}_${idx}`, // Unique ID for each student in file
+                                    fileName: itemRef.name,
+                                    fileRef: itemRef,
+                                    extractedData: data
+                                });
+                            }
                         });
                     }
                 } catch (err) {
@@ -242,9 +246,9 @@ const PredictedGradesPortal: React.FC = () => {
                                                         <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">{grade.subject}</td>
                                                         <td className="px-6 py-4 text-right">
                                                             <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${grade.grade.startsWith('A') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                                    grade.grade.startsWith('B') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                                        grade.grade.startsWith('U') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                                            'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                                                grade.grade.startsWith('B') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                                    grade.grade.startsWith('U') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                                        'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                                                                 }`}>
                                                                 {grade.grade}
                                                             </span>
