@@ -66,6 +66,7 @@ const PredictedGradesPortal: React.FC = () => {
         setScanProgress(0);
         try {
             const folderRef = ref(storage, `${BASE_PATH}${folderName}/`);
+            console.log('[DEBUG] Scanning folder:', folderRef.fullPath);
 
             // Helper to recursively list all files
             const listAllFilesRecursively = async (ref: any): Promise<any[]> => {
@@ -78,10 +79,11 @@ const PredictedGradesPortal: React.FC = () => {
             };
 
             const allFileItems = await listAllFilesRecursively(folderRef);
-            console.log(`[DEBUG] Total files discovered recursively: ${allFileItems.length}`);
+            console.log('[DEBUG] Files discovered recursively:', allFileItems.map(f => f.fullPath));
 
             const totalFiles = allFileItems.length;
             if (totalFiles === 0) {
+                console.error('[FATAL] Recursive scan found ZERO files. Path is wrong or function not executing.');
                 setScanning(false);
                 return;
             }
