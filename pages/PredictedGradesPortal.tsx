@@ -115,6 +115,10 @@ const PredictedGradesPortal: React.FC = () => {
                     }
 
                     const apiData = await response.json();
+
+                    // 1. CONFIRM API RESPONSE AT CALL SITE
+                    console.log("[DEBUG] RAW API RESPONSE:", apiData);
+
                     const results = apiData.students || [];
 
                     if (results && results.length > 0) {
@@ -164,8 +168,26 @@ const PredictedGradesPortal: React.FC = () => {
 
     const data = getSelectedStudentData();
 
+    // 2. CONFIRM STATE IS SET CORRECTLY
+    useEffect(() => {
+        if (students.length > 0) {
+            console.log("[DEBUG] STATE students:", students);
+        }
+    }, [students]);
+
+    // 3. CONFIRM SELECTED STUDENT SOURCE
+    useEffect(() => {
+        if (selectedStudentId) {
+            console.log("[DEBUG] selectedStudent ID:", selectedStudentId);
+            console.log("[DEBUG] selectedStudent DATA:", data);
+        }
+    }, [selectedStudentId, data]);
+
     // MANDATORY FRONTEND LOG
-    console.log("[DEBUG] FRONTEND student.results:", data?.results);
+    if (data) {
+        console.log("[DEBUG] FRONTEND student.results:", data.results);
+    }
+
 
     return (
         <div className="space-y-6 animate-fade-in">
