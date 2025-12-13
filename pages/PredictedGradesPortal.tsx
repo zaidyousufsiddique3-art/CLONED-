@@ -283,151 +283,149 @@ const PredictedGradesPortal: React.FC = () => {
                 headerImg.src = '/assets/pdf-header.png';
             });
 
-            // Add header image (full width, positioned at top)
-            // Header image should contain: logo, school name, Arabic text, license line
-            doc.addImage(headerImg, 'PNG', 10, 8, 190, 35);
+            // ========================================
+            // CANONICAL LAYOUT LOCK - EXACT MATCH REQUIRED
+            // Treat attached screenshot as locked template
+            // DO NOT change spacing, alignment, or layout
+            // ========================================
 
-            // Date - Calibri 11pt equivalent (helvetica is closest in jsPDF)
-            // FIXED MARGINS: 25mm left, 25mm right (matching reference screenshot exactly)
-            const MARGIN_LEFT = 25;
-            const MARGIN_RIGHT = 25;
-            const PAGE_WIDTH = 210;
-            const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT; // 160mm
+            // Add header image (positioned exactly as in screenshot)
+            doc.addImage(headerImg, 'PNG', 12, 10, 186, 32);
 
+            // === LOCKED SPACING VALUES (from canonical screenshot) ===
+            const MARGIN_LEFT = 22;        // Fixed left margin
+            const PAGE_CENTER = 105;       // A4 center point
+
+            // === DATE LINE ===
             const currentDate = formatDateWithOrdinal(new Date());
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
+            doc.setFontSize(10);
             doc.setTextColor(0, 0, 0);
-            doc.text(currentDate + ',', MARGIN_LEFT, 55);
+            doc.text(currentDate + ',', MARGIN_LEFT, 52);
 
-            // TO WHOM IT MAY CONCERN - Amiri 14pt equivalent (times bold is closest)
+            // === TO WHOM IT MAY CONCERN ===
             doc.setFont('times', 'bold');
-            doc.setFontSize(14);
+            doc.setFontSize(13);
             const toWhomText = 'TO WHOM IT MAY CONCERN';
-            doc.text(toWhomText, 105, 72, { align: 'center' });
+            doc.text(toWhomText, PAGE_CENTER, 65, { align: 'center' });
 
-            // Underline exactly under text width
+            // Underline exactly to text width
             const toWhomWidth = doc.getTextWidth(toWhomText);
-            doc.setLineWidth(0.4);
+            doc.setLineWidth(0.3);
             doc.setDrawColor(0, 0, 0);
-            doc.line(105 - toWhomWidth / 2, 73.5, 105 + toWhomWidth / 2, 73.5);
+            doc.line(PAGE_CENTER - toWhomWidth / 2, 66.5, PAGE_CENTER + toWhomWidth / 2, 66.5);
 
-            // Subject line - BOLD, LEFT ALIGNED, NO UNDERLINE (per Screenshot 1)
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(9);
+            // === SUBJECT LINE (left aligned, no underline) ===
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
             const subjectLine = `EXPECTED GRADE SHEET – LONDON EDEXCEL IAL EXAMINATION – ${ialSession.toUpperCase()}`;
-            doc.text(subjectLine, MARGIN_LEFT, 82); // Left aligned at fixed margin
+            doc.text(subjectLine, MARGIN_LEFT, 74);
 
-            // Student name transformation
+            // === FIRST PARAGRAPH ===
             const studentName = formatStudentName(selectedStudent.candidateName);
             const results = selectedStudent.results || [];
 
-            // Body text - Calibri 11pt (helvetica)
-            // LINE SPACING: Single-line for body, tight for results, 1.5x between sections
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
-            let yPos = 92;
-            const marginLeft = MARGIN_LEFT; // Fixed 25mm
-            const bodyLineHeight = 4.5;    // Single-line spacing for body text
-            const resultLineHeight = 5;    // Tight spacing for result lines
-            const sectionGap = 7;          // 1.5x spacing between major sections
+            doc.setFontSize(10);
+            let y = 84; // Starting Y position for first paragraph
+            const lineH = 4;      // Tight single-line spacing
+            const resultH = 5;    // Result line height
+            const gapSmall = 3;   // Small gap
+            const gapMedium = 8;  // Gap before/after result blocks
 
-            // First paragraph - single continuous text flow
+            // Line 1: Name + UCI + text
             doc.setFont('helvetica', 'bold');
-            doc.text(studentName + ', ', marginLeft, yPos);
-            let xPos = marginLeft + doc.getTextWidth(studentName + ', ');
+            doc.text(studentName + ', ', MARGIN_LEFT, y);
+            let x = MARGIN_LEFT + doc.getTextWidth(studentName + ', ');
 
             doc.setFont('helvetica', 'normal');
-            doc.text('Unique Candidate Identifier ', xPos, yPos);
-            xPos += doc.getTextWidth('Unique Candidate Identifier ');
+            doc.text('Unique Candidate Identifier ', x, y);
+            x += doc.getTextWidth('Unique Candidate Identifier ');
 
-            doc.setFont('helvetica', 'normal');
-            doc.text(`(${selectedStudent.uci}) had sat ${pronouns.possessive} London Edexcel`, xPos, yPos);
+            doc.text(`(${selectedStudent.uci}) had sat ${pronouns.possessive} London Edexcel`, x, y);
 
-            yPos += bodyLineHeight;
-            doc.text(`INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in ${iasSession}. ${pronouns.subject} had obtained the following`, marginLeft, yPos);
+            // Line 2
+            y += lineH;
+            doc.text(`INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in ${iasSession}. ${pronouns.subject} had obtained the following`, MARGIN_LEFT, y);
 
-            yPos += bodyLineHeight;
-            doc.text('results:', marginLeft, yPos);
+            // Line 3
+            y += lineH;
+            doc.text('results:', MARGIN_LEFT, y);
 
-            // Actual Results block - CENTER ALIGNED (with section gap before)
-            yPos += sectionGap;
+            // === ACTUAL RESULTS BLOCK ===
+            y += gapMedium;
             doc.setFont('helvetica', 'bold');
 
             results.forEach((r) => {
                 const subjectText = r.subject.toUpperCase();
                 const gradeText = `${r.grade} (${r.grade.toLowerCase()})`;
-                // Center the entire result line
                 const resultLine = `${subjectText}   ${gradeText}`;
-                doc.text(resultLine, 105, yPos, { align: 'center' });
-                yPos += resultLineHeight; // Tight spacing for results
+                doc.text(resultLine, PAGE_CENTER, y, { align: 'center' });
+                y += resultH;
             });
 
-            // Second paragraph (with section gap before)
-            yPos += sectionGap;
+            // === SECOND PARAGRAPH ===
+            y += gapSmall;
             doc.setFont('helvetica', 'bold');
-            doc.text(studentName, marginLeft, yPos);
-            xPos = marginLeft + doc.getTextWidth(studentName);
+            doc.text(studentName, MARGIN_LEFT, y);
+            x = MARGIN_LEFT + doc.getTextWidth(studentName);
 
             doc.setFont('helvetica', 'normal');
-            doc.text(` will be sitting ${pronouns.possessive} London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL)`, xPos, yPos);
+            doc.text(` will be sitting ${pronouns.possessive} London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL)`, x, y);
 
-            yPos += bodyLineHeight;
-            doc.text(`examination which will be held during ${ialSession}. Based on ${pronouns.possessive} IAS results and the performance in the`, marginLeft, yPos);
+            y += lineH;
+            doc.text(`examination which will be held during ${ialSession}. Based on ${pronouns.possessive} IAS results and the performance in the`, MARGIN_LEFT, y);
 
-            yPos += bodyLineHeight;
-            doc.text(`school examination, the respective subject teachers firmly expect ${pronouns.object} to obtain the following results in the`, marginLeft, yPos);
+            y += lineH;
+            doc.text(`school examination, the respective subject teachers firmly expect ${pronouns.object} to obtain the following results in the`, MARGIN_LEFT, y);
 
-            yPos += bodyLineHeight;
-            doc.text(`${ialSession} IAL Examination:`, marginLeft, yPos);
+            y += lineH;
+            doc.text(`${ialSession} IAL Examination:`, MARGIN_LEFT, y);
 
-            // Predicted Results block - CENTER ALIGNED (with section gap before)
-            yPos += sectionGap;
+            // === PREDICTED RESULTS BLOCK ===
+            y += gapMedium;
             doc.setFont('helvetica', 'bold');
 
             results.forEach((r) => {
                 const subjectText = r.subject.toUpperCase();
                 const predictedGrade = calculatePredictedGrade(r.grade);
                 const gradeWithBracket = `${predictedGrade} (${predictedGrade.toLowerCase()})`;
-                // Center the entire result line
                 const resultLine = `${subjectText}   ${gradeWithBracket}`;
-                doc.text(resultLine, 105, yPos, { align: 'center' });
-                yPos += resultLineHeight; // Tight spacing for results
+                doc.text(resultLine, PAGE_CENTER, y, { align: 'center' });
+                y += resultH;
             });
 
-            // Closing statement (with section gap before)
-            yPos += sectionGap;
+            // === CLOSING STATEMENT ===
+            y += gapMedium;
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
-            doc.text(`This letter is issued on ${pronouns.possessive} request to be reviewed by Universities for admission and scholarship.`, marginLeft, yPos);
+            doc.setFontSize(10);
+            doc.text(`This letter is issued on ${pronouns.possessive} request to be reviewed by Universities for admission and scholarship.`, MARGIN_LEFT, y);
 
-            // Signature section (fixed position near bottom, using same margins)
-            const sigY = 245;
+            // === SIGNATURE SECTION (fixed position) ===
+            const sigY = 230;
 
-            // Signature lines (dotted style like the screenshot)
-            doc.setLineWidth(0.2);
-            doc.setDrawColor(100, 100, 100);
+            // Dotted signature lines
+            doc.setLineWidth(0.15);
+            doc.setDrawColor(80, 80, 80);
 
-            // Left signature line - starts at MARGIN_LEFT
-            for (let i = MARGIN_LEFT; i < 70; i += 2) {
-                doc.line(i, sigY, i + 1, sigY);
+            // Left line
+            for (let i = MARGIN_LEFT; i < 68; i += 1.5) {
+                doc.line(i, sigY, i + 0.8, sigY);
             }
-            // Right signature line - ends at PAGE_WIDTH - MARGIN_RIGHT
-            for (let i = 140; i < PAGE_WIDTH - MARGIN_RIGHT; i += 2) {
-                doc.line(i, sigY, i + 1, sigY);
+            // Right line
+            for (let i = 145; i < 188; i += 1.5) {
+                doc.line(i, sigY, i + 0.8, sigY);
             }
 
-            // Names - BLACK, normal weight
+            // Names - BLACK
             doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
             doc.setTextColor(0, 0, 0);
-            doc.text('Ruxshan Razak', MARGIN_LEFT, sigY + 7);
-            doc.text('S.M.M. Hajath', 150, sigY + 7);
+            doc.text('Ruxshan Razak', MARGIN_LEFT, sigY + 6);
+            doc.text('S.M.M. Hajath', 158, sigY + 6);
 
-            // Titles - BLACK (per Screenshot 4)
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(0, 0, 0); // BLACK as per screenshot 4
-            doc.text('Principal', MARGIN_LEFT, sigY + 13);
-            doc.text('Academic & Public Exams Coordinator', 140, sigY + 13);
+            // Titles - BLACK
+            doc.text('Principal', MARGIN_LEFT, sigY + 11);
+            doc.text('Academic & Public Exams Coordinator', 145, sigY + 11);
 
             // Save PDF
             const fileName = `Expected_Grade_Sheet_${studentName.replace(/\s+/g, '_')}.pdf`;
