@@ -171,7 +171,7 @@ const extractTextFromPdfBuffer = async (buffer: Buffer): Promise<string> => {
     try {
         const data = await pdf(buffer);
         // pdf-parse provides the full raw text in data.text
-        return data.text;
+        return data.text || "";
     } catch (err: any) {
         console.error("[API] pdf-parse failed:", err);
         throw new Error("Failed to parse PDF with pdf-parse: " + err.message);
@@ -227,6 +227,11 @@ export default async function handler(req: any, res: any) {
 
         console.log(`[API] PDF loaded successfully`);
         console.log(`[API] Extracted text length: ${text.length}`);
+
+        if (!text.trim()) {
+            console.log("[API] PDF has no text layer");
+        }
+
         if (results.length > 0) {
             console.log(`[API] Candidate found: ${results[0].candidateName}`);
         } else {
