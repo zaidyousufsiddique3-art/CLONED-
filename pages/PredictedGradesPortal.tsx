@@ -259,8 +259,8 @@ const PredictedGradesPortal: React.FC = () => {
 
         // Gender-based pronouns
         const pronouns = gender === 'male'
-            ? { subject: 'he', object: 'him', possessive: 'his' }
-            : { subject: 'she', object: 'her', possessive: 'her' };
+            ? { subject: 'He', object: 'him', possessive: 'his' }
+            : { subject: 'She', object: 'her', possessive: 'her' };
 
         try {
             const doc = new jsPDF({
@@ -273,183 +273,161 @@ const PredictedGradesPortal: React.FC = () => {
             doc.setFillColor(255, 254, 251);
             doc.rect(0, 0, 210, 297, 'F');
 
-            // Load and add logo
-            const logoImg = new Image();
-            logoImg.crossOrigin = 'Anonymous';
+            // Load header image (contains logo + school name + Arabic + license line)
+            const headerImg = new Image();
+            headerImg.crossOrigin = 'Anonymous';
 
             await new Promise<void>((resolve, reject) => {
-                logoImg.onload = () => resolve();
-                logoImg.onerror = reject;
-                logoImg.src = '/assets/logo.png';
+                headerImg.onload = () => resolve();
+                headerImg.onerror = reject;
+                headerImg.src = '/assets/pdf-header.png';
             });
 
-            // Add logo (top-left, matching school document size)
-            doc.addImage(logoImg, 'PNG', 15, 12, 22, 22);
+            // Add header image (full width, positioned at top)
+            // Header image should contain: logo, school name, Arabic text, license line
+            doc.addImage(headerImg, 'PNG', 10, 8, 190, 35);
 
-            // Header - English school name (gold/brown tone, serif-like)
-            doc.setFont('times', 'bold');
-            doc.setFontSize(16);
-            doc.setTextColor(139, 90, 43); // Gold/brown tone
-            doc.text('SRI LANKAN INTERNATIONAL SCHOOL RIYADH', 105, 18, { align: 'center' });
-
-            // Arabic school name
-            doc.setFont('times', 'normal');
-            doc.setFontSize(14);
-            doc.text('المدرسة السريلانكية العالمية بالرياض', 105, 26, { align: 'center' });
-
-            // License line
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.text('License No : 41G   |   رقم الترخيص : ١ ٤ ج', 105, 34, { align: 'center' });
-
-            // Date (top left, with comma)
+            // Date - Calibri 11pt equivalent (helvetica is closest in jsPDF)
             const currentDate = formatDateWithOrdinal(new Date());
-            doc.setFont('times', 'normal');
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(11);
             doc.setTextColor(0, 0, 0);
-            doc.text(currentDate + ',', 20, 50);
+            doc.text(currentDate + ',', 20, 55);
 
-            // TO WHOM IT MAY CONCERN (centered, bold)
+            // TO WHOM IT MAY CONCERN - Amiri 14pt equivalent (times bold is closest)
             doc.setFont('times', 'bold');
-            doc.setFontSize(12);
-            doc.text('TO WHOM IT MAY CONCERN', 105, 65, { align: 'center' });
+            doc.setFontSize(14);
+            const toWhomText = 'TO WHOM IT MAY CONCERN';
+            doc.text(toWhomText, 105, 72, { align: 'center' });
 
-            // Subject line with IAL session (centered, underlined)
-            doc.setFontSize(11);
-            doc.setFont('times', 'bold');
+            // Underline exactly under text width
+            const toWhomWidth = doc.getTextWidth(toWhomText);
+            doc.setLineWidth(0.4);
+            doc.setDrawColor(0, 0, 0);
+            doc.line(105 - toWhomWidth / 2, 73.5, 105 + toWhomWidth / 2, 73.5);
+
+            // Subject line - Calibri 11pt (helvetica), underlined
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
             const subjectLine = `EXPECTED GRADE SHEET – LONDON EDEXCEL IAL EXAMINATION – ${ialSession.toUpperCase()}`;
-            doc.text(subjectLine, 105, 78, { align: 'center' });
-            // Underline
-            const textWidth = doc.getTextWidth(subjectLine);
+            doc.text(subjectLine, 105, 82, { align: 'center' });
+
+            // Underline subject line
+            const subjectWidth = doc.getTextWidth(subjectLine);
             doc.setLineWidth(0.3);
-            doc.line(105 - textWidth / 2, 79.5, 105 + textWidth / 2, 79.5);
+            doc.line(105 - subjectWidth / 2, 83.5, 105 + subjectWidth / 2, 83.5);
 
             // Student name transformation
             const studentName = formatStudentName(selectedStudent.candidateName);
             const results = selectedStudent.results || [];
 
-            // First paragraph - line by line for exact matching
-            doc.setFont('times', 'normal');
+            // Body text - Calibri 11pt (helvetica)
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(11);
-            let yPos = 92;
+            let yPos = 95;
             const marginLeft = 20;
-            const lineHeight = 6;
+            const lineHeight = 5.5;
+            const pageWidth = 190;
 
-            // Line 1: "[NAME], Unique Candidate Identifier [UCI] had sat [possessive] London Edexcel"
-            doc.setFont('times', 'bold');
-            doc.text(studentName, marginLeft, yPos);
-            let xPos = marginLeft + doc.getTextWidth(studentName);
+            // First paragraph - single continuous text flow
+            // "[NAME], Unique Candidate Identifier ([UCI]) had sat [possessive] London Edexcel
+            // INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in [IAS SESSION]. [Subject] had obtained the following results:"
 
-            doc.setFont('times', 'normal');
-            doc.text(', Unique Candidate Identifier ', xPos, yPos);
-            xPos += doc.getTextWidth(', Unique Candidate Identifier ');
+            doc.setFont('helvetica', 'bold');
+            doc.text(studentName + ', ', marginLeft, yPos);
+            let xPos = marginLeft + doc.getTextWidth(studentName + ', ');
 
-            doc.setFont('times', 'bold');
-            doc.text(selectedStudent.uci, xPos, yPos);
-            xPos += doc.getTextWidth(selectedStudent.uci);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Unique Candidate Identifier ', xPos, yPos);
+            xPos += doc.getTextWidth('Unique Candidate Identifier ');
 
-            doc.setFont('times', 'normal');
-            doc.text(` had sat ${pronouns.possessive} London Edexcel`, xPos, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`(${selectedStudent.uci}) had sat ${pronouns.possessive} London Edexcel`, xPos, yPos);
 
-            // Line 2: "INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in [IAS SESSION]."
             yPos += lineHeight;
-            doc.text('INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in ', marginLeft, yPos);
-            xPos = marginLeft + doc.getTextWidth('INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in ');
+            doc.text(`INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in ${iasSession}. ${pronouns.subject} had obtained the following`, marginLeft, yPos);
 
-            doc.setFont('times', 'bold');
-            doc.text(iasSession, xPos, yPos);
-            xPos += doc.getTextWidth(iasSession);
-
-            doc.setFont('times', 'normal');
-            doc.text('.', xPos, yPos);
-
-            // Line 3: "[Subject] had obtained the following results:"
             yPos += lineHeight;
-            doc.text(`${pronouns.subject.charAt(0).toUpperCase() + pronouns.subject.slice(1)} had obtained the following results:`, marginLeft, yPos);
+            doc.text('results:', marginLeft, yPos);
 
-            // Actual Results block (centered, no borders)
-            yPos += 10;
-            doc.setFont('times', 'bold');
+            // Actual Results block - CENTER ALIGNED
+            yPos += 12;
+            doc.setFont('helvetica', 'bold');
 
             results.forEach((r) => {
                 const subjectText = r.subject.toUpperCase();
-                const gradeText = r.grade;
-                // Subject centered, grade to the right
-                doc.text(subjectText, 85, yPos);
-                doc.text(gradeText, 145, yPos);
+                const gradeText = `${r.grade} (${r.grade.toLowerCase()})`;
+                // Center the entire result line
+                const resultLine = `${subjectText}   ${gradeText}`;
+                doc.text(resultLine, 105, yPos, { align: 'center' });
                 yPos += lineHeight;
             });
 
             // Second paragraph
-            yPos += 6;
-            doc.setFont('times', 'bold');
+            yPos += 8;
+            doc.setFont('helvetica', 'bold');
             doc.text(studentName, marginLeft, yPos);
             xPos = marginLeft + doc.getTextWidth(studentName);
 
-            doc.setFont('times', 'normal');
+            doc.setFont('helvetica', 'normal');
             doc.text(` will be sitting ${pronouns.possessive} London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL)`, xPos, yPos);
 
             yPos += lineHeight;
-            doc.text('examination which will be held during ', marginLeft, yPos);
-            xPos = marginLeft + doc.getTextWidth('examination which will be held during ');
-
-            doc.setFont('times', 'bold');
-            doc.text(ialSession, xPos, yPos);
-            xPos += doc.getTextWidth(ialSession);
-
-            doc.setFont('times', 'normal');
-            doc.text(`. Based on ${pronouns.possessive} IAS results and the performance in the`, xPos, yPos);
+            doc.text(`examination which will be held during ${ialSession}. Based on ${pronouns.possessive} IAS results and the performance in the`, marginLeft, yPos);
 
             yPos += lineHeight;
             doc.text(`school examination, the respective subject teachers firmly expect ${pronouns.object} to obtain the following results in the`, marginLeft, yPos);
 
             yPos += lineHeight;
-            doc.setFont('times', 'bold');
-            doc.text(ialSession, marginLeft, yPos);
-            xPos = marginLeft + doc.getTextWidth(ialSession);
+            doc.text(`${ialSession} IAL Examination:`, marginLeft, yPos);
 
-            doc.setFont('times', 'normal');
-            doc.text(' IAL Examination:', xPos, yPos);
-
-            // Predicted Results block (centered, no borders)
-            yPos += 10;
-            doc.setFont('times', 'bold');
+            // Predicted Results block - CENTER ALIGNED
+            yPos += 12;
+            doc.setFont('helvetica', 'bold');
 
             results.forEach((r) => {
                 const subjectText = r.subject.toUpperCase();
                 const predictedGrade = calculatePredictedGrade(r.grade);
                 const gradeWithBracket = `${predictedGrade} (${predictedGrade.toLowerCase()})`;
-                doc.text(subjectText, 85, yPos);
-                doc.text(gradeWithBracket, 145, yPos);
+                // Center the entire result line
+                const resultLine = `${subjectText}   ${gradeWithBracket}`;
+                doc.text(resultLine, 105, yPos, { align: 'center' });
                 yPos += lineHeight;
             });
 
             // Closing statement
-            yPos += 8;
-            doc.setFont('times', 'normal');
+            yPos += 10;
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(11);
             doc.text(`This letter is issued on ${pronouns.possessive} request to be reviewed by Universities for admission and scholarship.`, marginLeft, yPos);
 
             // Signature section (fixed position near bottom)
-            const sigY = 250;
+            const sigY = 245;
 
-            // Signature lines
-            doc.setLineWidth(0.3);
-            doc.setDrawColor(0, 0, 0);
-            doc.line(20, sigY, 70, sigY);
-            doc.line(140, sigY, 190, sigY);
+            // Signature lines (dotted style like the screenshot)
+            doc.setLineWidth(0.2);
+            doc.setDrawColor(100, 100, 100);
 
-            // Names (black, bold)
-            doc.setFont('times', 'bold');
+            // Left signature line
+            for (let i = 20; i < 65; i += 2) {
+                doc.line(i, sigY, i + 1, sigY);
+            }
+            // Right signature line  
+            for (let i = 135; i < 190; i += 2) {
+                doc.line(i, sigY, i + 1, sigY);
+            }
+
+            // Names - BLACK, normal weight
+            doc.setFont('helvetica', 'normal');
             doc.setTextColor(0, 0, 0);
-            doc.text('Ruxshan Razak', 20, sigY + 6);
-            doc.text('S.M.M. Hajath', 140, sigY + 6);
+            doc.text('Ruxshan Razak', 20, sigY + 7);
+            doc.text('S.M.M. Hajath', 155, sigY + 7);
 
-            // Titles (red)
-            doc.setFont('times', 'normal');
-            doc.setTextColor(180, 50, 50);
-            doc.text('Principal', 20, sigY + 12);
-            doc.text('Academic & Public Exams Coordinator', 140, sigY + 12);
+            // Titles - BLACK (matching screenshot - not red)
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(139, 90, 43); // Gold/brown like header text
+            doc.text('Principal', 20, sigY + 13);
+            doc.text('Academic & Public Exams Coordinator', 135, sigY + 13);
 
             // Save PDF
             const fileName = `Expected_Grade_Sheet_${studentName.replace(/\s+/g, '_')}.pdf`;
@@ -461,7 +439,7 @@ const PredictedGradesPortal: React.FC = () => {
             setGender('male');
         } catch (error) {
             console.error('Error generating PDF:', error);
-            alert('Error generating PDF. Please try again.');
+            alert('Error generating PDF. Please check that the header image exists at /assets/pdf-header.png');
         } finally {
             setGeneratingPdf(false);
         }
