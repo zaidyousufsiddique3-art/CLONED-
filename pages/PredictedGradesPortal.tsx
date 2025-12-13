@@ -101,13 +101,21 @@ const PredictedGradesPortal: React.FC = () => {
             for (const itemRef of fileItems) {
                 try {
                     // Download file blob
-                    const url = await getDownloadURL(itemRef);
-                    const response = await fetch(url);
-                    const blob = await response.blob();
-                    const file = new File([blob], itemRef.name, { type: blob.type });
+                    // Call Server-Side API to bypass CORS
+                    console.log(`[DEBUG] Requesting server-side extraction for: ${itemRef.fullPath}`);
+                    const response = await fetch('/api/extract-student-results', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ filePath: itemRef.fullPath })
+                    });
 
-                    // Extract
-                    const results = await extractDataFromFile(file, itemRef.fullPath);
+                    if (!response.ok) {
+                        console.error(`[API Error] ${response.status} ${response.statusText}`);
+                        continue;
+                    }
+
+                    const apiData = await response.json();
+                    const results = apiData.students || [];
 
                     if (results && results.length > 0) {
                         results.forEach((data, idx) => {
