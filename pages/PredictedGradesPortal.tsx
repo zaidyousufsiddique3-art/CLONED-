@@ -11,7 +11,9 @@ import {
 } from 'lucide-react';
 import { ref, listAll, getDownloadURL, getBytes } from 'firebase/storage';
 import { storage } from '../firebase/firebaseConfig';
-import { extractDataFromFile, StudentResult } from '../services/extractionService';
+// GLOBAL LOGIC ENFORCEMENT: Extraction is strictly routed via /api/extract-student-results to ensure consistency.
+// Do not use client-side extraction logic.
+import { StudentResult } from '../services/extractionService';
 
 const BASE_PATH = 'superadmin_documents/';
 
