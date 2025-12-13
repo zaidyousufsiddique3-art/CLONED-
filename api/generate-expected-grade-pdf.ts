@@ -1,4 +1,4 @@
-import { generateExpectedGradePdf, ExpectedGradePdfPayload } from '../src/pdf/generateExpectedGradePdf';
+import { generateExpectedGradePdf, ExpectedGradePdfPayload } from '../src/pdf/generateExpectedGradePdf.js';
 
 export default async function handler(req: any, res: any) {
     if (req.method !== 'POST') {
