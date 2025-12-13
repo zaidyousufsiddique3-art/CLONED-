@@ -1,7 +1,14 @@
 
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
-import * as pdfjsLib from 'pdfjs-dist';
+// @ts-ignore
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+
+// Disable workers for Node.js environment
+// @ts-ignore
+if (pdfjsLib.GlobalWorkerOptions) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+}
 
 // Initialize Firebase Admin (Singleton)
 if (!getApps().length) {
@@ -240,6 +247,14 @@ export default async function handler(req: any, res: any) {
 
         // 3. Parse Logic
         const results = parseTextLocally(text);
+
+        console.log(`[API] PDF loaded successfully`);
+        console.log(`[API] Extracted text length: ${text.length}`);
+        if (results.length > 0) {
+            console.log(`[API] Candidate found: ${results[0].candidateName}`);
+        } else {
+            console.log(`[API] No candidates found in text.`);
+        }
         console.log(`[API] Extracted ${results.length} candidates`);
 
         return res.status(200).json({
