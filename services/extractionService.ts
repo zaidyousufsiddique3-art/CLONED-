@@ -24,18 +24,34 @@ export interface StudentResult {
  */
 const normalizeText = (text: string): string => {
     if (!text) return '';
-
     let normalized = text
-        // Replace widely spaced letters C A N D I D A T E -> CANDIDATE
+        // Fix Common OCR keywords
         .replace(/C\s+A\s+N\s+D\s+I\s+D\s+A\s+T\s+E/gi, "CANDIDATE")
-        // Fix common OCR errors
         .replace(/CAND[1lI]DATE/gi, "CANDIDATE")
         .replace(/UN[1lI]QUE/gi, "UNIQUE")
         .replace(/NO\. AND/gi, "NO. AND")
+        .replace(/N\s+O/gi, "NO")
+        .replace(/N\s+A\s+M\s+E/gi, "NAME")
+        .replace(/A\s+N\s+D/gi, "AND")
         .replace(/DATE OF B[1lI]RTH/gi, "DATE OF BIRTH")
-        // Collapse multiple spaces
+
+        // Critical: Fix "A W A R D" -> "AWARD"
+        .replace(/A\s+W\s+A\s+R\s+D/gi, "AWARD")
+        .replace(/\bA\s+W\s+A\s+R\s+D\b/gi, "AWARD")
+        .replace(/A\s+WARD/gi, "AWARD")
+        .replace(/AWA\s+RD/gi, "AWARD")
+
+        // Fix Subject Codes like "X A C 1 1" -> "XAC11" (Support X, Y, W)
+        .replace(/\b([XYW])\s*([A-Z])\s*([A-Z])\s*(\d)\s*(\d)\b/g, "$1$2$3$4")
+
+        // Force Newline ONLY before keywords to ensure they start lines.
+        // Also ensure SPACE after AWARD to split 'AWARDYCH11' -> 'AWARD YCH11' for regex safety
+        .replace(/AWARD/gi, '\nAWARD ')
+        .replace(/UNIT/gi, '\nUNIT ')
+        .replace(/Contributing/gi, '\nContributing ')
+
+        // General whitespace collapse
         .replace(/[ \t]+/g, ' ')
-        // Ensure newlines are preserved but clean
         .replace(/\n\s+/g, '\n');
 
     return normalized;
@@ -228,126 +244,162 @@ const parseTextLocally = (text: string): StudentResult[] => {
     return results;
 };
 
+// Return result OR null (Functional approach)
+const processAwardBlock = (block: string): ExtractedGrade | null => {
+    // 1. Strict Filters
+    if (!block.toUpperCase().includes("AWARD")) return null;
+
+    // 2. Grade Regex (MATCH BEFORE TRIMMING/ SPLITTING)
+    // CAPTURE GROUP 1: The official Pearson Grade (including optional *)
+    const gradeRegex = /([A-EU]\*?)\s*\(\s*([a-eu]\*?)\s*\)/;
+
+    // We run matches on the full block string
+    const gradeMatch = block.match(gradeRegex);
+    if (!gradeMatch) return null;
+
+    const grade = gradeMatch[1]; // A, B, U... capture group 1
+
+    // 4. Code Regex (RELAXED AS REQUESTED)
+    const codeRegex = /([XYW][A-Z]{2}\d{2})/i;
+    const codeMatch = block.match(codeRegex);
+
+    if (!codeMatch) return null;
+
+    const code = codeMatch[1]; // Capture group 1
+
+    // 5. Subject Extraction
+    const content = block;
+    const codeIdx = content.indexOf(code);
+
+    // Safety check
+    if (codeIdx === -1) return null;
+
+    const marksRegex = /\b\d+\s*\/\s*\d+\b/;
+    const marksMatch = block.match(marksRegex);
+
+    let subjectEndIdx = -1;
+
+    if (marksMatch) {
+        subjectEndIdx = content.indexOf(marksMatch[0]);
+    } else {
+        subjectEndIdx = gradeMatch.index!;
+    }
+
+    if (marksMatch && subjectEndIdx <= codeIdx + code.length) {
+        subjectEndIdx = gradeMatch.index!;
+    }
+
+    if (subjectEndIdx <= codeIdx + code.length) {
+        if (gradeMatch.index! > codeIdx + code.length) {
+            subjectEndIdx = gradeMatch.index!;
+        } else {
+            return null;
+        }
+    }
+
+    let subject = content.substring(codeIdx + code.length, subjectEndIdx).trim();
+    subject = subject.replace(/[^A-Za-z\s\-&]/g, "").trim();
+
+    if (!subject) subject = "Unknown Subject";
+
+    if (code && subject && grade) {
+        return { code, subject, grade };
+    }
+    return null;
+};
+
 const parseStudentBlock = (text: string): StudentResult => {
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-    let candidateName = '';
-    let uci = '';
-    let dob = '';
-    const grades: ExtractedGrade[] = [];
 
-    // --- Name Extraction ---
-    // Strategy: Look for "CANDIDATE NAME" then capture text.
-    // Handles:
-    // 1. CANDIDATE NAME : JOHN DOE
-    // 2. CANDIDATE NAME 0001 JOHN DOE
-    // 3. CANDIDATE NAME \n JOHN DOE
+    let candidateName = 'Unknown Candidate';
+    let uci = 'Unknown UCI';
+    let dob = 'Unknown DOB';
 
-    // Regex for "CANDIDATE NAME" followed by potential separators/numbers, then the name
-    const candidateNameRegex = /CANDIDATE\s+NAME\s*(?:[:.]|)?\s*(?:(\d{4}))?\s*(?:[:.]|)?\s*([A-Z\s\.\-]+)/i;
-    let nameMatch = text.match(candidateNameRegex);
-
+    // 1. Header Extraction
+    const nameMatch = text.match(/CANDIDATE\s+NAME\s*(?:[:.]|)?\s*(?:(\d{4}))?\s*(?:[:.]|)?\s*([A-Z\s\.\-:]+)/i);
     if (nameMatch) {
-        // Group 2 is Name (unless empty). Note: Group 1 is Number if present.
-        let rawName = nameMatch[2].trim();
-
-        // If Name is empty or short, maybe it's on the next line?
-        if (rawName.length < 2) {
-            // Look at the text strictly following the match index?
-            // Or iterate lines to find the line *after* CANDIDATE NAME
-        }
-
-        // Validation: Stop at Key Markers
-        const stopMarkers = ['UNIQUE', 'DATE OF BIRTH', 'CENTRE', 'Result'];
-        for (const marker of stopMarkers) {
-            const idx = rawName.toUpperCase().indexOf(marker);
-            if (idx !== -1) {
-                rawName = rawName.substring(0, idx);
-            }
-        }
-
-        candidateName = rawName.trim();
+        let raw = nameMatch[2].trim();
+        ['UNIQUE', 'DATE', 'CENTRE'].forEach(stop => {
+            const idx = raw.toUpperCase().indexOf(stop);
+            if (idx !== -1) raw = raw.substring(0, idx);
+        });
+        candidateName = raw.trim();
     }
 
-    // If strict regex failed, try looking for the line starting with "CANDIDATE NAME" and taking the rest
-    if (!candidateName) {
-        const nameLine = lines.find(l => /CANDIDATE\s+(?:NO\.|NUMBER)?\s*(?:AND)?\s*NAME/i.test(l));
-        if (nameLine) {
-            // Remove the label
-            let cleaned = nameLine.replace(/CANDIDATE\s+(?:NO\.|NUMBER)?\s*(?:AND)?\s*NAME/i, '').trim();
-            // Remove leading digits (candidate number)
-            cleaned = cleaned.replace(/^\d{4}\s*/, '');
-            // Remove separators
-            cleaned = cleaned.replace(/^[:\-\.]+\s*/, '');
-            candidateName = cleaned;
-        }
-    }
-
-    // --- UCI Extraction ---
-    // Look for "UNIQUE CANDIDATE IDENTIFIER"
     const uciMatch = text.match(/UNIQUE\s+CANDIDATE\s+IDENTIFIER\s*[:\.]?\s*([A-Z0-9]+)/i);
     if (uciMatch) uci = uciMatch[1];
     else {
-        // Fallback pattern
-        const uciPattern = /\b9\d{4}[A-Z]\d{7}[A-Z0-9]\b/;
-        const deepMatch = text.match(uciPattern);
-        if (deepMatch) uci = deepMatch[0];
+        const fallback = text.match(/\b9\d{4}[A-Z]\d{7}[A-Z0-9]\b/);
+        if (fallback) uci = fallback[0];
     }
 
-    // --- DOB Extraction ---
     const dobMatch = text.match(/DATE\s+OF\s+BIRTH\s*[:\.]?\s*(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4})/i);
     if (dobMatch) dob = dobMatch[1];
-    else {
-        const dateMatch = text.match(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/);
-        if (dateMatch) dob = dateMatch[0];
-    }
 
-    // --- Grades (Strict Award Only) ---
-    // Start scanning when we see "AWARD" or "SUBJECT"
-    // Stop when we see "UNIT" or end
+    // 2. AWARD BUFFERING LOGIC
+    const results: ExtractedGrade[] = [];
+
+    const gradeChecker = /([A-EU]\*?)\s*\(\s*([a-eu]\*?)\s*\)/;
+
+    let currentBlock = "";
+    let isCapture = false;
+
+    const startsWithKeyword = (line: string, keyword: string) => {
+        return line.toUpperCase().startsWith(keyword.toUpperCase());
+    };
+
+    const flushBlock = (block: string) => {
+        if (!block) return;
+        const res = processAwardBlock(block);
+        if (res) {
+            results.push(res);
+        }
+    };
 
     for (const line of lines) {
-        // Must start with AWARD
-        if (!line.toUpperCase().startsWith('AWARD')) continue;
+        const cleanLine = line.trim();
+        if (!cleanLine) continue;
 
-        // Example: AWARD YMA01 MATHEMATICS 200/300 A(a)
-        const content = line.substring(5).trim(); // remove AWARD
-        const parts = content.split(/\s+/);
+        if (startsWithKeyword(cleanLine, 'AWARD')) {
+            if (currentBlock) flushBlock(currentBlock);
+            currentBlock = cleanLine;
+            isCapture = true;
+        }
+        else if (isCapture) {
+            const hasGrade = gradeChecker.test(currentBlock);
+            const isStopKeyword =
+                startsWithKeyword(cleanLine, 'UNIT') ||
+                startsWithKeyword(cleanLine, 'Contributing');
 
-        if (parts.length < 2) continue;
+            const isNextStudent =
+                cleanLine.includes("UNIQUE CANDIDATE") ||
+                startsWithKeyword(cleanLine, 'CANDIDATE NAME');
 
-        const code = parts[0];
-        let grade = '';
-        let subjectEndIndex = -1;
-
-        // Find Grade from right side
-        for (let i = parts.length - 1; i >= 1; i--) {
-            const p = parts[i];
-            // Format: A, A*, B(b), C(c), U
-            if (/^[A-EU]\*?(\([a-z]\))?$/i.test(p)) {
-                grade = p;
-                subjectEndIndex = i;
-                break;
+            if (isNextStudent) {
+                flushBlock(currentBlock);
+                currentBlock = "";
+                isCapture = false;
+            }
+            else if (hasGrade && isStopKeyword) {
+                flushBlock(currentBlock);
+                currentBlock = "";
+                isCapture = false;
+            }
+            else {
+                currentBlock += " " + cleanLine;
             }
         }
-
-        if (grade && subjectEndIndex > 0) {
-            // Subject is everything between Code and Grade (excluding intermediate marks e.g. 200/300)
-            const middleParts = parts.slice(1, subjectEndIndex);
-            // Filter out numeric/scores
-            const subjectParts = middleParts.filter(p => !/^[\d\/]+$/.test(p));
-            const subject = subjectParts.join(' ');
-
-            if (subject) {
-                grades.push({ code, subject, grade });
-            }
-        }
+    }
+    // Flush last
+    if (currentBlock && isCapture) {
+        flushBlock(currentBlock);
     }
 
     return {
-        candidateName: candidateName || 'Unknown Candidate',
-        uci: uci || 'Unknown UCI',
-        dob: dob || 'Unknown DOB',
-        results: grades, // Mapped to results
-        rawText: text.substring(0, 300) // snippet for debug
+        candidateName,
+        uci,
+        dob,
+        results,
+        rawText: text.substring(0, 300)
     };
 };
