@@ -1,4 +1,5 @@
-import { chromium } from 'playwright';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 import admin from 'firebase-admin';
 
 // Initialize Firebase Admin (Singleton)
@@ -52,9 +53,9 @@ export default async function handler(req: any, res: any) {
 
     try {
         const payload = req.body;
-        console.log("HTML PIPELINE EXECUTED");
+        console.log("HTML PIPELINE EXECUTED (PUPPETEER)");
 
-        // 1. Download HTML Template
+        // 1. Download HTML Template from Firebase
         const bucket = admin.storage().bucket();
         const file = bucket.file('templates/SLISR_EXPECTED_GRADE_TEMPLATE.html');
         const [exists] = await file.exists();
@@ -90,11 +91,9 @@ export default async function handler(req: any, res: any) {
             .replace('{{STUDENT_FULL_NAME}}', payload.STUDENT_FULL_NAME || '')
             .replace('{{UCI_NUMBER}}', payload.UCI_NUMBER || '')
             .replace('{{IAS_SESSION_MONTH_YEAR}}', payload.IAS_SESSION_MONTH_YEAR || '')
-            .replace('{{IAL_SESSION_MONTH_YEAR}}', payload.IAL_SESSION_MONTH_YEAR || '')
-            .replace('{{IAL_SESSION_MONTH_YEAR}}', payload.IAL_SESSION_MONTH_YEAR || ''); // Replace second occurrence if needed? ReplaceAll is safer.
-
-        // Use replaceAll for session if it appears multiple times (title + paragraph)
-        html = html.split('{{IAL_SESSION_MONTH_YEAR}}').join(payload.IAL_SESSION_MONTH_YEAR || '');
+            .replace('{{IAL_SESSION_MONTH_YEAR}}', payload.IAL_SESSION_MONTH_YEAR || '') // First occurrence (paragraph 2) if unique
+            // Safe string replacement for remaining occurrences
+            .split('{{IAL_SESSION_MONTH_YEAR}}').join(payload.IAL_SESSION_MONTH_YEAR || '');
 
         // Generate Rows
         const originalRows = generateRows(originalSubjects, originalGrades);
@@ -103,18 +102,25 @@ export default async function handler(req: any, res: any) {
         html = html.replace('{{ORIGINAL_RESULTS_ROWS}}', originalRows)
             .replace('{{PREDICTED_RESULTS_ROWS}}', predictedRows);
 
-        // 4. Render PDF with Playwright
-        // Note: On Vercel, this might need extra config, but following STRICT instructions to use Playwright Chromium
-        browser = await chromium.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        // 4. Render PDF with Puppeteer Core + @sparticuz/chromium
+        browser = await puppeteer.launch({
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: await chromium.executablePath(),
+            headless: chromium.headless,
         });
+
         const page = await browser.newPage();
-        await page.setContent(html);
+
+        // Optimize for speed/serverless
+        await page.setContent(html, {
+            waitUntil: 'domcontentloaded'
+        });
 
         const pdfBuffer = await page.pdf({
             format: 'A4',
             printBackground: true,
-            margin: { top: '0', bottom: '0', left: '0', right: '0' } // Template likely handles margins via CSS
+            margin: { top: '0', bottom: '0', left: '0', right: '0' }
         });
 
         await browser.close();
@@ -126,7 +132,9 @@ export default async function handler(req: any, res: any) {
 
     } catch (error: any) {
         console.error('Error in HTML-to-PDF pipeline:', error);
-        if (browser) await browser.close();
+        if (browser) {
+            await browser.close();
+        }
         res.status(500).json({ error: 'Failed to generate PDF', details: error.message });
     }
 }
