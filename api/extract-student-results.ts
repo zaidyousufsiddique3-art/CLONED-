@@ -4,8 +4,17 @@ import { getStorage } from 'firebase-admin/storage';
 // @ts-ignore
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
 
-// Disable workers for Node.js environment
-pdfjsLib.GlobalWorkerOptions.workerSrc = null;
+// Disable workers correctly for Node.js
+if (pdfjsLib.GlobalWorkerOptions) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = null;
+}
+
+// HARD DISABLE CANVAS / DOM FEATURES
+// @ts-ignore
+if (pdfjsLib) {
+    (pdfjsLib as any).disableWorker = true;
+    (pdfjsLib as any).useSystemFonts = true;
+}
 
 // Initialize Firebase Admin (Singleton)
 if (!getApps().length) {
@@ -192,6 +201,7 @@ const extractTextFromPdfBuffer = async (buffer: Buffer): Promise<string> => {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        console.log(`[API] Page ${i} text length: ${pageText.length}`);
         fullText += pageText + '\n ';
     }
 
