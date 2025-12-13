@@ -128,23 +128,32 @@ export const generateExpectedGradePdf = async (payload: ExpectedGradePdfPayload)
         const pages = pdfDoc.getPages();
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-        // 3. Render fields in STRICT ZONES
+        // Helper: Sanitize grades to remove suffixes like " (a)"
+        const normalizeGrade = (raw: string): string => {
+            if (!raw) return '';
+            // Remove anything in parentheses and trim
+            // e.g. "A (a)" -> "A", "A*" -> "A*"
+            const clean = raw.replace(/\s*\(.*\)/, '').trim();
+            // Validate allowlist (optional but good for strictness)
+            const allowList = ['A*', 'A', 'B', 'C', 'D', 'E', 'U'];
+            if (allowList.includes(clean)) return clean;
+            return clean; // Fallback: return cleaned string even if weird
+        };
+
+        // 3. Render fields in STRICT ZONES (Interleaved)
 
         const page = pages[0];
 
-        // --- ZONE 1: PARAGRAPH / INLINE TEXT ---
-        // Render simple scalar fields
-        const inlineFields = [
+        // --- ZONE 1: HEADER & FIRST PARAGRAPH ---
+        const firstBlockFields = [
             'DOCUMENT_ISSUE_DATE',
             'IAL_SESSION_MONTH_YEAR_TITLE',
             'STUDENT_FULL_NAME',
             'UCI_NUMBER',
-            'IAS_SESSION_MONTH_YEAR',
-            'IAL_SESSION_MONTH_YEAR'
+            'IAS_SESSION_MONTH_YEAR'
         ];
 
-        for (const key of inlineFields) {
-            // Special handling for the title mapping if payload uses IAL_SESSION_MONTH_YEAR
+        for (const key of firstBlockFields) {
             let valStr = '';
             if (key === 'IAL_SESSION_MONTH_YEAR_TITLE') {
                 valStr = payload.IAL_SESSION_MONTH_YEAR;
@@ -176,9 +185,11 @@ export const generateExpectedGradePdf = async (payload: ExpectedGradePdfPayload)
             const gradeKey = `ORIGINAL_GRADE_${i}`;
 
             const subject = (payload as any)[subjectKey];
-            const grade = (payload as any)[gradeKey];
+            let grade = (payload as any)[gradeKey];
 
             if (subject && grade) {
+                grade = normalizeGrade(String(grade));
+
                 // Render Subject (Left: 120)
                 page.drawText(String(subject), {
                     x: 120,
@@ -189,7 +200,7 @@ export const generateExpectedGradePdf = async (payload: ExpectedGradePdfPayload)
                 });
 
                 // Render Grade (Right Column: 400)
-                page.drawText(String(grade), {
+                page.drawText(grade, {
                     x: 400,
                     y: currentY_Original,
                     size: 10,
@@ -201,7 +212,27 @@ export const generateExpectedGradePdf = async (payload: ExpectedGradePdfPayload)
             }
         }
 
-        // --- ZONE 3: PREDICTED RESULTS (ROW BLOCK) ---
+        // --- ZONE 3: SECOND PARAGRAPH ---
+        // Render IAL Session text *between* the tables
+        const secondBlockFields = ['IAL_SESSION_MONTH_YEAR'];
+
+        for (const key of secondBlockFields) {
+            const valStr = String((payload as any)[key] || '');
+            if (!valStr) continue;
+
+            const config = FIELD_MAP[key];
+            if (config) {
+                page.drawText(valStr, {
+                    x: config.x,
+                    y: config.y,
+                    size: config.size,
+                    font: font,
+                    color: rgb(0, 0, 0),
+                });
+            }
+        }
+
+        // --- ZONE 4: PREDICTED RESULTS (ROW BLOCK) ---
         // Start Y: 380, Spacing: 20
         let currentY_Predicted = 380;
 
@@ -210,9 +241,11 @@ export const generateExpectedGradePdf = async (payload: ExpectedGradePdfPayload)
             const gradeKey = `PREDICTED_GRADE_${i}`;
 
             const subject = (payload as any)[subjectKey];
-            const grade = (payload as any)[gradeKey];
+            let grade = (payload as any)[gradeKey];
 
             if (subject && grade) {
+                grade = normalizeGrade(String(grade));
+
                 // Render Subject (Left: 120)
                 page.drawText(String(subject), {
                     x: 120,
@@ -223,7 +256,7 @@ export const generateExpectedGradePdf = async (payload: ExpectedGradePdfPayload)
                 });
 
                 // Render Grade (Right Column: 400)
-                page.drawText(String(grade), {
+                page.drawText(grade, {
                     x: 400,
                     y: currentY_Predicted,
                     size: 10,
