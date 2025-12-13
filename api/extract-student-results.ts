@@ -48,6 +48,9 @@ const normalizeText = (text: string): string => {
         .replace(/CAND[1lI]DATE/gi, "CANDIDATE")
         .replace(/UN[1lI]QUE/gi, "UNIQUE")
         .replace(/NO\. AND/gi, "NO. AND")
+        .replace(/N\s+O/gi, "NO")
+        .replace(/N\s+A\s+M\s+E/gi, "NAME")
+        .replace(/A\s+N\s+D/gi, "AND")
         .replace(/DATE OF B[1lI]RTH/gi, "DATE OF BIRTH")
         .replace(/[ \t]+/g, ' ')
         .replace(/\n\s+/g, '\n');
@@ -60,7 +63,9 @@ const parseStudentBlock = (text: string): StudentResult => {
     let dob = '';
     const grades: ExtractedGrade[] = [];
 
-    const candidateNameRegex = /CANDIDATE\s+NAME\s*(?:[:.]|)?\s*(?:(\d{4}))?\s*(?:[:.]|)?\s*([A-Z\s\.\-]+)/i;
+    // Enhanced regex to capture full name including colons and spaces
+    // Looks for CANDIDATE NAME <optional ID> <NAME>
+    const candidateNameRegex = /CANDIDATE\s+NAME\s*(?:[:.]|)?\s*(?:(\d{4}))?\s*(?:[:.]|)?\s*([A-Z\s\.\-:]+)/i;
     let nameMatch = text.match(candidateNameRegex);
 
     if (nameMatch) {
