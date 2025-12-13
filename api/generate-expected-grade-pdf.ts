@@ -1,5 +1,7 @@
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // STEP 1 — FORCE NODE RUNTIME (NON-NEGOTIABLE)
 export const config = {
@@ -33,7 +35,8 @@ const normalizeGrade = (raw: string): string => {
     return '';
 };
 
-// EMBEDDED HTML TEMPLATE (Strictly following the provided image)
+
+// EMBEDDED HTML TEMPLATE (With visual enhancements)
 const HTML_TEMPLATE = `
 <!DOCTYPE html>
 <html>
@@ -41,21 +44,18 @@ const HTML_TEMPLATE = `
     <style>
         body {
             font-family: "Helvetica", "Arial", sans-serif;
-            font-size: 11pt; /* Adjusted to look like the image */
+            font-size: 11pt;
             line-height: 1.5;
             padding: 40px 95px; /* ~25mm left/right margins */
             color: #000;
+            background-color: #fffdf8;
         }
-        .header-placeholder {
+        .header-image {
             width: 100%;
-            height: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px dashed #ccc;
-            margin-bottom: 40px;
-            font-weight: bold;
-            color: #555;
+            max-width: 700px;
+            height: auto;
+            display: block;
+            margin: 0 auto 40px auto;
         }
         .date {
             margin-bottom: 30px;
@@ -80,22 +80,30 @@ const HTML_TEMPLATE = `
             font-weight: bold;
         }
         .results-block {
-            margin: 20px auto; /* Centered block */
-            width: 70%; /* Indented */
+            margin: 20px auto;
+            max-width: 600px;
             font-weight: bold;
+            border: 2px solid #000;
+            padding: 15px 20px;
         }
         .result-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
+            align-items: center;
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+        .result-row:last-child {
+            margin-bottom: 0;
         }
         .subject {
             text-align: left;
             text-transform: uppercase;
+            flex: 1;
         }
         .grade {
             text-align: right;
-            min-width: 50px;
+            margin-left: 20px;
         }
         .footer {
             margin-top: 50px;
@@ -119,10 +127,8 @@ const HTML_TEMPLATE = `
 </head>
 <body>
 
-    <!-- 1. Header (Placeholder as requested) -->
-    <div class="header-placeholder">
-        [ORIGINAL HEADER IMAGE]
-    </div>
+    <!-- 1. Header Image -->
+    <img src="data:image/png;base64,{{HEADER_IMAGE_BASE64}}" class="header-image" alt="School Header">
 
     <!-- 2. Date -->
     <div class="date">
@@ -199,6 +205,17 @@ export default async function handler(req: any, res: any) {
 
         let html = HTML_TEMPLATE;
 
+        // --- READ HEADER IMAGE BASE64 ---
+        try {
+            const base64Path = path.join(process.cwd(), 'temp_base64.txt');
+            const headerImageBase64 = fs.readFileSync(base64Path, 'utf-8').trim();
+            html = html.replace('{{HEADER_IMAGE_BASE64}}', headerImageBase64);
+        } catch (error) {
+            console.error('Error reading header image:', error);
+            // Fallback: use empty string if file not found
+            html = html.replace('{{HEADER_IMAGE_BASE64}}', '');
+        }
+
         // --- REPLACE PLACEHOLDERS ---
 
         // Gender Logic
@@ -259,7 +276,6 @@ export default async function handler(req: any, res: any) {
 
         browser = await puppeteer.launch({
             args: chromium.args,
-            defaultViewport: chromium.defaultViewport as any,
             executablePath: await chromium.executablePath(),
             headless: true,
         });
