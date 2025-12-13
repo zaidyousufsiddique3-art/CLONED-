@@ -1,8 +1,9 @@
 
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
-// @ts-ignore
-import pdf from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdf = require('pdf-parse');
 
 // Initialize Firebase Admin (Singleton)
 if (!getApps().length) {
@@ -43,7 +44,20 @@ interface StudentResult {
     grades: ExtractedGrade[];
     rawText?: string;
 }
+// --- Parsing Logic (Mirrored from extractionService.ts) ---
 
+const normalizeText = (text: string): string => {
+    if (!text) return '';
+    let normalized = text
+        .replace(/C\s+A\s+N\s+D\s+I\s+D\s+A\s+T\s+E/gi, "CANDIDATE")
+        .replace(/CAND[1lI]DATE/gi, "CANDIDATE")
+        .replace(/UN[1lI]QUE/gi, "UNIQUE")
+        .replace(/NO\. AND/gi, "NO. AND")
+        .replace(/DATE OF B[1lI]RTH/gi, "DATE OF BIRTH")
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n\s+/g, '\n');
+    return normalized;
+};
 const parseStudentBlock = (text: string): StudentResult => {
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
     let candidateName = '';
