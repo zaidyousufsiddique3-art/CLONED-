@@ -101,31 +101,75 @@ const parseStudentBlock = (text: string): StudentResult => {
     }
 
     for (const line of lines) {
-        if (!line.toUpperCase().startsWith('AWARD')) continue;
-        const content = line.substring(5).trim();
+        // STRICT FILTER: Match rows starting with "AWARD" (case-insensitive)
+        if (!line.trim().toUpperCase().startsWith('AWARD')) continue;
+
+        // STRICT FILTER: Ignore headers, units, or contributing components
+        // The user explicitly listed "UNIT", "Contributing Units" as INVALID.
+        // Also headers like "CANDIDATE..." shouldn't be here due to logic above, but safety check.
+        if (/^UNIT\b/i.test(line)) continue;
+
+        // STRICT LOGIC: Must contain a grade in format A(a), B(b), etc.
+        // Regex: [A-Z]\([a-z]\) at the end of the line or near the end
+        // Also marks: usually 123/456
+        const gradeMatch = line.match(/([A-Z])\(([a-z])\)/);
+        if (!gradeMatch) continue; // Skip if no valid grade format found
+
+        // Extract parts
+        // Expected format: AWARD <code> <Subject Name> <Marks> <Grade>
+        // Example: AWARD XAC11 ACCOUNTING 225/300 B(b)
+
+        const content = line.substring(5).trim(); // Remove AWARD
         const parts = content.split(/\s+/);
-        if (parts.length < 2) continue;
 
-        const code = parts[0];
-        let grade = '';
-        let subjectEndIndex = -1;
+        let code = parts[0];
+        let grade = gradeMatch[0];
+        let subject = "";
 
-        for (let i = parts.length - 1; i >= 1; i--) {
-            const p = parts[i];
-            if (/^[A-EU]\*?(\([a-z]\))?$/i.test(p)) {
-                grade = p;
-                subjectEndIndex = i;
+        // Find matches for Grade and Marks to isolate Subject
+        // We know Grade is at the end or near end.
+
+        // Let's rely on the structure: Code is first part. Grade is last part usually?
+        // Sometimes Grade is followed by points or nothing.
+        // Let's look for the grade index in parts
+
+        let gradeIndex = -1;
+        for (let i = parts.length - 1; i >= 0; i--) {
+            if (parts[i].includes(gradeMatch[0])) {
+                gradeIndex = i;
                 break;
             }
         }
 
-        if (grade && subjectEndIndex > 0) {
-            const middleParts = parts.slice(1, subjectEndIndex);
-            const subjectParts = middleParts.filter(p => !/^[\d\/]+$/.test(p));
-            const subject = subjectParts.join(' ');
-            if (subject) {
-                grades.push({ code, subject, grade });
-            }
+        if (gradeIndex <= 0) continue; // Should have code and subject before grade
+
+        // Extracted Grade is parts[gradeIndex]
+        // But pure grade letter might be just the first char of "B(b)" -> "B"
+        // User output example showed "grade": "B". Input was "B(b)".
+        // So we extract the uppercase letter.
+        grade = gradeMatch[1];
+
+        // Marks usually precedes grade. E.g. 225/300
+        // But strictly, subject is everything between Code and Marks/Grade.
+
+        // Let's filter out marks if they exist
+        const isMarks = (s: string) => /^\d+\/\d+$/.test(s) || /^\d+$/.test(s);
+
+        let subjectEndIndex = gradeIndex;
+        // Check if the part before grade is marks
+        if (gradeIndex > 1 && isMarks(parts[gradeIndex - 1])) {
+            subjectEndIndex = gradeIndex - 1;
+        }
+
+        const subjectParts = parts.slice(1, subjectEndIndex);
+        subject = subjectParts.join(' ');
+
+        // Clean Subject
+        // Remove ANY trailing numbers or odd chars if they leaked
+        subject = subject.replace(/[\d\/]+$/, '').trim();
+
+        if (code && subject && grade) {
+            grades.push({ code, subject, grade });
         }
     }
 
