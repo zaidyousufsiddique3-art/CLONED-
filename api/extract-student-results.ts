@@ -60,8 +60,8 @@ const normalizeText = (text: string): string => {
         .replace(/A\s+WARD/gi, "AWARD")
         .replace(/AWA\s+RD/gi, "AWARD")
 
-        // Fix Subject Codes like "X A C 1 1" -> "XAC11"
-        .replace(/\bX\s*([A-Z])\s*([A-Z])\s*(\d)\s*(\d)\b/g, "X$1$2$3$4")
+        // Fix Subject Codes like "X A C 1 1" -> "XAC11" (Support X, Y, W)
+        .replace(/\b([XYW])\s*([A-Z])\s*([A-Z])\s*(\d)\s*(\d)\b/g, "$1$2$3$4")
 
         // Force Newline ONLY before keywords to ensure they start lines
         .replace(/AWARD/gi, '\nAWARD')
@@ -77,7 +77,7 @@ const normalizeText = (text: string): string => {
     console.log("[DEBUG] textLen:", normalized.length);
     console.log("[DEBUG] awardCount:", (normalized.match(/\bAWARD\b/gi) || []).length);
 
-    // Debug specific grade token count
+    // Debug specific grade token count (Matches A*, A, B... with parens)
     const gradeRegexGlobal = /([A-EU])\*?\s*\(\s*([a-eu])\*?\s*\)/g;
     const gradeCount = (normalized.match(gradeRegexGlobal) || []).length;
 
@@ -95,6 +95,7 @@ const processAwardBlock = (block: string, grades: ExtractedGrade[]) => {
     if (!block.toUpperCase().includes("AWARD")) return;
 
     // Grade Regex (Exact FINAL REQUIREMENT)
+    // Matches A*(a*), A(a), B(b), etc.
     const gradeRegex = /([A-EU])\*?\s*\(\s*([a-eu])\*?\s*\)/;
 
     const gradeMatch = block.match(gradeRegex);
@@ -103,15 +104,17 @@ const processAwardBlock = (block: string, grades: ExtractedGrade[]) => {
         return;
     }
 
-    // Marks Regex (Used as delimiter)
-    const marksMatch = block.match(/(\d+)\s*\/\s*(\d+)/);
+    // Marks Regex (Space tolerant)
+    // Must be space tolerant: 270/300 or 270 / 300
+    const marksRegex = /\b\d+\s*\/\s*\d+\b/;
+    const marksMatch = block.match(marksRegex);
     if (!marksMatch) {
         console.log(`[DEBUG] No marks match in block: "${block}"`);
         return;
     }
 
-    // Code Regex (Strict X-code)
-    const codeRegex = /\bX[A-Z]{2}\d{2}\b/;
+    // Code Regex (Strict X, Y, W start)
+    const codeRegex = /\b([XYW][A-Z]{2}\d{2})\b/;
     const codeMatch = block.match(codeRegex);
 
     if (!codeMatch) {
@@ -119,8 +122,8 @@ const processAwardBlock = (block: string, grades: ExtractedGrade[]) => {
         return;
     }
 
-    const code = codeMatch[0];
-    const grade = gradeMatch[1]; // Capital letter only
+    const code = codeMatch[1]; // Capture group 1
+    const grade = gradeMatch[1]; // Capturing group 1 is the capital letter (A, B, U...) ignoring the *
 
     // Subject Extraction: Between Code end and Marks start
     const content = block; // Using full block to search
@@ -139,6 +142,7 @@ const processAwardBlock = (block: string, grades: ExtractedGrade[]) => {
 
     if (code && subject && grade) {
         grades.push({ code, subject, grade });
+        console.log("[DEBUG] PUSHED RESULT:", { code, subject, grade });
     }
 };
 
@@ -174,6 +178,7 @@ const parseStudentBlock = (text: string): StudentResult => {
     const grades: ExtractedGrade[] = [];
 
     // Grade Checker for Buffering (Must match process regex)
+    // Matches A*(a*), A(a), B(b), etc.
     const gradeChecker = /([A-EU])\*?\s*\(\s*([a-eu])\*?\s*\)/;
 
     let currentBlock = "";
