@@ -107,41 +107,22 @@ const parseStudentBlock = (text: string): StudentResult => {
 
     // --- OCR NORMALIZATION & BLOCK RECONSTRUCTION ---
 
-    // 1. Normalize OCR Text GLOBALLY before splitting
-    // Fix spaced capitals: "A W A R D" -> "AWARD"
-    // Fix spaces between single capital letters: "X A C 1 1" -> "XAC11"
-
-    // Strategy:
-    // a. Replace "A W A R D" specific patterns first (most critical)
-    // b. General collapsing of single chars? Matches like /([A-Z])\s+([A-Z])/g
-
     let normalizedBody = text;
 
-    // Specific fix for "A W A R D" (case insensitive)
+    // 1. Force Newline before AWARD (Crucial for multi-award lines)
+    normalizedBody = normalizedBody.replace(/AWARD/gi, '\nAWARD');
+
+    // 2. Specific fix for spaced "A W A R D" (case insensitive) -> "AWARD"
     normalizedBody = normalizedBody.replace(/A\s+W\s+A\s+R\s+D/gi, "AWARD");
-    // Fix "AW ARD", "A WARD" etc
-    normalizedBody = normalizedBody.replace(/AW\s+ARD/gi, "AWARD");
+    // Other common OCR breaks
+    normalizedBody = normalizedBody.replace(/\bA\s+W\s+A\s+R\s+D\b/gi, "AWARD"); // safe boundary
     normalizedBody = normalizedBody.replace(/A\s+WARD/gi, "AWARD");
-    normalizedBody = normalizedBody.replace(/AWA\s+RD/gi, "AWARD");
 
-    // General fix: Collapse spaces between capital letters (e.g. S U B J E C T -> SUBJECT)
-    // Be careful not to merge subject words if they are genuinely spaced.
-    // However, user requirement says "Remove spaces between single capital letters globally".
-    // This implies "X A C 1 1" -> "XAC11" but maybe "A C C O U N T I N G" -> "ACCOUNTING"
-    // Regex: look for [A-Z] space [A-Z], repeatedly.
-    // Safe approach: /(?<=^[A-Z]|\s[A-Z])\s+(?=[A-Z])/g ?? 
-    // Simpler: Replace " <Char> " sequences?
-    // Let's protect "AWARD" first (done).
-
-    // Let's follow the user's explicit examples:
-    // "A W A R D" -> "AWARD"
+    // 3. User requested global collapse of single letters for other fields?
     // "Remove spaces between single capital letters globally"
-    // Implementation: Try to find isolated single chars separated by space.
-    // Regex: / \b([A-Z])\s+(?=[A-Z]\b) /g
-
-    normalizedBody = normalizedBody.replace(/\b([A-Z])\s+(?=[A-Z]\b)/g, "$1");
-    // Run it again to handle overlap "A B C" -> "AB C" -> "ABC"
-    normalizedBody = normalizedBody.replace(/\b([A-Z0-9])\s+(?=[A-Z0-9]\b)/g, "$1"); // Include digits for XAC11
+    // CAREFUL: "X A C 1 1 A C C..." -> "XAC11ACC..."
+    // We will apply this cautiously. 
+    // Let's rely on strict parsing logic *after* reconstruction to handle merged fields instead.
 
     // Collapse multiple spaces
     normalizedBody = normalizedBody.replace(/[ \t]+/g, ' ');
@@ -166,7 +147,6 @@ const parseStudentBlock = (text: string): StudentResult => {
         emptyLineCount = 0;
 
         // 2. Flexible AWARD Detection
-        // normalized text already fixed spaced "A W A R D" -> "AWARD"
         if (line.toUpperCase().includes("AWARD")) {
             if (currentBuffer) {
                 reconstructedRows.push(currentBuffer);
@@ -206,16 +186,31 @@ const parseStudentBlock = (text: string): StudentResult => {
 
         const awardIdx = upperRow.indexOf("AWARD");
         const afterAward = normalizedRow.substring(awardIdx + 5).trim();
-        const parts = afterAward.split(" ");
-        if (parts.length < 1) continue;
 
-        const code = parts[0];
+        // We know 'afterAward' might be "XAC11ACCOUNTING..." (merged) or "XAC11 ACCOUNTING..." (spaced)
+        // We MUST split Code from Subject.
+        // Code pattern: Starts with alphanumeric. Usually [A-Z0-9]+
+        // Pearson Codes often end with a digit (XAC11, WBS12).
+        // Let's use a regex to find the Code.
 
-        // Find Marks start index in 'afterAward'
+        // Regex: 
+        // Start of string
+        // Match sequence of chars/digits
+        // Must likely be 5-6 chars.
+        // Let's assume Code contains at least one digit? Yes XAC11.
+
+        const codeMatch = afterAward.match(/^([A-Z0-9]*\d)/); // Greedy match until last digit?
+        // If "XAC11ACCOUNTING", match is "XAC11" (since A is not digit).
+        // If "XAC11 ACCOUNTING", match is "XAC11" (since space is not digit).
+
+        if (!codeMatch) continue;
+
+        const code = codeMatch[0];
+
+        // Subject is text BETWEEN Code and Marks
+        // We search for Marks *after* the Code length
+
         const marksStr = marksMatch[0];
-        // Be careful: find marksStr AFTER the code
-        // indexOf might find marks inside code if code was "100/200" (unlikely)
-        // Let's search from (code.length)
         const marksStartIdx = afterAward.indexOf(marksStr, code.length);
 
         if (marksStartIdx < 0) continue;
@@ -223,7 +218,6 @@ const parseStudentBlock = (text: string): StudentResult => {
         let subject = afterAward.substring(code.length, marksStartIdx).trim();
 
         // Cleaning
-        // Remove subject codes if present (user requirement: "XAC11") - already skipped as it is parts[0]
         // Remove known noise chars
         subject = subject.replace(/[^A-Za-z0-9\s\&\-\(\)]/g, '').trim();
 
