@@ -306,16 +306,11 @@ const PredictedGradesPortal: React.FC = () => {
             doc.setDrawColor(0, 0, 0);
             doc.line(105 - toWhomWidth / 2, 73.5, 105 + toWhomWidth / 2, 73.5);
 
-            // Subject line - Calibri 11pt (helvetica), underlined
-            doc.setFont('helvetica', 'normal');
+            // Subject line - BOLD, LEFT ALIGNED, NO UNDERLINE (per Screenshot 1)
+            doc.setFont('helvetica', 'bold');
             doc.setFontSize(9);
             const subjectLine = `EXPECTED GRADE SHEET – LONDON EDEXCEL IAL EXAMINATION – ${ialSession.toUpperCase()}`;
-            doc.text(subjectLine, 105, 82, { align: 'center' });
-
-            // Underline subject line
-            const subjectWidth = doc.getTextWidth(subjectLine);
-            doc.setLineWidth(0.3);
-            doc.line(105 - subjectWidth / 2, 83.5, 105 + subjectWidth / 2, 83.5);
+            doc.text(subjectLine, 20, 82); // Left aligned at same margin as body text
 
             // Student name transformation
             const studentName = formatStudentName(selectedStudent.candidateName);
@@ -423,9 +418,9 @@ const PredictedGradesPortal: React.FC = () => {
             doc.text('Ruxshan Razak', 20, sigY + 7);
             doc.text('S.M.M. Hajath', 155, sigY + 7);
 
-            // Titles - BLACK (matching screenshot - not red)
+            // Titles - BLACK (per Screenshot 4)
             doc.setFont('helvetica', 'normal');
-            doc.setTextColor(139, 90, 43); // Gold/brown like header text
+            doc.setTextColor(0, 0, 0); // BLACK as per screenshot 4
             doc.text('Principal', 20, sigY + 13);
             doc.text('Academic & Public Exams Coordinator', 135, sigY + 13);
 
