@@ -60,12 +60,14 @@ const normalizeText = (text: string): string => {
         .replace(/A\s+WARD/gi, "AWARD")
         .replace(/AWA\s+RD/gi, "AWARD")
 
-        // Force Newline before Keywords to help splitting
+        // Force Newline ONLY before keywords to ensure they start lines
+        // IMPORTANT: Do NOT break lines usually. 
+        // We only want to ensure 'AWARD', 'UNIT' are strictly start-of-line tokens if valid.
         .replace(/AWARD/gi, '\nAWARD')
         .replace(/UNIT/gi, '\nUNIT')
         .replace(/Contributing/gi, '\nContributing')
 
-        // General whitespace
+        // General whitespace collapse
         .replace(/[ \t]+/g, ' ')
         .replace(/\n\s+/g, '\n');
 
@@ -73,19 +75,16 @@ const normalizeText = (text: string): string => {
 };
 
 const parseStudentBlock = (text: string): StudentResult => {
-    // 1. Header Extraction (Keep soft regex to be safe)
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
 
     let candidateName = 'Unknown Candidate';
     let uci = 'Unknown UCI';
     let dob = 'Unknown DOB';
 
-    // Candidate Name Regex: CANDIDATE NAME <optional ID> <NAME>
+    // 1. Header Extraction
     const nameMatch = text.match(/CANDIDATE\s+NAME\s*(?:[:.]|)?\s*(?:(\d{4}))?\s*(?:[:.]|)?\s*([A-Z\s\.\-:]+)/i);
     if (nameMatch) {
-        // Clean up name
         let raw = nameMatch[2].trim();
-        // Stop at common next-field headers
         ['UNIQUE', 'DATE', 'CENTRE'].forEach(stop => {
             const idx = raw.toUpperCase().indexOf(stop);
             if (idx !== -1) raw = raw.substring(0, idx);
@@ -93,70 +92,73 @@ const parseStudentBlock = (text: string): StudentResult => {
         candidateName = raw.trim();
     }
 
-    // UCI Regex
     const uciMatch = text.match(/UNIQUE\s+CANDIDATE\s+IDENTIFIER\s*[:\.]?\s*([A-Z0-9]+)/i);
     if (uciMatch) uci = uciMatch[1];
     else {
-        // Fallback for just the code pattern
         const fallback = text.match(/\b9\d{4}[A-Z]\d{7}[A-Z0-9]\b/);
         if (fallback) uci = fallback[0];
     }
 
-    // DOB Regex
     const dobMatch = text.match(/DATE\s+OF\s+BIRTH\s*[:\.]?\s*(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4})/i);
     if (dobMatch) dob = dobMatch[1];
 
 
-    // 2. AWARD LOGIC (STRICT)
+    // 2. AWARD BUFFERING LOGIC (CONDITIONAL TERMINATION)
     const grades: ExtractedGrade[] = [];
-
-    // We iterate lines to build "AWARD Blocks"
-    // Block usually starts with AWARD and ends at next Keyword
 
     let currentBlock = "";
     let isCapture = false;
+    let debugLogged = false;
 
-    // Helper to check if line starts with specific keywords
     const startsWithKeyword = (line: string, keyword: string) => {
         return line.toUpperCase().startsWith(keyword.toUpperCase());
     };
+
+    // Grade Regex (B(b))
+    const gradeRegex = /([A-Z])\([a-z]\)/;
 
     for (const line of lines) {
         const cleanLine = line.trim();
         if (!cleanLine) continue;
 
-        // Check boundaries
+        // Check if START of new Award
         if (startsWithKeyword(cleanLine, 'AWARD')) {
-            // New AWARD block start
-            // If we had a previous block, process it? 
-            // NOTE: We process AFTER loop or upon boundary? 
-            // Better to process previous block now.
-            if (currentBlock) {
-                processAwardBlock(currentBlock, grades);
-            }
+            // If we have a previous block, flush it
+            if (currentBlock) processAwardBlock(currentBlock, grades, !debugLogged ? (l) => { console.log(l); debugLogged = true; } : undefined);
+
+            // Start new capture
             currentBlock = cleanLine;
             isCapture = true;
-        } else if (
-            startsWithKeyword(cleanLine, 'UNIT') ||
-            startsWithKeyword(cleanLine, 'Contributing') ||
-            startsWithKeyword(cleanLine, 'CANDIDATE') // Safety if chunking messed up
-        ) {
-            // End of current award block
-            if (currentBlock && isCapture) {
-                processAwardBlock(currentBlock, grades);
-            }
+        }
+        // Check hard boundaries that ALWAYS stop an award (Next Student specific)
+        else if (cleanLine.includes("UNIQUE CANDIDATE") || startsWithKeyword(cleanLine, 'CANDIDATE NAME')) {
+            if (currentBlock) processAwardBlock(currentBlock, grades);
             currentBlock = "";
             isCapture = false;
-        } else {
-            // Continuation line?
-            if (isCapture && currentBlock) {
-                currentBlock += " " + cleanLine;
+        }
+        else {
+            if (isCapture) {
+                // Check if we SHOULD stop for UNIT/Contributing
+                // Rule: Only stop if we ALREADY have a Grade.
+                const hasGrade = gradeRegex.test(currentBlock);
+                const isTerminator = startsWithKeyword(cleanLine, 'UNIT') || startsWithKeyword(cleanLine, 'Contributing');
+
+                if (hasGrade && isTerminator) {
+                    // We have a full award block, and hit a terminator. Done.
+                    processAwardBlock(currentBlock, grades, !debugLogged ? (l) => { console.log(l); debugLogged = true; } : undefined);
+                    currentBlock = "";
+                    isCapture = false;
+                } else {
+                    // Either NOT a terminator, OR (Terminator but NO grade yet)
+                    // Continue buffering to find the grade (maybe on this line, or next)
+                    currentBlock += " " + cleanLine;
+                }
             }
         }
     }
     // Flush last block
     if (currentBlock && isCapture) {
-        processAwardBlock(currentBlock, grades);
+        processAwardBlock(currentBlock, grades, !debugLogged ? (l) => { console.log(l); debugLogged = true; } : undefined);
     }
 
     return {
@@ -168,59 +170,53 @@ const parseStudentBlock = (text: string): StudentResult => {
     };
 };
 
-// Helper: Process single reconstructed AWARD string
-const processAwardBlock = (block: string, grades: ExtractedGrade[]) => {
+const processAwardBlock = (block: string, grades: ExtractedGrade[], logger?: (msg: string) => void) => {
+    if (logger) logger(`[DEBUG] Processing Block: "${block}"`);
+
     // 1. Strict Filters
-    // Must contain "AWARD"
     if (!block.toUpperCase().includes("AWARD")) return;
 
-    // Must contain Grade: Capital letter followed by lowercase in parens: B(b)
+    // Grade Regex: B(b) -> Capture purely based on patterns
+    // Must use strict: ([A-Z])\([a-z]\)
     const gradeMatch = block.match(/([A-Z])\([a-z]\)/);
-    if (!gradeMatch) return;
+    if (!gradeMatch) {
+        if (logger) logger(`[DEBUG] No grade match found in block.`);
+        return;
+    }
 
-    // Must contain Marks: number/number
-    // Allow space: 225 / 300
+    // Marks Regex: 225/300
     const marksMatch = block.match(/(\d+)\s*\/\s*(\d+)/);
-    if (!marksMatch) return;
+    if (!marksMatch) {
+        if (logger) logger(`[DEBUG] No marks match found in block.`);
+        return;
+    }
 
     // 2. Extraction
-    // Format: AWARD <CODE> <SUBJECT> <MARKS> ...
-
-    // Remove "AWARD" prefix
     const awardIndex = block.toUpperCase().indexOf("AWARD");
     const content = block.substring(awardIndex + 5).trim();
 
-    // Extract CODE: X[A-Z]{2}\d{2} or similar. 
-    // User requested: \bX[A-Z]{2}\d{2}\b
-    // Let's use a regex that matches the first "Code-like" token
+    // Code Regex: XAC11 etc.
     const codeRegex = /\b(X[A-Z]{2}\d{2})\b/;
     const codeMatch = content.match(codeRegex);
 
-    if (!codeMatch) return; // Code mandatory
+    if (!codeMatch) return;
     const code = codeMatch[1];
+    const grade = gradeMatch[1]; // Capital letter
 
-    // Extract Grade (Capital Only)
-    const grade = gradeMatch[1]; // Capture group 1 is Capital Letter
-
-    // Extract Subject
-    // Text strictly between CODE end and MARKS start
-    // Find index of Code in content
+    // Subject Extraction: Between Code limit and Marks start
     const codeIdx = content.indexOf(code);
-    const marksIdx = content.indexOf(marksMatch[0]); // Using full marks match (e.g. 225/300)
+    const marksIdx = content.indexOf(marksMatch[0]); // Using full marks match string
 
-    // Safety check: Marks must be AFTER Code
-    if (marksIdx <= codeIdx + code.length) return;
+    if (marksIdx <= codeIdx + code.length) {
+        if (logger) logger(`[DEBUG] Marks appear before/in Code? Parsing error.`);
+        return;
+    }
 
     let subject = content.substring(codeIdx + code.length, marksIdx).trim();
-
-    // Cleanup Subject
-    // Remove any accidental noise
-    // Should be letters mostly
+    // Clean subject
     subject = subject.replace(/[^A-Za-z\s\-&]/g, "").trim();
 
     if (code && subject && grade) {
-        // One final check to avoid duplicates if any?
-        // Logic says "Collect ALL". Duplicates in source = duplicates in output (correct).
         grades.push({ code, subject, grade });
     }
 };
