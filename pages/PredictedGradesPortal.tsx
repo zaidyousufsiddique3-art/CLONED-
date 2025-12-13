@@ -90,8 +90,8 @@ const PredictedGradesPortal: React.FC = () => {
                     const blob = await response.blob();
                     const file = new File([blob], itemRef.name, { type: blob.type });
 
-                    // Extract - returns array now
-                    const results = await extractDataFromFile(file);
+                    // Extract - returns array now. Pass fullPath as ID for caching.
+                    const results = await extractDataFromFile(file, itemRef.fullPath);
 
                     if (results && results.length > 0) {
                         results.forEach((data, idx) => {
@@ -174,7 +174,7 @@ const PredictedGradesPortal: React.FC = () => {
                         {scanning ? (
                             <div className="text-center py-8">
                                 <Loader2 className="w-8 h-8 text-brand-500 animate-spin mx-auto mb-2" />
-                                <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">Scanning Documents...</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">Analyzing Documents with AI...</p>
                                 <p className="text-xs text-slate-400 mb-4">{scanProgress}% Complete</p>
                                 <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5">
                                     <div className="bg-brand-500 h-1.5 rounded-full transition-all duration-300" style={{ width: `${scanProgress}%` }}></div>
