@@ -59,6 +59,7 @@ const HTML_TEMPLATE = `
         }
         .date {
             margin-bottom: 30px;
+            font-size: 11pt;
         }
         .title {
             text-align: center;
@@ -71,27 +72,25 @@ const HTML_TEMPLATE = `
             font-weight: bold;
             margin-bottom: 20px;
             text-transform: uppercase;
+            font-size: 11pt;
         }
         .content-para {
             text-align: justify;
             margin-bottom: 20px;
+            font-size: 11pt;
         }
         .bold {
             font-weight: bold;
         }
         .results-block {
-            margin: 20px auto;
-            max-width: 600px;
+            margin: 20px 0 20px 80px;
             font-weight: bold;
-            border: 2px solid #000;
-            padding: 15px 20px;
+            font-size: 11pt;
         }
         .result-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
-            line-height: 1.3;
+            margin-bottom: 3px;
+            line-height: 1.2;
         }
         .result-row:last-child {
             margin-bottom: 0;
@@ -99,21 +98,21 @@ const HTML_TEMPLATE = `
         .subject {
             text-align: left;
             text-transform: uppercase;
-            flex: 1;
         }
         .grade {
-            text-align: right;
-            margin-left: 20px;
+            text-align: left;
+            margin-left: 15px;
         }
         .footer {
             margin-top: 50px;
-            font-size: 10pt;
+            font-size: 11pt;
         }
         .signatures {
             margin-top: 60px;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
+            font-size: 11pt;
         }
         .sig-block {
             width: 40%;
@@ -145,28 +144,28 @@ const HTML_TEMPLATE = `
 
     <!-- 5. Paragraph 1 -->
     <div class="content-para">
-        <span class="bold">{{STUDENT_FULL_NAME}}</span>, <span class="bold">Unique Candidate Identifier</span> (<span class="bold">{{UCI_NUMBER}}</span>) had sat {{PRONOUN_POSSESSIVE}} London Edexcel INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in {{IAS_SESSION_MONTH_YEAR}}. {{PRONOUN_SUBJECT_TITLE}} had obtained the following results:
+        {{STUDENT_FULL_NAME}}, <span class="bold">Unique Candidate Identifier</span> (<span class="bold">{{UCI_NUMBER}}</span>) had sat {{PRONOUN_POSSESSIVE}} London Edexcel INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in {{IAS_SESSION_MONTH_YEAR}}. {{PRONOUN_SUBJECT_TITLE}} had obtained the following results:
     </div>
 
     <!-- 6. Original Results -->
     <div class="results-block">
-        <div class="result-row"> <span class="subject">{{ORIGINAL_SUBJECT_1}}</span> <span class="grade">{{ORIGINAL_GRADE_1}}</span> </div>
-        <div class="result-row"> <span class="subject">{{ORIGINAL_SUBJECT_2}}</span> <span class="grade">{{ORIGINAL_GRADE_2}}</span> </div>
-        <div class="result-row"> <span class="subject">{{ORIGINAL_SUBJECT_3}}</span> <span class="grade">{{ORIGINAL_GRADE_3}}</span> </div>
-        <div class="result-row"> <span class="subject">{{ORIGINAL_SUBJECT_4}}</span> <span class="grade">{{ORIGINAL_GRADE_4}}</span> </div>
+        <div class="result-row"><span class="subject">{{ORIGINAL_SUBJECT_1}}</span><span class="grade">{{ORIGINAL_GRADE_1}}</span></div>
+        <div class="result-row"><span class="subject">{{ORIGINAL_SUBJECT_2}}</span><span class="grade">{{ORIGINAL_GRADE_2}}</span></div>
+        <div class="result-row"><span class="subject">{{ORIGINAL_SUBJECT_3}}</span><span class="grade">{{ORIGINAL_GRADE_3}}</span></div>
+        <div class="result-row"><span class="subject">{{ORIGINAL_SUBJECT_4}}</span><span class="grade">{{ORIGINAL_GRADE_4}}</span></div>
     </div>
 
     <!-- 7. Paragraph 2 -->
     <div class="content-para">
-        <span class="bold">{{STUDENT_FULL_NAME}}</span> will be sitting {{PRONOUN_POSSESSIVE}} London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL) examination which will be held during {{IAL_SESSION_MONTH_YEAR}}. Based on {{PRONOUN_POSSESSIVE}} IAS results and the performance in the school examination, the respective subject teachers firmly expect {{PRONOUN_OBJECT}} to obtain the following results in the {{IAL_SESSION_MONTH_YEAR}} IAL Examination:
+        {{STUDENT_FULL_NAME}} will be sitting {{PRONOUN_POSSESSIVE}} London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL) examination which will be held during {{IAL_SESSION_MONTH_YEAR}}. Based on {{PRONOUN_POSSESSIVE}} IAS results and the performance in the school examination, the respective subject teachers firmly expect {{PRONOUN_OBJECT}} to obtain the following results in the {{IAL_SESSION_MONTH_YEAR}} IAL Examination:
     </div>
 
     <!-- 8. Predicted Results -->
     <div class="results-block">
-        <div class="result-row"> <span class="subject">{{PREDICTED_SUBJECT_1}}</span> <span class="grade">{{PREDICTED_GRADE_1}}</span> </div>
-        <div class="result-row"> <span class="subject">{{PREDICTED_SUBJECT_2}}</span> <span class="grade">{{PREDICTED_GRADE_2}}</span> </div>
-        <div class="result-row"> <span class="subject">{{PREDICTED_SUBJECT_3}}</span> <span class="grade">{{PREDICTED_GRADE_3}}</span> </div>
-        <div class="result-row"> <span class="subject">{{PREDICTED_SUBJECT_4}}</span> <span class="grade">{{PREDICTED_GRADE_4}}</span> </div>
+        <div class="result-row"><span class="subject">{{PREDICTED_SUBJECT_1}}</span><span class="grade">{{PREDICTED_GRADE_1}}</span></div>
+        <div class="result-row"><span class="subject">{{PREDICTED_SUBJECT_2}}</span><span class="grade">{{PREDICTED_GRADE_2}}</span></div>
+        <div class="result-row"><span class="subject">{{PREDICTED_SUBJECT_3}}</span><span class="grade">{{PREDICTED_GRADE_3}}</span></div>
+        <div class="result-row"><span class="subject">{{PREDICTED_SUBJECT_4}}</span><span class="grade">{{PREDICTED_GRADE_4}}</span></div>
     </div>
 
     <!-- 9. Footer Text -->
