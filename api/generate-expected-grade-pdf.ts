@@ -83,8 +83,8 @@ const HTML_TEMPLATE = `
             font-weight: bold;
         }
         .results-block {
-            margin: 20px auto;
-            width: fit-content;
+            margin: 20px 0 20px 0;
+            padding-left: 0;
             font-weight: bold;
             font-size: 11pt;
         }
@@ -102,7 +102,7 @@ const HTML_TEMPLATE = `
         }
         .grade {
             text-align: left;
-            margin-left: 15px;
+            margin-left: 10px;
         }
         .footer {
             margin-top: 50px;
