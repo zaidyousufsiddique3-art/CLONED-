@@ -83,13 +83,13 @@ const HTML_TEMPLATE = `
             font-weight: bold;
         }
         .results-block {
-            margin: 20px 0 20px 0;
-            padding-left: 0;
+            margin: 20px 0;
+            text-align: center;
             font-weight: bold;
             font-size: 11pt;
         }
         .result-row {
-            display: flex;
+            display: block;
             margin-bottom: 3px;
             line-height: 1.2;
         }
@@ -97,11 +97,11 @@ const HTML_TEMPLATE = `
             margin-bottom: 0;
         }
         .subject {
-            text-align: left;
+            display: inline;
             text-transform: uppercase;
         }
         .grade {
-            text-align: left;
+            display: inline;
             margin-left: 10px;
         }
         .footer {
