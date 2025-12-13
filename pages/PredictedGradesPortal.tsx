@@ -66,9 +66,21 @@ const PredictedGradesPortal: React.FC = () => {
         setScanProgress(0);
         try {
             const folderRef = ref(storage, `${BASE_PATH}${folderName}/`);
-            const res = await listAll(folderRef);
 
-            const totalFiles = res.items.length;
+            // Helper to recursively list all files
+            const listAllFilesRecursively = async (ref: any): Promise<any[]> => {
+                const res = await listAll(ref);
+                let files = [...res.items];
+                for (const prefix of res.prefixes) {
+                    files = files.concat(await listAllFilesRecursively(prefix));
+                }
+                return files;
+            };
+
+            const allFileItems = await listAllFilesRecursively(folderRef);
+            console.log(`[DEBUG] Total files discovered recursively: ${allFileItems.length}`);
+
+            const totalFiles = allFileItems.length;
             if (totalFiles === 0) {
                 setScanning(false);
                 return;
@@ -77,12 +89,8 @@ const PredictedGradesPortal: React.FC = () => {
             const foundStudents: StudentFile[] = [];
             let processed = 0;
 
-            // We process files to extract names.
-            // Limit concurrency to avoid browser freeze? Or just sequential for simplicity and progress update?
-            // Sequential is safer for heavy tasks like OCR.
-
             // Filter out .keep files
-            const fileItems = res.items.filter(i => i.name !== '.keep');
+            const fileItems = allFileItems.filter(i => i.name !== '.keep');
 
             for (const itemRef of fileItems) {
                 try {
