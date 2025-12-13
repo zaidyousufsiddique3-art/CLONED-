@@ -100,76 +100,117 @@ const parseStudentBlock = (text: string): StudentResult => {
         if (dateMatch) dob = dateMatch[0];
     }
 
+    // --- GRADE PARSING WITH OCR RECONSTRUCTION ---
+    // OCR often splits "AWARD" rows across lines. We must reconstruct them.
+
+    const reconstructedRows: string[] = [];
+    let currentBuffer = "";
+    let emptyLineCount = 0;
+
     for (const line of lines) {
-        // STRICT FILTER: Match rows starting with "AWARD" (case-insensitive)
-        if (!line.trim().toUpperCase().startsWith('AWARD')) continue;
+        const trimmed = line.trim();
+        if (!trimmed) {
+            emptyLineCount++;
+            if (emptyLineCount > 2) {
+                // Break buffer if too many empty lines (optional safety)
+                if (currentBuffer) {
+                    reconstructedRows.push(currentBuffer);
+                    currentBuffer = "";
+                }
+            }
+            continue;
+        }
+        emptyLineCount = 0;
 
-        // STRICT FILTER: Ignore headers, units, or contributing components
-        // The user explicitly listed "UNIT", "Contributing Units" as INVALID.
-        // Also headers like "CANDIDATE..." shouldn't be here due to logic above, but safety check.
-        if (/^UNIT\b/i.test(line)) continue;
-
-        // STRICT LOGIC: Must contain a grade in format A(a), B(b), etc.
-        // Regex: [A-Z]\([a-z]\) at the end of the line or near the end
-        // Also marks: usually 123/456
-        const gradeMatch = line.match(/([A-Z])\(([a-z])\)/);
-        if (!gradeMatch) continue; // Skip if no valid grade format found
-
-        // Extract parts
-        // Expected format: AWARD <code> <Subject Name> <Marks> <Grade>
-        // Example: AWARD XAC11 ACCOUNTING 225/300 B(b)
-
-        const content = line.substring(5).trim(); // Remove AWARD
-        const parts = content.split(/\s+/);
-
-        let code = parts[0];
-        let grade = gradeMatch[0];
-        let subject = "";
-
-        // Find matches for Grade and Marks to isolate Subject
-        // We know Grade is at the end or near end.
-
-        // Let's rely on the structure: Code is first part. Grade is last part usually?
-        // Sometimes Grade is followed by points or nothing.
-        // Let's look for the grade index in parts
-
-        let gradeIndex = -1;
-        for (let i = parts.length - 1; i >= 0; i--) {
-            if (parts[i].includes(gradeMatch[0])) {
-                gradeIndex = i;
-                break;
+        // If line contains "AWARD", it's a new row start.
+        if (trimmed.toUpperCase().includes("AWARD")) {
+            if (currentBuffer) {
+                reconstructedRows.push(currentBuffer);
+            }
+            currentBuffer = trimmed;
+        } else {
+            // Append to current buffer if it exists
+            if (currentBuffer) {
+                currentBuffer += " " + trimmed;
             }
         }
+    }
+    if (currentBuffer) {
+        reconstructedRows.push(currentBuffer);
+    }
 
-        if (gradeIndex <= 0) continue; // Should have code and subject before grade
+    for (const row of reconstructedRows) {
+        const normalizedRow = row.replace(/\s+/g, ' ').trim();
+        const upperRow = normalizedRow.toUpperCase();
 
-        // Extracted Grade is parts[gradeIndex]
-        // But pure grade letter might be just the first char of "B(b)" -> "B"
-        // User output example showed "grade": "B". Input was "B(b)".
-        // So we extract the uppercase letter.
-        grade = gradeMatch[1];
+        // STRICT FILTER: Must contain "AWARD"
+        if (!upperRow.includes("AWARD")) continue;
 
-        // Marks usually precedes grade. E.g. 225/300
-        // But strictly, subject is everything between Code and Marks/Grade.
+        // STRICT FILTER: Must NOT start with "UNIT" (even if it has AWARD somewhere strings attached)
+        // Check start of string for UNIT
+        if (upperRow.startsWith("UNIT") || /^\s*UNIT\b/i.test(normalizedRow)) continue;
 
-        // Let's filter out marks if they exist
-        const isMarks = (s: string) => /^\d+\/\d+$/.test(s) || /^\d+$/.test(s);
+        // STRICT FILTER: Must contain Marks (num/num)
+        // Allow spaces around slash: 225 / 300
+        const marksMatch = normalizedRow.match(/(\d+\s*\/\s*\d+)/);
+        if (!marksMatch) continue;
+        const marks = marksMatch[1].replace(/\s+/g, ''); // Clean to 225/300
 
-        let subjectEndIndex = gradeIndex;
-        // Check if the part before grade is marks
-        if (gradeIndex > 1 && isMarks(parts[gradeIndex - 1])) {
-            subjectEndIndex = gradeIndex - 1;
+        // STRICT FILTER: Must contain Grade in format A(a)
+        const gradeMatch = normalizedRow.match(/([A-Z])\(([a-z])\)/);
+        if (!gradeMatch) continue;
+        const fullGrade = gradeMatch[0]; // e.g. B(b)
+        const gradeLetter = gradeMatch[1]; // e.g. B
+
+        // EXTRACTION: 
+        // Logic: AWARD <Code> <Subject> <Marks> <Grade>
+        // We know structure approx:
+        // Start -> AWARD
+        // Next -> Code (usually alphanumeric)
+        // Middle -> Subject
+        // End -> Marks + Grade (order may vary in checks, but usually marks then grade)
+
+        // Let's strip "AWARD" from the start to find Code
+        // Find index of AWARD
+        const awardIdx = upperRow.indexOf("AWARD");
+        const afterAward = normalizedRow.substring(awardIdx + 5).trim();
+
+        // Split by spaces to find Code
+        const parts = afterAward.split(" ");
+        if (parts.length < 1) continue;
+
+        const code = parts[0]; // e.g. XAC11
+
+        // Subject is text BETWEEN Code and Marks
+        // We need the indices of Code end and Marks start in 'afterAward' string
+
+        // Locate Code end
+        const codeEndIdx = afterAward.indexOf(code) + code.length;
+
+        // Locate Marks start
+        // We use the exact match string from earlier
+        const marksStr = marksMatch[0]; // original match with spaces
+        const marksStartIdx = afterAward.indexOf(marksStr);
+
+        if (marksStartIdx <= codeEndIdx) {
+            // Something wrong, or marks appeared before/in code?
+            // Fallback: looking for grade? 
+            // If extracting subject fails, we skip
+            continue;
         }
 
-        const subjectParts = parts.slice(1, subjectEndIndex);
-        subject = subjectParts.join(' ');
+        let subject = afterAward.substring(codeEndIdx, marksStartIdx).trim();
 
-        // Clean Subject
-        // Remove ANY trailing numbers or odd chars if they leaked
-        subject = subject.replace(/[\d\/]+$/, '').trim();
+        // Clean subject: Remove any residual codes or non-text checks
+        // Sometimes subject might still have noise.
+        // User cleaning requirements: "Remove subject codes like XAC11" (already done effectively by picking middle)
 
-        if (code && subject && grade) {
-            grades.push({ code, subject, grade });
+        if (code && subject && gradeLetter) {
+            grades.push({
+                code,
+                subject,
+                grade: gradeLetter
+            });
         }
     }
 
