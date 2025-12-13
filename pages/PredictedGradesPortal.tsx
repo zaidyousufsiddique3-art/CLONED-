@@ -152,6 +152,9 @@ const PredictedGradesPortal: React.FC = () => {
 
             // In debug mode, we might want to see raw counts
             console.log(`Scan Complete. Found ${foundStudents.length} candidates.`);
+
+            // 3. VERIFY API RESPONSE SHAPE AT SET STATE TIME
+            console.log("[DEBUG] SETTING students:", foundStudents);
             setStudents(foundStudents);
 
         } catch (error) {
@@ -162,34 +165,23 @@ const PredictedGradesPortal: React.FC = () => {
         }
     };
 
-    // 3. ENSURE selectedStudent IS RECOMPUTED ON STATE CHANGE
-    const data = React.useMemo(() => {
-        return students.find(s => s.id === selectedStudentId)?.extractedData;
+    // 4. HARD FAIL IF RESULTS IS WRONG TYPE
+    const selectedStudent = React.useMemo(() => {
+        const file = students.find(s => s.id === selectedStudentId);
+        return file?.extractedData;
     }, [students, selectedStudentId]);
 
     // 2. CONFIRM STATE IS SET CORRECTLY
     useEffect(() => {
-        if (students.length > 0) {
-            console.log("[DEBUG] STATE students:", students);
-        }
+        console.log("[DEBUG] students state updated:", students);
     }, [students]);
 
-    // 3. CONFIRM SELECTED STUDENT SOURCE
-    useEffect(() => {
-        if (selectedStudentId) {
-            console.log("[DEBUG] selectedStudent ID:", selectedStudentId);
-            console.log("[DEBUG] selectedStudent DATA:", data);
-        }
-    }, [selectedStudentId, data]);
+    // 5. FINAL ACCEPTANCE LOGS
+    console.log("[DEBUG] FINAL RENDER CHECK:", selectedStudent, selectedStudent?.results);
 
-    // MANDATORY FRONTEND LOG & ASSERTION
-    if (data) {
-        console.log("[DEBUG] RENDER SOURCE CHECK:", data, data?.results);
-        if (!Array.isArray(data.results)) {
-            console.error("RESULTS IS NOT ARRAY", data.results);
-        }
+    if (selectedStudent && !Array.isArray(selectedStudent.results)) {
+        throw new Error("results is not an array");
     }
-
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -285,18 +277,18 @@ const PredictedGradesPortal: React.FC = () => {
 
                 {/* Data Preview Area */}
                 <div className="lg:col-span-2">
-                    {data ? (
+                    {selectedStudent ? (
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden animate-scale-in">
                             {/* Header */}
                             <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-8 py-6 text-white">
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <h2 className="text-2xl font-bold">{data.candidateName}</h2>
-                                        <p className="text-brand-100 font-medium mt-1">UCI: {data.uci}</p>
+                                        <h2 className="text-2xl font-bold">{selectedStudent.candidateName}</h2>
+                                        <p className="text-brand-100 font-medium mt-1">UCI: {selectedStudent.uci}</p>
                                     </div>
                                     <div className="text-right bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
                                         <p className="text-xs text-brand-100 uppercase tracking-widest mb-1">Date of Birth</p>
-                                        <p className="font-mono font-bold text-lg">{data.dob}</p>
+                                        <p className="font-mono font-bold text-lg">{selectedStudent.dob}</p>
                                     </div>
                                 </div>
                             </div>
@@ -318,25 +310,24 @@ const PredictedGradesPortal: React.FC = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                                            {data.results && data.results.length > 0 ? (
-                                                data.results.map((result, idx) => (
-                                                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors">
-                                                        <td className="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">{result.code}</td>
-                                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">{result.subject}</td>
-                                                        <td className="px-6 py-4 text-right">
-                                                            <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${result.grade.startsWith('A') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                                result.grade.startsWith('B') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                                    result.grade.startsWith('U') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                                        'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                                                                }`}>
-                                                                {result.grade}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            ) : (
+                                            {(selectedStudent.results || []).map((r) => (
+                                                <tr key={`${r.code}-${r.subject}`}>
+                                                    <td className="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">{r.code}</td>
+                                                    <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">{r.subject}</td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${r.grade.startsWith('A') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                            r.grade.startsWith('B') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                                r.grade.startsWith('U') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                                    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                                            }`}>
+                                                            {r.grade}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {(!selectedStudent.results || selectedStudent.results.length === 0) && (
                                                 <tr>
-                                                    <td colSpan={3} className="px-6 py-8 text-center text-slate-400 italic">No grades detected in this document.</td>
+                                                    <td colSpan={3} className="px-6 py-8 text-center text-slate-400 italic">No grades detected.</td>
                                                 </tr>
                                             )}
                                         </tbody>
