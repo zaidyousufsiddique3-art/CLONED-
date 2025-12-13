@@ -7,13 +7,16 @@ import {
     Search,
     Loader2,
     ChevronRight,
-    AlertCircle
+    AlertCircle,
+    TrendingUp
 } from 'lucide-react';
 import { ref, listAll, getDownloadURL, getBytes } from 'firebase/storage';
 import { storage } from '../firebase/firebaseConfig';
 // GLOBAL LOGIC ENFORCEMENT: Extraction is strictly routed via /api/extract-student-results to ensure consistency.
 // Do not use client-side extraction logic.
 import { StudentResult } from '../services/extractionService';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types';
 
 const BASE_PATH = 'superadmin_documents/';
 
@@ -25,6 +28,7 @@ interface StudentFile {
 }
 
 const PredictedGradesPortal: React.FC = () => {
+    const { user } = useAuth();
     const [folders, setFolders] = useState<string[]>([]);
     const [selectedFolder, setSelectedFolder] = useState('');
     const [scanning, setScanning] = useState(false);
@@ -34,6 +38,7 @@ const PredictedGradesPortal: React.FC = () => {
     const [loadingFolders, setLoadingFolders] = useState(true);
     const [debugMode, setDebugMode] = useState(false);
     const [stats, setStats] = useState({ scanned: 0, extracted: 0, lastFile: '' });
+    const [showPredicted, setShowPredicted] = useState(false);
 
     useEffect(() => {
         fetchFolders();
@@ -58,9 +63,15 @@ const PredictedGradesPortal: React.FC = () => {
         setSelectedFolder(folderName);
         setStudents([]);
         setSelectedStudentId('');
+        setShowPredicted(false);
         if (!folderName) return;
 
         scanFolder(folderName);
+    };
+
+    const handleStudentChange = (id: string) => {
+        setSelectedStudentId(id);
+        setShowPredicted(false);
     };
 
     const scanFolder = async (folderName: string) => {
@@ -185,6 +196,23 @@ const PredictedGradesPortal: React.FC = () => {
         throw new Error("results is not an array");
     }
 
+    const calculatePredictedGrade = (actualGrade: string): string => {
+        // Clean grade (remove parenthesis like '(a)') and whitespace
+        // Keep A* as is
+        const clean = actualGrade.split(/[(\s]/)[0].toUpperCase();
+
+        switch (clean) {
+            case 'A*': return 'A*';
+            case 'A': return 'A*';
+            case 'B': return 'A';
+            case 'C': return 'B';
+            case 'D': return 'C';
+            case 'E': return 'D';
+            case 'U': return 'E';
+            default: return clean; // Fallback to original if not in map
+        }
+    };
+
     return (
         <div className="space-y-6 animate-fade-in">
             <div>
@@ -257,7 +285,7 @@ const PredictedGradesPortal: React.FC = () => {
                             <div className="relative">
                                 <select
                                     value={selectedStudentId}
-                                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                                    onChange={(e) => handleStudentChange(e.target.value)}
                                     className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl appearance-none focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white transition-shadow"
                                 >
                                     <option value="">Select Student...</option>
@@ -275,68 +303,131 @@ const PredictedGradesPortal: React.FC = () => {
                             </div>
                         )}
                     </div>
+
+                    {/* Step 3: View Predicted Results (Super Admin Only) */}
+                    {user?.role === UserRole.SUPER_ADMIN && (
+                        <div className={`p-6 bg-slate-900 rounded-2xl shadow-lg border border-slate-700 transition-all duration-300 ${!selectedStudentId ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
+                            <div className="flex flex-col items-center text-center space-y-3">
+                                <TrendingUp className="w-8 h-8 text-brand-400" />
+                                <div>
+                                    <h3 className="text-white font-bold text-lg">Predict Grades</h3>
+                                    <p className="text-slate-400 text-xs mt-1">Generate forecast based on historical data</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowPredicted(true)}
+                                    className="w-full py-2.5 px-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-medium transition-colors shadow-lg shadow-brand-900/50 flex items-center justify-center"
+                                >
+                                    View Predicted Results
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Data Preview Area */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-6">
                     {selectedStudent ? (
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden animate-scale-in">
-                            {/* Header */}
-                            <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-8 py-6 text-white">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h2 className="text-2xl font-bold">{selectedStudent.candidateName}</h2>
-                                        <p className="text-brand-100 font-medium mt-1">UCI: {selectedStudent.uci}</p>
-                                    </div>
-                                    <div className="text-right bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
-                                        <p className="text-xs text-brand-100 uppercase tracking-widest mb-1">Date of Birth</p>
-                                        <p className="font-mono font-bold text-lg">{selectedStudent.dob}</p>
+                        <>
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden animate-scale-in">
+                                {/* Header */}
+                                <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-8 py-6 text-white">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h2 className="text-2xl font-bold">{selectedStudent.candidateName}</h2>
+                                            <p className="text-brand-100 font-medium mt-1">UCI: {selectedStudent.uci}</p>
+                                        </div>
+                                        <div className="text-right bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
+                                            <p className="text-xs text-brand-100 uppercase tracking-widest mb-1">Date of Birth</p>
+                                            <p className="font-mono font-bold text-lg">{selectedStudent.dob}</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Grades Table */}
-                            <div className="p-8">
-                                <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-6 flex items-center">
-                                    <FileText className="w-4 h-4 mr-2" />
-                                    Examination Results
-                                </h4>
+                                {/* Grades Table */}
+                                <div className="p-8">
+                                    <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-6 flex items-center">
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        Examination Results
+                                    </h4>
 
-                                <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead className="bg-slate-50 dark:bg-slate-900/50">
-                                            <tr>
-                                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">Code</th>
-                                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">Subject</th>
-                                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 text-right">Grade</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                                            {(selectedStudent.results || []).map((r) => (
-                                                <tr key={`${r.code}-${r.subject}`}>
-                                                    <td className="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">{r.code}</td>
-                                                    <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">{r.subject}</td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${r.grade.startsWith('A') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                            r.grade.startsWith('B') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                                r.grade.startsWith('U') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                                    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                                                            }`}>
-                                                            {r.grade}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {(!selectedStudent.results || selectedStudent.results.length === 0) && (
+                                    <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead className="bg-slate-50 dark:bg-slate-900/50">
                                                 <tr>
-                                                    <td colSpan={3} className="px-6 py-8 text-center text-slate-400 italic">No grades detected.</td>
+                                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">Code</th>
+                                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">Subject</th>
+                                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 text-right">Grade</th>
                                                 </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                                {(selectedStudent.results || []).map((r) => (
+                                                    <tr key={`${r.code}-${r.subject}`}>
+                                                        <td className="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">{r.code}</td>
+                                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">{r.subject}</td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${r.grade.startsWith('A') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                                r.grade.startsWith('B') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                                    r.grade.startsWith('U') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                                        'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                                                }`}>
+                                                                {r.grade}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {(!selectedStudent.results || selectedStudent.results.length === 0) && (
+                                                    <tr>
+                                                        <td colSpan={3} className="px-6 py-8 text-center text-slate-400 italic">No grades detected.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+
+                            {/* Predicted Results Table */}
+                            {showPredicted && user?.role === UserRole.SUPER_ADMIN && (
+                                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-bottom-4">
+                                    <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700">
+                                        <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center">
+                                            <TrendingUp className="w-5 h-5 mr-2 text-brand-600" />
+                                            Predicted Results
+                                        </h3>
+                                        <p className="text-sm text-slate-500 mt-1">Generated based on Pearson grade progression logic.</p>
+                                    </div>
+                                    <div className="p-8">
+                                        <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead className="bg-slate-50 dark:bg-slate-900/50">
+                                                    <tr>
+                                                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">Subject</th>
+                                                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 text-right">Predicted Grade</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                                    {(selectedStudent.results || []).map((r) => {
+                                                        const predicted = calculatePredictedGrade(r.grade);
+                                                        return (
+                                                            <tr key={`${r.code}-${r.subject}-pred`}>
+                                                                <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">{r.subject}</td>
+                                                                <td className="px-6 py-4 text-right">
+                                                                    <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-bold shadow-sm ${predicted.startsWith('A') ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' :
+                                                                        'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                                                        }`}>
+                                                                        {predicted}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 min-h-[400px]">
                             <Search className="w-12 h-12 mb-4 opacity-20" />
