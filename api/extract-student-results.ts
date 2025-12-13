@@ -1,4 +1,3 @@
-
 import admin from 'firebase-admin';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -39,7 +38,8 @@ interface StudentResult {
     grades: ExtractedGrade[];
     rawText?: string;
 }
-// --- Parsing Logic (Mirrored from extractionService.ts) ---
+
+// --- Parsing Logic ---
 
 const normalizeText = (text: string): string => {
     if (!text) return '';
@@ -60,9 +60,10 @@ const normalizeText = (text: string): string => {
         .replace(/A\s+WARD/gi, "AWARD")
         .replace(/AWA\s+RD/gi, "AWARD")
 
+        // Fix Subject Codes like "X A C 1 1" -> "XAC11"
+        .replace(/\bX\s*([A-Z])\s*([A-Z])\s*(\d)\s*(\d)\b/g, "X$1$2$3$4")
+
         // Force Newline ONLY before keywords to ensure they start lines
-        // IMPORTANT: Do NOT break lines usually. 
-        // We only want to ensure 'AWARD', 'UNIT' are strictly start-of-line tokens if valid.
         .replace(/AWARD/gi, '\nAWARD')
         .replace(/UNIT/gi, '\nUNIT')
         .replace(/Contributing/gi, '\nContributing')
@@ -72,16 +73,73 @@ const normalizeText = (text: string): string => {
         .replace(/\n\s+/g, '\n');
 
     // --- HARD DEBUG SIGNALS ---
+    console.log("[DEBUG] NORMALIZATION COMPLETE");
     console.log("[DEBUG] textLen:", normalized.length);
     console.log("[DEBUG] awardCount:", (normalized.match(/\bAWARD\b/gi) || []).length);
-    console.log(
-        "[DEBUG] gradeTokenCount:",
-        (normalized.match(/[A-Z]\s*\(\s*[a-z]\s*\)/g) || []).length
-    );
+
+    // Debug specific grade token count
+    const gradeRegexGlobal = /([A-EU])\*?\s*\(\s*([a-eu])\*?\s*\)/g;
+    const gradeCount = (normalized.match(gradeRegexGlobal) || []).length;
+
+    console.log("[DEBUG] gradeTokenCount (Strict):", gradeCount);
     console.log("[DEBUG] sampleText:", normalized.slice(0, 800));
     // ----------------------------
 
     return normalized;
+};
+
+const processAwardBlock = (block: string, grades: ExtractedGrade[]) => {
+    console.log(`[DEBUG] Processing Block: "${block}"`);
+
+    // 1. Strict Filters
+    if (!block.toUpperCase().includes("AWARD")) return;
+
+    // Grade Regex (Exact FINAL REQUIREMENT)
+    const gradeRegex = /([A-EU])\*?\s*\(\s*([a-eu])\*?\s*\)/;
+
+    const gradeMatch = block.match(gradeRegex);
+    if (!gradeMatch) {
+        console.log(`[DEBUG] No grade match in block: "${block}"`);
+        return;
+    }
+
+    // Marks Regex (Used as delimiter)
+    const marksMatch = block.match(/(\d+)\s*\/\s*(\d+)/);
+    if (!marksMatch) {
+        console.log(`[DEBUG] No marks match in block: "${block}"`);
+        return;
+    }
+
+    // Code Regex (Strict X-code)
+    const codeRegex = /\bX[A-Z]{2}\d{2}\b/;
+    const codeMatch = block.match(codeRegex);
+
+    if (!codeMatch) {
+        console.log(`[DEBUG] No code match in block: "${block}"`);
+        return;
+    }
+
+    const code = codeMatch[0];
+    const grade = gradeMatch[1]; // Capital letter only
+
+    // Subject Extraction: Between Code end and Marks start
+    const content = block; // Using full block to search
+    const codeIdx = content.indexOf(code);
+    const marksIdx = content.indexOf(marksMatch[0]);
+
+    // Validate order
+    if (codeIdx === -1 || marksIdx === -1 || marksIdx <= codeIdx + code.length) {
+        console.log(`[DEBUG] Boundary error (Code > Marks) in block: "${block}"`);
+        return;
+    }
+
+    let subject = content.substring(codeIdx + code.length, marksIdx).trim();
+    // Clean subject
+    subject = subject.replace(/[^A-Za-z\s\-&]/g, "").trim();
+
+    if (code && subject && grade) {
+        grades.push({ code, subject, grade });
+    }
 };
 
 const parseStudentBlock = (text: string): StudentResult => {
@@ -112,63 +170,69 @@ const parseStudentBlock = (text: string): StudentResult => {
     const dobMatch = text.match(/DATE\s+OF\s+BIRTH\s*[:\.]?\s*(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4})/i);
     if (dobMatch) dob = dobMatch[1];
 
-
-    // 2. AWARD BUFFERING LOGIC (CONDITIONAL TERMINATION)
+    // 2. AWARD BUFFERING LOGIC (STRICT)
     const grades: ExtractedGrade[] = [];
+
+    // Grade Checker for Buffering (Must match process regex)
+    const gradeChecker = /([A-EU])\*?\s*\(\s*([a-eu])\*?\s*\)/;
 
     let currentBlock = "";
     let isCapture = false;
-    let debugLogged = false;
 
     const startsWithKeyword = (line: string, keyword: string) => {
         return line.toUpperCase().startsWith(keyword.toUpperCase());
     };
 
-    // Grade Regex - Space Tolerant: B ( b )
-    const gradeRegex = /([A-Z])\s*\(\s*([a-z])\s*\)/;
-
     for (const line of lines) {
         const cleanLine = line.trim();
         if (!cleanLine) continue;
 
-        // Check if START of new Award
+        // START of AWARD block
         if (startsWithKeyword(cleanLine, 'AWARD')) {
-            // If we have a previous block, flush it
-            if (currentBlock) processAwardBlock(currentBlock, grades, !debugLogged ? (l) => { console.log(l); debugLogged = true; } : undefined);
-
-            // Start new capture
+            // Process previous if any
+            if (currentBlock) {
+                processAwardBlock(currentBlock, grades);
+            }
+            // Start new
             currentBlock = cleanLine;
             isCapture = true;
         }
-        // Check hard boundaries that ALWAYS stop an award (Next Student specific)
-        else if (cleanLine.includes("UNIQUE CANDIDATE") || startsWithKeyword(cleanLine, 'CANDIDATE NAME')) {
-            if (currentBlock) processAwardBlock(currentBlock, grades);
-            currentBlock = "";
-            isCapture = false;
-        }
-        else {
-            if (isCapture) {
-                // Check if we SHOULD stop for UNIT/Contributing
-                // Rule: Only stop if we ALREADY have a Grade.
-                const hasGrade = gradeRegex.test(currentBlock);
-                const isTerminator = startsWithKeyword(cleanLine, 'UNIT') || startsWithKeyword(cleanLine, 'Contributing');
+        else if (isCapture) {
+            // We are continuing an AWARD block.
+            // Check for TERMINATION.
+            // Terminate IF: (Grade is Found) AND (Stop Keyword encountered)
+            // OR: Absolute boundaries (Next Candidate)
 
-                if (hasGrade && isTerminator) {
-                    // We have a full award block, and hit a terminator. Done.
-                    processAwardBlock(currentBlock, grades, !debugLogged ? (l) => { console.log(l); debugLogged = true; } : undefined);
-                    currentBlock = "";
-                    isCapture = false;
-                } else {
-                    // Either NOT a terminator, OR (Terminator but NO grade yet)
-                    // Continue buffering to find the grade (maybe on this line, or next)
-                    currentBlock += " " + cleanLine;
-                }
+            const hasGrade = gradeChecker.test(currentBlock);
+            const isStopKeyword =
+                startsWithKeyword(cleanLine, 'UNIT') ||
+                startsWithKeyword(cleanLine, 'Contributing');
+
+            const isNextStudent =
+                cleanLine.includes("UNIQUE CANDIDATE") ||
+                startsWithKeyword(cleanLine, 'CANDIDATE NAME');
+
+            if (isNextStudent) {
+                // Hard stop
+                processAwardBlock(currentBlock, grades);
+                currentBlock = "";
+                isCapture = false;
+            }
+            else if (hasGrade && isStopKeyword) {
+                // Valid stop
+                processAwardBlock(currentBlock, grades);
+                currentBlock = "";
+                isCapture = false;
+            }
+            else {
+                // Continue buffering
+                currentBlock += " " + cleanLine;
             }
         }
     }
-    // Flush last block
+    // Flush last
     if (currentBlock && isCapture) {
-        processAwardBlock(currentBlock, grades, !debugLogged ? (l) => { console.log(l); debugLogged = true; } : undefined);
+        processAwardBlock(currentBlock, grades);
     }
 
     return {
@@ -180,61 +244,10 @@ const parseStudentBlock = (text: string): StudentResult => {
     };
 };
 
-const processAwardBlock = (block: string, grades: ExtractedGrade[], logger?: (msg: string) => void) => {
-    // Unconditional Hard Log
-    console.log("[DEBUG] Processing Block:", block);
-    if (logger) logger(`[DEBUG] Processing Block: "${block}"`);
-
-    // 1. Strict Filters
-    if (!block.toUpperCase().includes("AWARD")) return;
-
-    // Grade Regex - Space Tolerant
-    const gradeMatch = block.match(/([A-Z])\s*\(\s*([a-z])\s*\)/);
-    if (!gradeMatch) {
-        console.log("[DEBUG] No grade match in block:", block);
-        if (logger) logger(`[DEBUG] No grade match found in block.`);
-        return;
-    }
-
-    // Marks Regex: 225/300 (Allow spaces)
-    const marksMatch = block.match(/(\d+)\s*\/\s*(\d+)/);
-    if (!marksMatch) {
-        if (logger) logger(`[DEBUG] No marks match found in block.`);
-        return;
-    }
-
-    // 2. Extraction
-    const awardIndex = block.toUpperCase().indexOf("AWARD");
-    const content = block.substring(awardIndex + 5).trim();
-
-    // Code Regex: XAC11 etc.
-    const codeRegex = /\b(X[A-Z]{2}\d{2})\b/;
-    const codeMatch = content.match(codeRegex);
-
-    if (!codeMatch) return;
-    const code = codeMatch[1];
-    const grade = gradeMatch[1]; // Capital letter from first capture group
-
-    // Subject Extraction: Between Code limit and Marks start
-    const codeIdx = content.indexOf(code);
-    const marksIdx = content.indexOf(marksMatch[0]); // Using full marks match string
-
-    if (marksIdx <= codeIdx + code.length) {
-        if (logger) logger(`[DEBUG] Marks appear before/in Code? Parsing error.`);
-        return;
-    }
-
-    let subject = content.substring(codeIdx + code.length, marksIdx).trim();
-    // Clean subject
-    subject = subject.replace(/[^A-Za-z\s\-&]/g, "").trim();
-
-    if (code && subject && grade) {
-        grades.push({ code, subject, grade });
-    }
-};
-
 const parseTextLocally = (text: string): StudentResult[] => {
     const normalized = normalizeText(text);
+    // Student Segmentation using "CANDIDATE NAME" as anchor
+    // We add a delimiter to split strictly.
     const markedText = normalized
         .replace(/CANDIDATE\s+(?:(?:NO|NUMBER)\.?\s+(?:AND\s+)?)?NAME/gi, "|||BLOCK_START|||CANDIDATE NAME");
 
@@ -282,8 +295,6 @@ import { ImageAnnotatorClient } from '@google-cloud/vision';
 const extractTextWithOCR = async (gcsUri: string): Promise<string> => {
     console.log(`[API] Triggering Google Vision OCR for ${gcsUri}`);
 
-    // We already have admin initialized, but Vision client needs its own credential config
-    // We can reuse the env vars
     const client = new ImageAnnotatorClient({
         credentials: {
             client_email: process.env.FIREBASE_CLIENT_EMAIL,
@@ -293,13 +304,6 @@ const extractTextWithOCR = async (gcsUri: string): Promise<string> => {
     });
 
     try {
-        // Use async batch annotation for PDF files in GCS
-        // This is a long-running operation, but for 1-5 pages it might be acceptable?
-        // Actually, asyncBatchAnnotateFiles returns an Operation that we must poll.
-        // For a synchronous API, this is risky.
-        // However, there is no synchronous PDF text detection API that takes GCS URI.
-        // We must do async + polling.
-
         const outputUri = `gs://${process.env.FIREBASE_STORAGE_BUCKET}/ocr_results/${Date.now()}_`;
 
         const request = {
@@ -312,7 +316,7 @@ const extractTextWithOCR = async (gcsUri: string): Promise<string> => {
                     features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
                     outputConfig: {
                         gcsDestination: { uri: outputUri },
-                        batchSize: 5 // process up to 5 pages per chunk
+                        batchSize: 5
                     },
                 },
             ],
@@ -321,14 +325,10 @@ const extractTextWithOCR = async (gcsUri: string): Promise<string> => {
         const [operation] = await client.asyncBatchAnnotateFiles(request as any);
         console.log(`[API] OCR Operation started: ${operation.name}`);
 
-        const [filesResponse] = await operation.promise();
+        await operation.promise();
         console.log(`[API] OCR Operation completed.`);
 
-        // Now read the output json(s) from GCS
-        // outputUri prefix + "output-1-to-X.json"
-
         const bucket = admin.storage().bucket();
-        // List files with prefix
         const [files] = await bucket.getFiles({ prefix: `ocr_results/${outputUri.split('/').pop()}` });
 
         let fullText = "";
@@ -337,7 +337,6 @@ const extractTextWithOCR = async (gcsUri: string): Promise<string> => {
             if (file.name.endsWith('.json')) {
                 const [content] = await file.download();
                 const response = JSON.parse(content.toString());
-                // response.responses[i].fullTextAnnotation.text
                 if (response.responses) {
                     for (const res of response.responses) {
                         if (res.fullTextAnnotation) {
@@ -346,7 +345,6 @@ const extractTextWithOCR = async (gcsUri: string): Promise<string> => {
                     }
                 }
             }
-            // Cleanup temp file
             await file.delete().catch(() => { });
         }
 
@@ -366,7 +364,7 @@ export default async function handler(req: any, res: any) {
     }
 
     try {
-        const { filePath } = req.body; // e.g., "superadmin_documents/June 2021/RESULTS..."
+        const { filePath } = req.body;
 
         if (!filePath) {
             return res.status(400).json({ error: 'filePath is required' });
@@ -374,7 +372,6 @@ export default async function handler(req: any, res: any) {
 
         console.log(`[API] Extracting for path: ${filePath}`);
 
-        // 1. Download file from Firebase Storage
         const bucket = storage.bucket();
         const file = bucket.file(filePath);
 
@@ -387,16 +384,12 @@ export default async function handler(req: any, res: any) {
         const [buffer] = await file.download();
         console.log(`[API] Downloaded ${buffer.length} bytes`);
 
-        // 2. Extract Text
         let text = '';
         try {
             if (filePath.toLowerCase().endsWith('.pdf')) {
-                // Construct GCS URI: gs://<bucket>/<filePath>
                 const gcsUri = `gs://${bucket.name}/${filePath}`;
                 text = await extractTextFromPdfBuffer(buffer, gcsUri);
             } else {
-                // Determine if we need other handlers?
-                // For now, assume PDF only per requirement
                 throw new Error("Unsupported file type for server-side extraction (only PDF currently)");
             }
         } catch (extractError: any) {
@@ -404,7 +397,6 @@ export default async function handler(req: any, res: any) {
             return res.status(500).json({ error: 'Text extraction failed', details: extractError.message });
         }
 
-        // 3. Parse Logic
         const results = parseTextLocally(text);
 
         console.log(`[API] PDF loaded successfully`);
