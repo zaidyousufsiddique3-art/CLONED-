@@ -19,7 +19,8 @@ const firebaseConfig = {
   apiKey: getEnv("VITE_FIREBASE_API_KEY", "AIzaSyDtg8K2jDziwOi6aFfsP9Wb47tPQypL658"),
   authDomain: getEnv("VITE_FIREBASE_AUTH_DOMAIN", "slisr-updated.firebaseapp.com"),
   projectId: getEnv("VITE_FIREBASE_PROJECT_ID", "slisr-updated"),
-  storageBucket: getEnv("VITE_FIREBASE_STORAGE_BUCKET", "slisr-updated.firebasestorage.app"),
+  // FORCE BUCKET TO REMOVE VERCEL ENV ISSUES
+  storageBucket: "slisr-updated.firebasestorage.app",
   messagingSenderId: getEnv("VITE_FIREBASE_MESSAGING_SENDER_ID", "910243919222"),
   appId: getEnv("VITE_FIREBASE_APP_ID", "1:910243919222:web:a7beeb14a764c777563657"),
   measurementId: getEnv("VITE_FIREBASE_MEASUREMENT_ID", "G-PNLW175JT9")

@@ -64,6 +64,10 @@ const PredictedGradesPortal: React.FC = () => {
     const scanFolder = async (folderName: string) => {
         setScanning(true);
         setScanProgress(0);
+
+        // FATAL CHECK verification
+        console.log("[FATAL CHECK] Storage bucket in use:", storage.app.options.storageBucket);
+
         try {
             const folderRef = ref(storage, `${BASE_PATH}${folderName}/`);
             console.log('[DEBUG] Scanning folder:', folderRef.fullPath);
