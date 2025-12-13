@@ -15,7 +15,7 @@ export interface StudentResult {
     candidateName: string;
     uci: string;
     dob: string;
-    grades: ExtractedGrade[];
+    results: ExtractedGrade[];
     rawText?: string;
 }
 
@@ -347,7 +347,7 @@ const parseStudentBlock = (text: string): StudentResult => {
         candidateName: candidateName || 'Unknown Candidate',
         uci: uci || 'Unknown UCI',
         dob: dob || 'Unknown DOB',
-        grades,
+        results: grades, // Mapped to results
         rawText: text.substring(0, 300) // snippet for debug
     };
 };

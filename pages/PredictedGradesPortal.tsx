@@ -164,6 +164,9 @@ const PredictedGradesPortal: React.FC = () => {
 
     const data = getSelectedStudentData();
 
+    // MANDATORY FRONTEND LOG
+    console.log("[DEBUG] FRONTEND student.results:", data?.results);
+
     return (
         <div className="space-y-6 animate-fade-in">
             <div>
@@ -291,18 +294,18 @@ const PredictedGradesPortal: React.FC = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                                            {data.grades.length > 0 ? (
-                                                data.grades.map((grade, idx) => (
+                                            {data.results && data.results.length > 0 ? (
+                                                data.results.map((result, idx) => (
                                                     <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors">
-                                                        <td className="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">{grade.code}</td>
-                                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">{grade.subject}</td>
+                                                        <td className="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">{result.code}</td>
+                                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">{result.subject}</td>
                                                         <td className="px-6 py-4 text-right">
-                                                            <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${grade.grade.startsWith('A') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                                grade.grade.startsWith('B') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                                    grade.grade.startsWith('U') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                            <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold ${result.grade.startsWith('A') ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                                result.grade.startsWith('B') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                                    result.grade.startsWith('U') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
                                                                         'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                                                                 }`}>
-                                                                {grade.grade}
+                                                                {result.grade}
                                                             </span>
                                                         </td>
                                                     </tr>
