@@ -323,17 +323,16 @@ const PredictedGradesPortal: React.FC = () => {
             const results = selectedStudent.results || [];
 
             // Body text - Calibri 11pt (helvetica)
-            // Using FIXED margins from reference screenshot
+            // LINE SPACING: Single-line for body, tight for results, 1.5x between sections
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(11);
-            let yPos = 95;
+            let yPos = 92;
             const marginLeft = MARGIN_LEFT; // Fixed 25mm
-            const lineHeight = 5.5;
+            const bodyLineHeight = 4.5;    // Single-line spacing for body text
+            const resultLineHeight = 5;    // Tight spacing for result lines
+            const sectionGap = 7;          // 1.5x spacing between major sections
 
             // First paragraph - single continuous text flow
-            // "[NAME], Unique Candidate Identifier ([UCI]) had sat [possessive] London Edexcel
-            // INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in [IAS SESSION]. [Subject] had obtained the following results:"
-
             doc.setFont('helvetica', 'bold');
             doc.text(studentName + ', ', marginLeft, yPos);
             let xPos = marginLeft + doc.getTextWidth(studentName + ', ');
@@ -345,14 +344,14 @@ const PredictedGradesPortal: React.FC = () => {
             doc.setFont('helvetica', 'normal');
             doc.text(`(${selectedStudent.uci}) had sat ${pronouns.possessive} London Edexcel`, xPos, yPos);
 
-            yPos += lineHeight;
+            yPos += bodyLineHeight;
             doc.text(`INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in ${iasSession}. ${pronouns.subject} had obtained the following`, marginLeft, yPos);
 
-            yPos += lineHeight;
+            yPos += bodyLineHeight;
             doc.text('results:', marginLeft, yPos);
 
-            // Actual Results block - CENTER ALIGNED
-            yPos += 12;
+            // Actual Results block - CENTER ALIGNED (with section gap before)
+            yPos += sectionGap;
             doc.setFont('helvetica', 'bold');
 
             results.forEach((r) => {
@@ -361,11 +360,11 @@ const PredictedGradesPortal: React.FC = () => {
                 // Center the entire result line
                 const resultLine = `${subjectText}   ${gradeText}`;
                 doc.text(resultLine, 105, yPos, { align: 'center' });
-                yPos += lineHeight;
+                yPos += resultLineHeight; // Tight spacing for results
             });
 
-            // Second paragraph
-            yPos += 8;
+            // Second paragraph (with section gap before)
+            yPos += sectionGap;
             doc.setFont('helvetica', 'bold');
             doc.text(studentName, marginLeft, yPos);
             xPos = marginLeft + doc.getTextWidth(studentName);
@@ -373,17 +372,17 @@ const PredictedGradesPortal: React.FC = () => {
             doc.setFont('helvetica', 'normal');
             doc.text(` will be sitting ${pronouns.possessive} London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL)`, xPos, yPos);
 
-            yPos += lineHeight;
+            yPos += bodyLineHeight;
             doc.text(`examination which will be held during ${ialSession}. Based on ${pronouns.possessive} IAS results and the performance in the`, marginLeft, yPos);
 
-            yPos += lineHeight;
+            yPos += bodyLineHeight;
             doc.text(`school examination, the respective subject teachers firmly expect ${pronouns.object} to obtain the following results in the`, marginLeft, yPos);
 
-            yPos += lineHeight;
+            yPos += bodyLineHeight;
             doc.text(`${ialSession} IAL Examination:`, marginLeft, yPos);
 
-            // Predicted Results block - CENTER ALIGNED
-            yPos += 12;
+            // Predicted Results block - CENTER ALIGNED (with section gap before)
+            yPos += sectionGap;
             doc.setFont('helvetica', 'bold');
 
             results.forEach((r) => {
@@ -393,11 +392,11 @@ const PredictedGradesPortal: React.FC = () => {
                 // Center the entire result line
                 const resultLine = `${subjectText}   ${gradeWithBracket}`;
                 doc.text(resultLine, 105, yPos, { align: 'center' });
-                yPos += lineHeight;
+                yPos += resultLineHeight; // Tight spacing for results
             });
 
-            // Closing statement
-            yPos += 10;
+            // Closing statement (with section gap before)
+            yPos += sectionGap;
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(11);
             doc.text(`This letter is issued on ${pronouns.possessive} request to be reviewed by Universities for admission and scholarship.`, marginLeft, yPos);
