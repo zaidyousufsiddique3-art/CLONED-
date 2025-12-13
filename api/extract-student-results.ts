@@ -2,19 +2,7 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 // @ts-ignore
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
-
-// Disable workers correctly for Node.js
-if (pdfjsLib.GlobalWorkerOptions) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = null;
-}
-
-// HARD DISABLE CANVAS / DOM FEATURES
-// @ts-ignore
-if (pdfjsLib) {
-    (pdfjsLib as any).disableWorker = true;
-    (pdfjsLib as any).useSystemFonts = true;
-}
+import pdf from 'pdf-parse';
 
 // Initialize Firebase Admin (Singleton)
 if (!getApps().length) {
@@ -42,8 +30,6 @@ export const config = {
     },
 };
 
-// --- Shared Types & Interfaces ---
-
 interface ExtractedGrade {
     code?: string;
     subject: string;
@@ -57,21 +43,6 @@ interface StudentResult {
     grades: ExtractedGrade[];
     rawText?: string;
 }
-
-// --- Parsing Logic (Mirrored from extractionService.ts) ---
-
-const normalizeText = (text: string): string => {
-    if (!text) return '';
-    let normalized = text
-        .replace(/C\s+A\s+N\s+D\s+I\s+D\s+A\s+T\s+E/gi, "CANDIDATE")
-        .replace(/CAND[1lI]DATE/gi, "CANDIDATE")
-        .replace(/UN[1lI]QUE/gi, "UNIQUE")
-        .replace(/NO\. AND/gi, "NO. AND")
-        .replace(/DATE OF B[1lI]RTH/gi, "DATE OF BIRTH")
-        .replace(/[ \t]+/g, ' ')
-        .replace(/\n\s+/g, '\n');
-    return normalized;
-};
 
 const parseStudentBlock = (text: string): StudentResult => {
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
@@ -183,29 +154,14 @@ const parseTextLocally = (text: string): StudentResult[] => {
 // --- PDF Extraction (Server Side) ---
 
 const extractTextFromPdfBuffer = async (buffer: Buffer): Promise<string> => {
-    // Convert Buffer to Uint8Array
-    const uint8Array = new Uint8Array(buffer);
-
-    // Polyfill for PDF.js in Node environment if needed
-    // But usually standard promise loading works
-    const loadingTask = pdfjsLib.getDocument({
-        data: uint8Array,
-        useSystemFonts: true,
-        disableFontFace: true,
-    });
-
-    const pdf = await loadingTask.promise;
-    let fullText = '';
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
-        console.log(`[API] Page ${i} text length: ${pageText.length}`);
-        fullText += pageText + '\n ';
+    try {
+        const data = await pdf(buffer);
+        // pdf-parse provides the full raw text in data.text
+        return data.text;
+    } catch (err: any) {
+        console.error("[API] pdf-parse failed:", err);
+        throw new Error("Failed to parse PDF with pdf-parse: " + err.message);
     }
-
-    return fullText;
 };
 
 // --- API Handler ---
