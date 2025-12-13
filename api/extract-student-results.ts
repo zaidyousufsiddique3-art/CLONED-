@@ -35,7 +35,7 @@ interface StudentResult {
     candidateName: string;
     uci: string;
     dob: string;
-    grades: ExtractedGrade[];
+    results: ExtractedGrade[]; // Renamed from grades to results per strict requirement
     rawText?: string;
 }
 
@@ -89,28 +89,23 @@ const normalizeText = (text: string): string => {
     return normalized;
 };
 
-const processAwardBlock = (block: string, grades: ExtractedGrade[]) => {
+// Return result OR null (Functional approach)
+const processAwardBlock = (block: string): ExtractedGrade | null => {
     console.log(`[DEBUG] Processing Block: "${block}"`);
 
     // 1. Strict Filters
-    if (!block.toUpperCase().includes("AWARD")) return;
+    if (!block.toUpperCase().includes("AWARD")) return null;
 
     // 2. Grade Regex (MATCH BEFORE TRIMMING/ SPLITTING)
-    // Matches A*(a*), A(a), B(b), etc.
     const gradeRegex = /([A-EU])\*?\s*\(\s*([a-eu])\*?\s*\)/;
 
     // We run matches on the full block string
     const gradeMatch = block.match(gradeRegex);
     if (!gradeMatch) {
         console.log(`[DEBUG] No grade match in block: "${block}"`);
-        return;
+        return null;
     }
     const grade = gradeMatch[1]; // A, B, U... capture group 1
-
-    // 3. Trim artifacts? 
-    // Since we matched grade, we strictly proceed. 
-    // We do NOT stop if Contributing/UNIT appears later in the string, 
-    // because we need to extract Code/Subject first, which usually appear BEFORE Grade.
 
     // 4. Code Regex
     const codeRegex = /\b([XYW][A-Z]{2}\d{2})\b/;
@@ -118,19 +113,14 @@ const processAwardBlock = (block: string, grades: ExtractedGrade[]) => {
 
     if (!codeMatch) {
         console.log(`[DEBUG] No code match in block: "${block}"`);
-        return;
+        return null;
     }
     const code = codeMatch[1];
 
     // 5. Subject Extraction
-    // Determine subject boundaries
-    // Start: End of Code
-    // End: Start of Marks OR Start of Grade (if marks missing)
-
     const content = block;
     const codeIdx = content.indexOf(code);
 
-    // Marks are OPTIONAL for validation but useful for boundary
     const marksRegex = /\b\d+\s*\/\s*\d+\b/;
     const marksMatch = block.match(marksRegex);
 
@@ -139,39 +129,34 @@ const processAwardBlock = (block: string, grades: ExtractedGrade[]) => {
     if (marksMatch) {
         subjectEndIdx = content.indexOf(marksMatch[0]);
     } else {
-        // Fallback: If no marks, end at Grade
         subjectEndIdx = gradeMatch.index!;
     }
 
-    // Safety: If marks found but appear BEFORE code (weird OCR), ignore marks
     if (marksMatch && subjectEndIdx <= codeIdx + code.length) {
         console.log(`[DEBUG] Marks boundary weird, falling back to grade boundary: "${block}"`);
         subjectEndIdx = gradeMatch.index!;
     }
 
-    // Final check
     if (subjectEndIdx <= codeIdx + code.length) {
         console.log(`[DEBUG] Subject boundary invalid (Code overlaps end): "${block}"`);
-        // Try just taking substring between code and grade?
-        // This is a desperate fallback
         if (gradeMatch.index! > codeIdx + code.length) {
             subjectEndIdx = gradeMatch.index!;
         } else {
-            return;
+            return null;
         }
     }
 
     let subject = content.substring(codeIdx + code.length, subjectEndIdx).trim();
-    // Clean subject
     subject = subject.replace(/[^A-Za-z\s\-&]/g, "").trim();
 
-    // Fallback if empty?
     if (!subject) subject = "Unknown Subject";
 
     if (code && subject && grade) {
-        grades.push({ code, subject, grade });
-        console.log("[DEBUG] PUSHED RESULT:", { code, subject, grade });
+        const result = { code, subject, grade };
+        console.log("[DEBUG] PUSHED RESULT:", result);
+        return result;
     }
+    return null;
 };
 
 const parseStudentBlock = (text: string): StudentResult => {
@@ -203,9 +188,8 @@ const parseStudentBlock = (text: string): StudentResult => {
     if (dobMatch) dob = dobMatch[1];
 
     // 2. AWARD BUFFERING LOGIC
-    const grades: ExtractedGrade[] = [];
+    const results: ExtractedGrade[] = []; // Named 'results'
 
-    // Grade Checker (Same regex as process)
     const gradeChecker = /([A-EU])\*?\s*\(\s*([a-eu])\*?\s*\)/;
 
     let currentBlock = "";
@@ -215,26 +199,24 @@ const parseStudentBlock = (text: string): StudentResult => {
         return line.toUpperCase().startsWith(keyword.toUpperCase());
     };
 
+    const flushBlock = (block: string) => {
+        if (!block) return;
+        const res = processAwardBlock(block);
+        if (res) {
+            results.push(res);
+        }
+    };
+
     for (const line of lines) {
         const cleanLine = line.trim();
         if (!cleanLine) continue;
 
-        // START of AWARD block
         if (startsWithKeyword(cleanLine, 'AWARD')) {
-            // Process previous if any
-            if (currentBlock) {
-                processAwardBlock(currentBlock, grades);
-            }
-            // Start new
+            if (currentBlock) flushBlock(currentBlock);
             currentBlock = cleanLine;
             isCapture = true;
         }
         else if (isCapture) {
-            // Continue buffering
-            // Check if we should STOP.
-            // Only stop if we found a grade AND hit a stop keyword
-            // OR hit a hard new student boundary
-
             const hasGrade = gradeChecker.test(currentBlock);
             const isStopKeyword =
                 startsWithKeyword(cleanLine, 'UNIT') ||
@@ -245,12 +227,12 @@ const parseStudentBlock = (text: string): StudentResult => {
                 startsWithKeyword(cleanLine, 'CANDIDATE NAME');
 
             if (isNextStudent) {
-                processAwardBlock(currentBlock, grades);
+                flushBlock(currentBlock);
                 currentBlock = "";
                 isCapture = false;
             }
             else if (hasGrade && isStopKeyword) {
-                processAwardBlock(currentBlock, grades);
+                flushBlock(currentBlock);
                 currentBlock = "";
                 isCapture = false;
             }
@@ -261,16 +243,16 @@ const parseStudentBlock = (text: string): StudentResult => {
     }
     // Flush last
     if (currentBlock && isCapture) {
-        processAwardBlock(currentBlock, grades);
+        flushBlock(currentBlock);
     }
 
-    console.log("[DEBUG] FINAL RESULTS COUNT:", grades.length, grades);
+    console.log("[DEBUG] FINAL RESULTS COUNT:", results.length);
 
     return {
         candidateName,
         uci,
         dob,
-        grades,
+        results, // STRICT KEY NAME
         rawText: text.substring(0, 300)
     };
 };
@@ -287,14 +269,14 @@ const parseTextLocally = (text: string): StudentResult[] => {
         chunks = [normalized];
     }
 
-    const results: StudentResult[] = [];
+    const students: StudentResult[] = [];
     for (const chunk of chunks) {
         const res = parseStudentBlock(chunk);
         if (res.candidateName && res.candidateName !== 'Unknown Candidate') {
-            results.push(res);
+            students.push(res);
         }
     }
-    return results;
+    return students;
 };
 
 // --- PDF Extraction (Server Side) ---
@@ -426,7 +408,7 @@ export default async function handler(req: any, res: any) {
             return res.status(500).json({ error: 'Text extraction failed', details: extractError.message });
         }
 
-        const results = parseTextLocally(text);
+        const students = parseTextLocally(text);
 
         console.log(`[API] PDF loaded successfully`);
         console.log(`[API] Extracted text length: ${text.length}`);
@@ -435,16 +417,18 @@ export default async function handler(req: any, res: any) {
             console.log("[API] PDF has no text layer");
         }
 
-        if (results.length > 0) {
-            console.log(`[API] Candidate found: ${results[0].candidateName}`);
+        if (students.length > 0) {
+            console.log(`[API] Candidate found: ${students[0].candidateName}`);
+            // FINAL RESPONSE CHECK
+            console.log("[DEBUG] API RESPONSE SAMPLE (Results):", JSON.stringify(students[0].results, null, 2));
         } else {
             console.log(`[API] No candidates found in text.`);
         }
-        console.log(`[API] Extracted ${results.length} candidates`);
+        console.log(`[API] Extracted ${students.length} candidates`);
 
         return res.status(200).json({
             success: true,
-            students: results,
+            students: students,
             debug: { length: text.length, snippet: text.substring(0, 100) }
         });
 
