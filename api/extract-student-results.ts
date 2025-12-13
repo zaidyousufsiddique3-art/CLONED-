@@ -114,7 +114,7 @@ const parseStudentBlock = (text: string): StudentResult => {
         return line.toUpperCase().startsWith(keyword.toUpperCase());
     };
 
-    // Grade Regex (B(b))
+    // Grade Regex (B(b)) - Strict: Capital, Open Paren, Lower, Close Paren
     const gradeRegex = /([A-Z])\([a-z]\)/;
 
     for (const line of lines) {
@@ -176,8 +176,7 @@ const processAwardBlock = (block: string, grades: ExtractedGrade[], logger?: (ms
     // 1. Strict Filters
     if (!block.toUpperCase().includes("AWARD")) return;
 
-    // Grade Regex: B(b) -> Capture purely based on patterns
-    // Must use strict: ([A-Z])\([a-z]\)
+    // Grade Regex: B(b) - Strict Capture
     const gradeMatch = block.match(/([A-Z])\([a-z]\)/);
     if (!gradeMatch) {
         if (logger) logger(`[DEBUG] No grade match found in block.`);
