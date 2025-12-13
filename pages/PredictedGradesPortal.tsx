@@ -288,11 +288,17 @@ const PredictedGradesPortal: React.FC = () => {
             doc.addImage(headerImg, 'PNG', 10, 8, 190, 35);
 
             // Date - Calibri 11pt equivalent (helvetica is closest in jsPDF)
+            // FIXED MARGINS: 25mm left, 25mm right (matching reference screenshot exactly)
+            const MARGIN_LEFT = 25;
+            const MARGIN_RIGHT = 25;
+            const PAGE_WIDTH = 210;
+            const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT; // 160mm
+
             const currentDate = formatDateWithOrdinal(new Date());
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(11);
             doc.setTextColor(0, 0, 0);
-            doc.text(currentDate + ',', 20, 55);
+            doc.text(currentDate + ',', MARGIN_LEFT, 55);
 
             // TO WHOM IT MAY CONCERN - Amiri 14pt equivalent (times bold is closest)
             doc.setFont('times', 'bold');
@@ -310,19 +316,19 @@ const PredictedGradesPortal: React.FC = () => {
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(9);
             const subjectLine = `EXPECTED GRADE SHEET – LONDON EDEXCEL IAL EXAMINATION – ${ialSession.toUpperCase()}`;
-            doc.text(subjectLine, 20, 82); // Left aligned at same margin as body text
+            doc.text(subjectLine, MARGIN_LEFT, 82); // Left aligned at fixed margin
 
             // Student name transformation
             const studentName = formatStudentName(selectedStudent.candidateName);
             const results = selectedStudent.results || [];
 
             // Body text - Calibri 11pt (helvetica)
+            // Using FIXED margins from reference screenshot
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(11);
             let yPos = 95;
-            const marginLeft = 20;
+            const marginLeft = MARGIN_LEFT; // Fixed 25mm
             const lineHeight = 5.5;
-            const pageWidth = 190;
 
             // First paragraph - single continuous text flow
             // "[NAME], Unique Candidate Identifier ([UCI]) had sat [possessive] London Edexcel
@@ -396,33 +402,33 @@ const PredictedGradesPortal: React.FC = () => {
             doc.setFontSize(11);
             doc.text(`This letter is issued on ${pronouns.possessive} request to be reviewed by Universities for admission and scholarship.`, marginLeft, yPos);
 
-            // Signature section (fixed position near bottom)
+            // Signature section (fixed position near bottom, using same margins)
             const sigY = 245;
 
             // Signature lines (dotted style like the screenshot)
             doc.setLineWidth(0.2);
             doc.setDrawColor(100, 100, 100);
 
-            // Left signature line
-            for (let i = 20; i < 65; i += 2) {
+            // Left signature line - starts at MARGIN_LEFT
+            for (let i = MARGIN_LEFT; i < 70; i += 2) {
                 doc.line(i, sigY, i + 1, sigY);
             }
-            // Right signature line  
-            for (let i = 135; i < 190; i += 2) {
+            // Right signature line - ends at PAGE_WIDTH - MARGIN_RIGHT
+            for (let i = 140; i < PAGE_WIDTH - MARGIN_RIGHT; i += 2) {
                 doc.line(i, sigY, i + 1, sigY);
             }
 
             // Names - BLACK, normal weight
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(0, 0, 0);
-            doc.text('Ruxshan Razak', 20, sigY + 7);
-            doc.text('S.M.M. Hajath', 155, sigY + 7);
+            doc.text('Ruxshan Razak', MARGIN_LEFT, sigY + 7);
+            doc.text('S.M.M. Hajath', 150, sigY + 7);
 
             // Titles - BLACK (per Screenshot 4)
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(0, 0, 0); // BLACK as per screenshot 4
-            doc.text('Principal', 20, sigY + 13);
-            doc.text('Academic & Public Exams Coordinator', 135, sigY + 13);
+            doc.text('Principal', MARGIN_LEFT, sigY + 13);
+            doc.text('Academic & Public Exams Coordinator', 140, sigY + 13);
 
             // Save PDF
             const fileName = `Expected_Grade_Sheet_${studentName.replace(/\s+/g, '_')}.pdf`;
