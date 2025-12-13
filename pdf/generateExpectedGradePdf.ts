@@ -14,7 +14,7 @@ if (!admin.apps.length) {
     });
 }
 
-const TEMPLATE_PATH = 'templates/SLISR_EXPECTED_GRADE_TEMPLATE_v1.pdf';
+const TEMPLATE_PATH = 'templates/SLISR_EXPECTED_GRADE_TEMPLATE_v2.pdf';
 
 // STRICT Payload Shape
 export interface ExpectedGradePdfPayload {
@@ -43,51 +43,63 @@ export interface ExpectedGradePdfPayload {
     PREDICTED_GRADE_4: string;
 }
 
-// Field Map Scaffold
-// These coordinates are placeholders and should be adjusted to match the actual template
-// Field Map - Calibrated for Alignment
-// Grid System:
-// - Left Margin (Subjects): x = 60
-// - Right Column (Grades): x = 360
-// - Row Spacing: 25pts
-// - Header Baseline: y = 705
+// Field Map - Final Calibration (Invisible Box Alignment)
+// A4 Canvas: 595 x 842 pts (approx)
+// Grid: Left Margin x=72, Grade Column x=350
+// Row Spacing: 20pts
 const FIELD_MAP: Record<string, { page: number; x: number; y: number; size: number }> = {
-    // --- Header Info ---
-    STUDENT_FULL_NAME: { page: 0, x: 125, y: 705, size: 10 },
-    UCI_NUMBER: { page: 0, x: 125, y: 685, size: 10 },
-    DOCUMENT_ISSUE_DATE: { page: 0, x: 440, y: 755, size: 10 }, // Top Right
+    // --- Header & Meta ---
+    // Top right date
+    DOCUMENT_ISSUE_DATE: { page: 0, x: 430, y: 735, size: 10 },
 
-    // Session Info
-    IAS_SESSION_MONTH_YEAR: { page: 0, x: 150, y: 630, size: 10 },
-    IAL_SESSION_MONTH_YEAR: { page: 0, x: 400, y: 630, size: 10 },
+    // Subject Line Variable (IAL Session)
+    // "EXPECTED GRADE SHEET ... - [SESSION]"
+    // text y is baseline
+    IAL_SESSION_MONTH_YEAR_TITLE: { page: 0, x: 380, y: 690, size: 11 }, // Note: This key needs to be mapped if used separately, defaulting to IAL_SESSION for now if strictly payload bound
 
-    // --- Original Grades (IAS) ---
-    // Block Start Y: 560
-    ORIGINAL_SUBJECT_1: { page: 0, x: 60, y: 560, size: 10 },
-    ORIGINAL_GRADE_1: { page: 0, x: 360, y: 560, size: 10 },
+    // Paragraph 1 Fields
+    // "... [NAME], Unique Candidate Identifier ([UCI]) ..."
+    STUDENT_FULL_NAME: { page: 0, x: 72, y: 658, size: 10 },
+    UCI_NUMBER: { page: 0, x: 320, y: 658, size: 10 },
 
-    ORIGINAL_SUBJECT_2: { page: 0, x: 60, y: 535, size: 10 },
-    ORIGINAL_GRADE_2: { page: 0, x: 360, y: 535, size: 10 },
+    // "... (IAS) examination in [SESSION] ..."
+    IAS_SESSION_MONTH_YEAR: { page: 0, x: 230, y: 644, size: 10 },
 
-    ORIGINAL_SUBJECT_3: { page: 0, x: 60, y: 510, size: 10 },
-    ORIGINAL_GRADE_3: { page: 0, x: 360, y: 510, size: 10 },
+    // Paragraph 2 Fields
+    // "... (IAL) examination which will be held during [SESSION] ..."
+    IAL_SESSION_MONTH_YEAR: { page: 0, x: 280, y: 468, size: 10 },
 
-    ORIGINAL_SUBJECT_4: { page: 0, x: 60, y: 485, size: 10 },
-    ORIGINAL_GRADE_4: { page: 0, x: 360, y: 485, size: 10 },
 
-    // --- Predicted Grades (IAL) ---
-    // Block Start Y: 410
-    PREDICTED_SUBJECT_1: { page: 0, x: 60, y: 410, size: 10 },
-    PREDICTED_GRADE_1: { page: 0, x: 360, y: 410, size: 10 },
+    // --- Original Results (Table 1) ---
+    // Start Y: 580 (Header is above)
+    // Spacing: 20pts
+    ORIGINAL_SUBJECT_1: { page: 0, x: 120, y: 580, size: 10 },
+    ORIGINAL_GRADE_1: { page: 0, x: 400, y: 580, size: 10 },
 
-    PREDICTED_SUBJECT_2: { page: 0, x: 60, y: 385, size: 10 },
-    PREDICTED_GRADE_2: { page: 0, x: 360, y: 385, size: 10 },
+    ORIGINAL_SUBJECT_2: { page: 0, x: 120, y: 560, size: 10 },
+    ORIGINAL_GRADE_2: { page: 0, x: 400, y: 560, size: 10 },
 
-    PREDICTED_SUBJECT_3: { page: 0, x: 60, y: 360, size: 10 },
-    PREDICTED_GRADE_3: { page: 0, x: 360, y: 360, size: 10 },
+    ORIGINAL_SUBJECT_3: { page: 0, x: 120, y: 540, size: 10 },
+    ORIGINAL_GRADE_3: { page: 0, x: 400, y: 540, size: 10 },
 
-    PREDICTED_SUBJECT_4: { page: 0, x: 60, y: 335, size: 10 },
-    PREDICTED_GRADE_4: { page: 0, x: 360, y: 335, size: 10 },
+    ORIGINAL_SUBJECT_4: { page: 0, x: 120, y: 520, size: 10 },
+    ORIGINAL_GRADE_4: { page: 0, x: 400, y: 520, size: 10 },
+
+
+    // --- Predicted Results (Table 2) ---
+    // Start Y: 380
+    // Spacing: 20pts
+    PREDICTED_SUBJECT_1: { page: 0, x: 120, y: 380, size: 10 },
+    PREDICTED_GRADE_1: { page: 0, x: 400, y: 380, size: 10 },
+
+    PREDICTED_SUBJECT_2: { page: 0, x: 120, y: 360, size: 10 },
+    PREDICTED_GRADE_2: { page: 0, x: 400, y: 360, size: 10 },
+
+    PREDICTED_SUBJECT_3: { page: 0, x: 120, y: 340, size: 10 },
+    PREDICTED_GRADE_3: { page: 0, x: 400, y: 340, size: 10 },
+
+    PREDICTED_SUBJECT_4: { page: 0, x: 120, y: 320, size: 10 },
+    PREDICTED_GRADE_4: { page: 0, x: 400, y: 320, size: 10 },
 };
 
 /**
