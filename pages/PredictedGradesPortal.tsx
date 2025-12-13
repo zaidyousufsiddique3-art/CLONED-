@@ -389,12 +389,12 @@ const PredictedGradesPortal: React.FC = () => {
                             {/* Predicted Results Table */}
                             {showPredicted && user?.role === UserRole.SUPER_ADMIN && (
                                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-bottom-4">
-                                    <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700">
-                                        <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center">
-                                            <TrendingUp className="w-5 h-5 mr-2 text-brand-600" />
+                                    <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-8 py-6 text-white">
+                                        <h3 className="text-lg font-bold flex items-center">
+                                            <TrendingUp className="w-5 h-5 mr-2 text-white" />
                                             Predicted Results
                                         </h3>
-                                        <p className="text-sm text-slate-500 mt-1">Generated based on Pearson grade progression logic.</p>
+                                        <p className="text-sm text-brand-100 mt-1">Generated based on Pearson grade progression logic.</p>
                                     </div>
                                     <div className="p-8">
                                         <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
