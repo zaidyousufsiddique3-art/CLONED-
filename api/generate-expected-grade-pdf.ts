@@ -83,7 +83,8 @@ const HTML_TEMPLATE = `
             font-weight: bold;
         }
         .results-block {
-            margin: 20px 0 20px 80px;
+            margin: 20px auto;
+            width: fit-content;
             font-weight: bold;
             font-size: 11pt;
         }
