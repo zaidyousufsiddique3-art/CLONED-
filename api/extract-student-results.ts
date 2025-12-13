@@ -107,19 +107,25 @@ const processAwardBlock = (block: string): ExtractedGrade | null => {
     }
     const grade = gradeMatch[1]; // A, B, U... capture group 1
 
-    // 4. Code Regex
-    const codeRegex = /\b([XYW][A-Z]{2}\d{2})\b/;
+    // 4. Code Regex (RELAXED AS REQUESTED)
+    const codeRegex = /([XYW][A-Z]{2}\d{2})/i;
     const codeMatch = block.match(codeRegex);
+    console.log("[DEBUG] codeMatch:", codeMatch);
 
     if (!codeMatch) {
         console.log(`[DEBUG] No code match in block: "${block}"`);
         return null;
     }
-    const code = codeMatch[1];
+    const code = codeMatch[1]; // Capture group 1
 
     // 5. Subject Extraction
     const content = block;
     const codeIdx = content.indexOf(code);
+
+    // Safety check just in case indexOf fails or behaves weirdly with overlapping matches
+    if (codeIdx === -1) {
+        return null;
+    }
 
     const marksRegex = /\b\d+\s*\/\s*\d+\b/;
     const marksMatch = block.match(marksRegex);
@@ -153,7 +159,7 @@ const processAwardBlock = (block: string): ExtractedGrade | null => {
 
     if (code && subject && grade) {
         const result = { code, subject, grade };
-        console.log("[DEBUG] PUSHED RESULT:", result);
+        console.log("[DEBUG] RETURNING RESULT:", result);
         return result;
     }
     return null;
