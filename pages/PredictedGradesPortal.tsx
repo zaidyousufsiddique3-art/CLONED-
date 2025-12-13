@@ -257,187 +257,59 @@ const PredictedGradesPortal: React.FC = () => {
 
         setGeneratingPdf(true);
 
-        // Gender-based pronouns
-        const pronouns = gender === 'male'
-            ? { subject: 'He', object: 'him', possessive: 'his' }
-            : { subject: 'She', object: 'her', possessive: 'her' };
-
         try {
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-
-            // Background color #fffefb
-            doc.setFillColor(255, 254, 251);
-            doc.rect(0, 0, 210, 297, 'F');
-
-            // Load header image (contains logo + school name + Arabic + license line)
-            const headerImg = new Image();
-            headerImg.crossOrigin = 'Anonymous';
-
-            await new Promise<void>((resolve, reject) => {
-                headerImg.onload = () => resolve();
-                headerImg.onerror = reject;
-                headerImg.src = '/assets/pdf-header.png';
-            });
-
-            // ========================================
-            // CANONICAL LAYOUT LOCK - EXACT MATCH REQUIRED
-            // Treat attached screenshot as locked template
-            // DO NOT change spacing, alignment, or layout
-            // ========================================
-
-            // Add header image (positioned exactly as in screenshot)
-            doc.addImage(headerImg, 'PNG', 12, 10, 186, 32);
-
-            // === LOCKED SPACING VALUES (from canonical screenshot) ===
-            const MARGIN_LEFT = 22;        // Fixed left margin
-            const PAGE_CENTER = 105;       // A4 center point
-
-            // === DATE LINE ===
-            const currentDate = formatDateWithOrdinal(new Date());
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.text(currentDate + ',', MARGIN_LEFT, 52);
-
-            // === TO WHOM IT MAY CONCERN ===
-            doc.setFont('times', 'bold');
-            doc.setFontSize(13);
-            const toWhomText = 'TO WHOM IT MAY CONCERN';
-            doc.text(toWhomText, PAGE_CENTER, 65, { align: 'center' });
-
-            // Underline exactly to text width
-            const toWhomWidth = doc.getTextWidth(toWhomText);
-            doc.setLineWidth(0.3);
-            doc.setDrawColor(0, 0, 0);
-            doc.line(PAGE_CENTER - toWhomWidth / 2, 66.5, PAGE_CENTER + toWhomWidth / 2, 66.5);
-
-            // === SUBJECT LINE (left aligned, no underline) ===
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8);
-            const subjectLine = `EXPECTED GRADE SHEET – LONDON EDEXCEL IAL EXAMINATION – ${ialSession.toUpperCase()}`;
-            doc.text(subjectLine, MARGIN_LEFT, 74);
-
-            // === FIRST PARAGRAPH ===
-            const studentName = formatStudentName(selectedStudent.candidateName);
             const results = selectedStudent.results || [];
 
-            doc.setFontSize(10);
-            let y = 84; // Starting Y position for first paragraph
-            const lineH = 4;      // Tight single-line spacing
-            const resultH = 5;    // Result line height
-            const gapSmall = 3;   // Small gap
-            const gapMedium = 8;  // Gap before/after result blocks
+            // Map results to the strict payload
+            const payload: any = {
+                STUDENT_FULL_NAME: formatStudentName(selectedStudent.candidateName),
+                UCI_NUMBER: selectedStudent.uci,
+                DOCUMENT_ISSUE_DATE: formatDateWithOrdinal(new Date()),
+                IAS_SESSION_MONTH_YEAR: iasSession,
+                IAL_SESSION_MONTH_YEAR: ialSession,
+            };
 
-            // Line 1: Name + UCI + text
-            doc.setFont('helvetica', 'bold');
-            doc.text(studentName + ', ', MARGIN_LEFT, y);
-            let x = MARGIN_LEFT + doc.getTextWidth(studentName + ', ');
+            // Populate Original and Predicted Grades (Max 4)
+            results.slice(0, 4).forEach((r, idx) => {
+                const i = idx + 1;
+                payload[`ORIGINAL_SUBJECT_${i}`] = r.subject.toUpperCase();
+                payload[`ORIGINAL_GRADE_${i}`] = `${r.grade} (${r.grade.toLowerCase()})`;
 
-            doc.setFont('helvetica', 'normal');
-            doc.text('Unique Candidate Identifier ', x, y);
-            x += doc.getTextWidth('Unique Candidate Identifier ');
-
-            doc.text(`(${selectedStudent.uci}) had sat ${pronouns.possessive} London Edexcel`, x, y);
-
-            // Line 2
-            y += lineH;
-            doc.text(`INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in ${iasSession}. ${pronouns.subject} had obtained the following`, MARGIN_LEFT, y);
-
-            // Line 3
-            y += lineH;
-            doc.text('results:', MARGIN_LEFT, y);
-
-            // === ACTUAL RESULTS BLOCK ===
-            y += gapMedium;
-            doc.setFont('helvetica', 'bold');
-
-            results.forEach((r) => {
-                const subjectText = r.subject.toUpperCase();
-                const gradeText = `${r.grade} (${r.grade.toLowerCase()})`;
-                const resultLine = `${subjectText}   ${gradeText}`;
-                doc.text(resultLine, PAGE_CENTER, y, { align: 'center' });
-                y += resultH;
+                const predicted = calculatePredictedGrade(r.grade);
+                payload[`PREDICTED_SUBJECT_${i}`] = r.subject.toUpperCase();
+                payload[`PREDICTED_GRADE_${i}`] = `${predicted} (${predicted.toLowerCase()})`;
             });
 
-            // === SECOND PARAGRAPH ===
-            y += gapSmall;
-            doc.setFont('helvetica', 'bold');
-            doc.text(studentName, MARGIN_LEFT, y);
-            x = MARGIN_LEFT + doc.getTextWidth(studentName);
-
-            doc.setFont('helvetica', 'normal');
-            doc.text(` will be sitting ${pronouns.possessive} London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL)`, x, y);
-
-            y += lineH;
-            doc.text(`examination which will be held during ${ialSession}. Based on ${pronouns.possessive} IAS results and the performance in the`, MARGIN_LEFT, y);
-
-            y += lineH;
-            doc.text(`school examination, the respective subject teachers firmly expect ${pronouns.object} to obtain the following results in the`, MARGIN_LEFT, y);
-
-            y += lineH;
-            doc.text(`${ialSession} IAL Examination:`, MARGIN_LEFT, y);
-
-            // === PREDICTED RESULTS BLOCK ===
-            y += gapMedium;
-            doc.setFont('helvetica', 'bold');
-
-            results.forEach((r) => {
-                const subjectText = r.subject.toUpperCase();
-                const predictedGrade = calculatePredictedGrade(r.grade);
-                const gradeWithBracket = `${predictedGrade} (${predictedGrade.toLowerCase()})`;
-                const resultLine = `${subjectText}   ${gradeWithBracket}`;
-                doc.text(resultLine, PAGE_CENTER, y, { align: 'center' });
-                y += resultH;
+            const response = await fetch('/api/generate-expected-grade-pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
 
-            // === CLOSING STATEMENT ===
-            y += gapMedium;
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.text(`This letter is issued on ${pronouns.possessive} request to be reviewed by Universities for admission and scholarship.`, MARGIN_LEFT, y);
-
-            // === SIGNATURE SECTION (fixed position) ===
-            const sigY = 230;
-
-            // Dotted signature lines
-            doc.setLineWidth(0.15);
-            doc.setDrawColor(80, 80, 80);
-
-            // Left line
-            for (let i = MARGIN_LEFT; i < 68; i += 1.5) {
-                doc.line(i, sigY, i + 0.8, sigY);
-            }
-            // Right line
-            for (let i = 145; i < 188; i += 1.5) {
-                doc.line(i, sigY, i + 0.8, sigY);
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Server error');
             }
 
-            // Names - BLACK
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.text('Ruxshan Razak', MARGIN_LEFT, sigY + 6);
-            doc.text('S.M.M. Hajath', 158, sigY + 6);
-
-            // Titles - BLACK
-            doc.text('Principal', MARGIN_LEFT, sigY + 11);
-            doc.text('Academic & Public Exams Coordinator', 145, sigY + 11);
-
-            // Save PDF
-            const fileName = `Expected_Grade_Sheet_${studentName.replace(/\s+/g, '_')}.pdf`;
-            doc.save(fileName);
+            // Trigger Download
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Expected_Grade_Sheet_${formatStudentName(selectedStudent.candidateName).replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
 
             setShowPdfModal(false);
             setIasSession('');
             setIalSession('');
             setGender('male');
+
         } catch (error) {
             console.error('Error generating PDF:', error);
-            alert('Error generating PDF. Please check that the header image exists at /assets/pdf-header.png');
+            alert('Error generating PDF. Please check server logs.');
         } finally {
             setGeneratingPdf(false);
         }
