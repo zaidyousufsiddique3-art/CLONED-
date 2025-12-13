@@ -100,19 +100,57 @@ const parseStudentBlock = (text: string): StudentResult => {
         if (dateMatch) dob = dateMatch[0];
     }
 
-    // --- GRADE PARSING WITH OCR RECONSTRUCTION ---
-    // OCR often splits "AWARD" rows across lines. We must reconstruct them.
+    // --- OCR NORMALIZATION & BLOCK RECONSTRUCTION ---
+
+    // 1. Normalize OCR Text GLOBALLY before splitting
+    // Fix spaced capitals: "A W A R D" -> "AWARD"
+    // Fix spaces between single capital letters: "X A C 1 1" -> "XAC11"
+
+    // Strategy:
+    // a. Replace "A W A R D" specific patterns first (most critical)
+    // b. General collapsing of single chars? Matches like /([A-Z])\s+([A-Z])/g
+
+    let normalizedBody = text;
+
+    // Specific fix for "A W A R D" (case insensitive)
+    normalizedBody = normalizedBody.replace(/A\s+W\s+A\s+R\s+D/gi, "AWARD");
+    // Fix "AW ARD", "A WARD" etc
+    normalizedBody = normalizedBody.replace(/AW\s+ARD/gi, "AWARD");
+    normalizedBody = normalizedBody.replace(/A\s+WARD/gi, "AWARD");
+    normalizedBody = normalizedBody.replace(/AWA\s+RD/gi, "AWARD");
+
+    // General fix: Collapse spaces between capital letters (e.g. S U B J E C T -> SUBJECT)
+    // Be careful not to merge subject words if they are genuinely spaced.
+    // However, user requirement says "Remove spaces between single capital letters globally".
+    // This implies "X A C 1 1" -> "XAC11" but maybe "A C C O U N T I N G" -> "ACCOUNTING"
+    // Regex: look for [A-Z] space [A-Z], repeatedly.
+    // Safe approach: /(?<=^[A-Z]|\s[A-Z])\s+(?=[A-Z])/g ?? 
+    // Simpler: Replace " <Char> " sequences?
+    // Let's protect "AWARD" first (done).
+
+    // Let's follow the user's explicit examples:
+    // "A W A R D" -> "AWARD"
+    // "Remove spaces between single capital letters globally"
+    // Implementation: Try to find isolated single chars separated by space.
+    // Regex: / \b([A-Z])\s+(?=[A-Z]\b) /g
+
+    normalizedBody = normalizedBody.replace(/\b([A-Z])\s+(?=[A-Z]\b)/g, "$1");
+    // Run it again to handle overlap "A B C" -> "AB C" -> "ABC"
+    normalizedBody = normalizedBody.replace(/\b([A-Z0-9])\s+(?=[A-Z0-9]\b)/g, "$1"); // Include digits for XAC11
+
+    // Collapse multiple spaces
+    normalizedBody = normalizedBody.replace(/[ \t]+/g, ' ');
+
+    const normalizedLines = normalizedBody.split('\n').map(l => l.trim());
 
     const reconstructedRows: string[] = [];
     let currentBuffer = "";
     let emptyLineCount = 0;
 
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) {
+    for (const line of normalizedLines) {
+        if (!line) {
             emptyLineCount++;
             if (emptyLineCount > 2) {
-                // Break buffer if too many empty lines (optional safety)
                 if (currentBuffer) {
                     reconstructedRows.push(currentBuffer);
                     currentBuffer = "";
@@ -122,16 +160,16 @@ const parseStudentBlock = (text: string): StudentResult => {
         }
         emptyLineCount = 0;
 
-        // If line contains "AWARD", it's a new row start.
-        if (trimmed.toUpperCase().includes("AWARD")) {
+        // 2. Flexible AWARD Detection
+        // normalized text already fixed spaced "A W A R D" -> "AWARD"
+        if (line.toUpperCase().includes("AWARD")) {
             if (currentBuffer) {
                 reconstructedRows.push(currentBuffer);
             }
-            currentBuffer = trimmed;
+            currentBuffer = line;
         } else {
-            // Append to current buffer if it exists
             if (currentBuffer) {
-                currentBuffer += " " + trimmed;
+                currentBuffer += " " + line;
             }
         }
     }
@@ -139,71 +177,50 @@ const parseStudentBlock = (text: string): StudentResult => {
         reconstructedRows.push(currentBuffer);
     }
 
+    // 4. REGEX ON BLOCKS ONLY
     for (const row of reconstructedRows) {
         const normalizedRow = row.replace(/\s+/g, ' ').trim();
         const upperRow = normalizedRow.toUpperCase();
 
-        // STRICT FILTER: Must contain "AWARD"
         if (!upperRow.includes("AWARD")) continue;
-
-        // STRICT FILTER: Must NOT start with "UNIT" (even if it has AWARD somewhere strings attached)
-        // Check start of string for UNIT
         if (upperRow.startsWith("UNIT") || /^\s*UNIT\b/i.test(normalizedRow)) continue;
 
-        // STRICT FILTER: Must contain Marks (num/num)
-        // Allow spaces around slash: 225 / 300
+        // STRICT FILTER: Marks (num/num)
         const marksMatch = normalizedRow.match(/(\d+\s*\/\s*\d+)/);
         if (!marksMatch) continue;
-        const marks = marksMatch[1].replace(/\s+/g, ''); // Clean to 225/300
 
-        // STRICT FILTER: Must contain Grade in format A(a)
+        // STRICT FILTER: Grade [A-Z]([a-z])
         const gradeMatch = normalizedRow.match(/([A-Z])\(([a-z])\)/);
         if (!gradeMatch) continue;
-        const fullGrade = gradeMatch[0]; // e.g. B(b)
-        const gradeLetter = gradeMatch[1]; // e.g. B
 
-        // EXTRACTION: 
-        // Logic: AWARD <Code> <Subject> <Marks> <Grade>
-        // We know structure approx:
-        // Start -> AWARD
-        // Next -> Code (usually alphanumeric)
-        // Middle -> Subject
-        // End -> Marks + Grade (order may vary in checks, but usually marks then grade)
+        const gradeLetter = gradeMatch[1]; // A from A(a)
 
-        // Let's strip "AWARD" from the start to find Code
-        // Find index of AWARD
+        // 5. SUBJECT EXTRACTION
+        // Between Code (Token 1) and Marks
+        // AWARD <Code> <Subject> <Marks>
+
         const awardIdx = upperRow.indexOf("AWARD");
         const afterAward = normalizedRow.substring(awardIdx + 5).trim();
-
-        // Split by spaces to find Code
         const parts = afterAward.split(" ");
         if (parts.length < 1) continue;
 
-        const code = parts[0]; // e.g. XAC11
+        const code = parts[0];
 
-        // Subject is text BETWEEN Code and Marks
-        // We need the indices of Code end and Marks start in 'afterAward' string
+        // Find Marks start index in 'afterAward'
+        const marksStr = marksMatch[0];
+        // Be careful: find marksStr AFTER the code
+        // indexOf might find marks inside code if code was "100/200" (unlikely)
+        // Let's search from (code.length)
+        const marksStartIdx = afterAward.indexOf(marksStr, code.length);
 
-        // Locate Code end
-        const codeEndIdx = afterAward.indexOf(code) + code.length;
+        if (marksStartIdx < 0) continue;
 
-        // Locate Marks start
-        // We use the exact match string from earlier
-        const marksStr = marksMatch[0]; // original match with spaces
-        const marksStartIdx = afterAward.indexOf(marksStr);
+        let subject = afterAward.substring(code.length, marksStartIdx).trim();
 
-        if (marksStartIdx <= codeEndIdx) {
-            // Something wrong, or marks appeared before/in code?
-            // Fallback: looking for grade? 
-            // If extracting subject fails, we skip
-            continue;
-        }
-
-        let subject = afterAward.substring(codeEndIdx, marksStartIdx).trim();
-
-        // Clean subject: Remove any residual codes or non-text checks
-        // Sometimes subject might still have noise.
-        // User cleaning requirements: "Remove subject codes like XAC11" (already done effectively by picking middle)
+        // Cleaning
+        // Remove subject codes if present (user requirement: "XAC11") - already skipped as it is parts[0]
+        // Remove known noise chars
+        subject = subject.replace(/[^A-Za-z0-9\s\&\-\(\)]/g, '').trim();
 
         if (code && subject && gradeLetter) {
             grades.push({
