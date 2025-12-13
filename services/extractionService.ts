@@ -1,4 +1,3 @@
-
 import { createWorker } from 'tesseract.js';
 import * as pdfjsLib from 'pdfjs-dist';
 import { db } from '../firebase/firebaseConfig';
@@ -21,9 +20,28 @@ export interface StudentResult {
 }
 
 /**
- * Main function to get data. 
- * Checks Cache -> Extracts Text -> Calls AI (or Local Regex Fallback) -> Saves Cache.
+ * Normalizes text to handle OCR quirks and layout issues.
  */
+const normalizeText = (text: string): string => {
+    if (!text) return '';
+
+    let normalized = text
+        // Replace widely spaced letters C A N D I D A T E -> CANDIDATE
+        .replace(/C\s+A\s+N\s+D\s+I\s+D\s+A\s+T\s+E/gi, "CANDIDATE")
+        // Fix common OCR errors
+        .replace(/CAND[1lI]DATE/gi, "CANDIDATE")
+        .replace(/UN[1lI]QUE/gi, "UNIQUE")
+        .replace(/NO\. AND/gi, "NO. AND")
+        .replace(/DATE OF B[1lI]RTH/gi, "DATE OF BIRTH")
+        // Collapse multiple spaces
+        .replace(/[ \t]+/g, ' ')
+        // Ensure newlines are preserved but clean
+        .replace(/\n\s+/g, '\n');
+
+    return normalized;
+};
+
+
 export const extractDataFromFile = async (file: File, fileId: string): Promise<StudentResult[]> => {
     const safeId = fileId.replace(/[^a-zA-Z0-9]/g, '_');
     const cacheRef = doc(db, 'extracted_results', safeId);
@@ -39,23 +57,33 @@ export const extractDataFromFile = async (file: File, fileId: string): Promise<S
         console.warn("Cache check failed", err);
     }
 
-    // 2. Extract Text locally (with OCR fallback for scanned PDFs)
+    // 2. Extract Text locally (with OCR fallback)
     let text = '';
+    let extractionMethod = 'text';
+
     try {
         if (file.type === 'application/pdf') {
             text = await extractTextFromPdf(file);
         } else if (file.type.startsWith('image/')) {
             text = await extractTextFromImage(file);
+            extractionMethod = 'ocr';
         } else {
             console.warn('Unsupported file type:', file.type);
             return [];
         }
+
+        // Log extraction status
+        console.log(`Extracted ${text.length} chars from ${file.name} using ${extractionMethod}`);
+        if (text.length < 100) {
+            console.warn(`Extraction yielded very little text (${text.length} chars). Possible failure.`);
+        }
+
     } catch (err) {
         console.error('Error extracting text:', err);
         return [];
     }
 
-    // 3. Try AI API
+    // 3. Try AI API -> Fallback to Local immediately if failure
     try {
         console.log(`Sending ${text.length} chars to AI analysis...`);
         const response = await fetch('/api/analyze', {
@@ -75,20 +103,19 @@ export const extractDataFromFile = async (file: File, fileId: string): Promise<S
         await setDoc(cacheRef, {
             results,
             updatedAt: new Date().toISOString(),
-            fileName: file.name
+            fileName: file.name,
+            method: 'ai'
         });
 
         return results;
 
     } catch (err) {
-        console.warn("AI Analysis failed or not available locally. Falling back to local regex extraction.", err);
+        console.warn("AI Analysis failed. Falling back to local/client-side parsing.", err);
 
-        // 4. FALLBACK: Local Regex Parsing
-        // This ensures it works locally without Vercel functions running
+        // 4. FALLBACK: Robust Client-Side Parsing
         const localResults = parseTextLocally(text);
 
         if (localResults.length > 0) {
-            // We can optionally cache this too, but maybe tag it as 'local'
             try {
                 await setDoc(cacheRef, {
                     results: localResults,
@@ -97,6 +124,8 @@ export const extractDataFromFile = async (file: File, fileId: string): Promise<S
                     method: 'local_fallback'
                 });
             } catch (e) { console.warn("Cache save failed", e); }
+        } else {
+            console.error("Local parsing also returned no results. Dumping snippet:", text.substring(0, 300));
         }
 
         return localResults;
@@ -117,17 +146,16 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
 
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-
-        // Try text content first
         const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        let pageText = textContent.items.map((item: any) => item.str).join(' ');
 
-        // Heuristic: If page text is very short (e.g. < 50 chars), it might be a scanned image.
-        // We need to render it and OCR it.
-        if (pageText.length < 50) {
-            console.log(`Page ${i} seems to be scanned (text len ${pageText.length}). Running OCR...`);
+        // If very little text, render and OCR
+        if (pageText.trim().length < 50) {
+            console.log(`Page ${i} seems to be scanned (text len ${pageText.length}). Running OCR with high scale...`);
             try {
-                const viewport = page.getViewport({ scale: 1.5 });
+                // Determine scale based on viewport size to ensure good OCR resolution
+                // A4 is roughly 595x842. We want nice big text for Tesseract.
+                const viewport = page.getViewport({ scale: 2.0 });
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
                 canvas.height = viewport.height;
@@ -135,50 +163,60 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
 
                 if (context) {
                     await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                    // Verify canvas has data
                     const worker = await createWorker('eng');
                     const ret = await worker.recognize(canvas);
                     await worker.terminate();
-                    fullText += ret.data.text + '\n';
-                    continue; // Skip appending the empty pageText
+
+                    console.log(`OCR Result Page ${i}: ${ret.data.text.length} chars`);
+                    pageText = ret.data.text;
                 }
             } catch (ocrErr) {
                 console.error(`OCR failed for page ${i}`, ocrErr);
             }
         }
 
-        fullText += pageText + '\n';
+        fullText += pageText + '\n ';
     }
     return fullText;
 };
 
-// --- Local Parsing Logic (Client-Side Fallback) ---
+// --- Local Parsing Logic ---
 
 const parseTextLocally = (text: string): StudentResult[] => {
-    // Legacy Regex Logic from previous step as fallback
-    // Normalize
-    let normalizedText = text
-        .replace(/CAND[1lI]DATE\s+(?:(?:NO|NUMBER)\.?\s+(?:AND\s+)?)?NAME/gi, "CANDIDATE NAME_MARKER")
-        .replace(/CANDIDATE NO\. AND NAME/gi, "CANDIDATE NAME_MARKER")
-        .replace(/CANDIDATE NAME/gi, "CANDIDATE NAME_MARKER")
-        .replace(/UN[1lI]QUE CAND[1lI]DATE IDENTIFIER/gi, "UNIQUE CANDIDATE IDENTIFIER")
-        .replace(/DATE OF B[1lI]RTH/gi, "DATE OF BIRTH");
+    // 1. Normalize
+    const normalized = normalizeText(text);
 
-    const splitRegex = /(?=CANDIDATE NAME_MARKER)/i;
-    let chunks = normalizedText.split(splitRegex);
-    chunks = chunks.filter(c => c.trim().length > 100);
+    // 2. Identify Blocks by repeated headers
+    // We look for "CANDIDATE NAME" or similar anchors
+    // If strict markers fail, we treat the whole things as one block
 
-    if (chunks.length === 0 && text.length > 50) {
-        chunks = [text];
+    // Regex for start of block: "CANDIDATE ... NAME"
+    // We replace it with a unique token to split easily
+    const markedText = normalized
+        .replace(/CANDIDATE\s+(?:(?:NO|NUMBER)\.?\s+(?:AND\s+)?)?NAME/gi, "|||BLOCK_START|||CANDIDATE NAME");
+
+    let chunks = markedText.split('|||BLOCK_START|||');
+
+    // Filter noise
+    chunks = chunks.filter(c => c.length > 50);
+
+    // Fallback if no split happened (single page) but text exists
+    if (chunks.length === 0 && normalized.length > 50) {
+        chunks = [normalized];
     }
 
     const results: StudentResult[] = [];
 
-    for (const block of chunks) {
-        const res = parseStudentBlock(block);
+    for (const chunk of chunks) {
+        const res = parseStudentBlock(chunk);
+        // Important: Return result if Name is found, even if partial
         if (res.candidateName && res.candidateName !== 'Unknown Candidate') {
             results.push(res);
         }
     }
+
     return results;
 };
 
@@ -189,68 +227,110 @@ const parseStudentBlock = (text: string): StudentResult => {
     let dob = '';
     const grades: ExtractedGrade[] = [];
 
-    // Name
-    // Relaxed regex to catch "CANDIDATE NAME_MARKER" then Name
-    const nameRegex = /CANDIDATE NAME_MARKER\s*(?:[:.]|)?\s*(\d{4})?\s*(?:[:.]|)?\s*([A-Z\s\.:-]+)/i;
-    let matchName = text.match(nameRegex);
-    if (!matchName) {
-        const rawNameRegex = /CAND[1lI]DATE\s+(?:(?:NO|NUMBER)\.?\s+(?:AND\s+)?)?NAME\s*(?:[:.]|)?\s*(\d{4})?\s*(?:[:.]|)?\s*([A-Z\s\.:-]+)/i;
-        matchName = text.match(rawNameRegex);
-    }
-    if (matchName) {
-        let rawName = (matchName[2] || '').trim();
-        const digitMatch = rawName.match(/^(\d{4})\s+(.+)/);
-        if (digitMatch) rawName = digitMatch[2];
+    // --- Name Extraction ---
+    // Strategy: Look for "CANDIDATE NAME" then capture text.
+    // Handles:
+    // 1. CANDIDATE NAME : JOHN DOE
+    // 2. CANDIDATE NAME 0001 JOHN DOE
+    // 3. CANDIDATE NAME \n JOHN DOE
 
-        ['DATE OF BIRTH', 'UNIQUE CANDIDATE IDENTIFIER', 'CENTRE'].forEach(sw => {
-            const idx = rawName.toUpperCase().indexOf(sw);
-            if (idx !== -1) rawName = rawName.substring(0, idx);
-        });
+    // Regex for "CANDIDATE NAME" followed by potential separators/numbers, then the name
+    const candidateNameRegex = /CANDIDATE\s+NAME\s*(?:[:.]|)?\s*(?:(\d{4}))?\s*(?:[:.]|)?\s*([A-Z\s\.\-]+)/i;
+    let nameMatch = text.match(candidateNameRegex);
+
+    if (nameMatch) {
+        // Group 2 is Name (unless empty). Note: Group 1 is Number if present.
+        let rawName = nameMatch[2].trim();
+
+        // If Name is empty or short, maybe it's on the next line?
+        if (rawName.length < 2) {
+            // Look at the text strictly following the match index?
+            // Or iterate lines to find the line *after* CANDIDATE NAME
+        }
+
+        // Validation: Stop at Key Markers
+        const stopMarkers = ['UNIQUE', 'DATE OF BIRTH', 'CENTRE', 'Result'];
+        for (const marker of stopMarkers) {
+            const idx = rawName.toUpperCase().indexOf(marker);
+            if (idx !== -1) {
+                rawName = rawName.substring(0, idx);
+            }
+        }
+
         candidateName = rawName.trim();
     }
 
-    // DOB
-    const dobRegex = /DATE OF BIRTH\s*[:.]?\s*(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4})/i;
-    const matchDob = text.match(dobRegex);
-    if (matchDob) dob = matchDob[1];
-    else {
-        const dateMatch = text.match(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/);
-        if (dateMatch) dob = dateMatch[0];
+    // If strict regex failed, try looking for the line starting with "CANDIDATE NAME" and taking the rest
+    if (!candidateName) {
+        const nameLine = lines.find(l => /CANDIDATE\s+(?:NO\.|NUMBER)?\s*(?:AND)?\s*NAME/i.test(l));
+        if (nameLine) {
+            // Remove the label
+            let cleaned = nameLine.replace(/CANDIDATE\s+(?:NO\.|NUMBER)?\s*(?:AND)?\s*NAME/i, '').trim();
+            // Remove leading digits (candidate number)
+            cleaned = cleaned.replace(/^\d{4}\s*/, '');
+            // Remove separators
+            cleaned = cleaned.replace(/^[:\-\.]+\s*/, '');
+            candidateName = cleaned;
+        }
     }
 
-    // UCI
-    const uciRegex = /UNIQUE CANDIDATE IDENTIFIER\s*[:.]?\s*([A-Z0-9]+)/i;
-    const matchUci = text.match(uciRegex);
-    if (matchUci) uci = matchUci[1];
+    // --- UCI Extraction ---
+    // Look for "UNIQUE CANDIDATE IDENTIFIER"
+    const uciMatch = text.match(/UNIQUE\s+CANDIDATE\s+IDENTIFIER\s*[:\.]?\s*([A-Z0-9]+)/i);
+    if (uciMatch) uci = uciMatch[1];
     else {
+        // Fallback pattern
         const uciPattern = /\b9\d{4}[A-Z]\d{7}[A-Z0-9]\b/;
         const deepMatch = text.match(uciPattern);
         if (deepMatch) uci = deepMatch[0];
     }
 
-    // Grades
+    // --- DOB Extraction ---
+    const dobMatch = text.match(/DATE\s+OF\s+BIRTH\s*[:\.]?\s*(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{2,4})/i);
+    if (dobMatch) dob = dobMatch[1];
+    else {
+        const dateMatch = text.match(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/);
+        if (dateMatch) dob = dateMatch[0];
+    }
+
+    // --- Grades (Strict Award Only) ---
+    // Start scanning when we see "AWARD" or "SUBJECT"
+    // Stop when we see "UNIT" or end
+
     for (const line of lines) {
-        if (line.startsWith('AWARD')) {
-            const content = line.substring(5).trim();
-            const parts = content.split(/\s+/);
-            if (parts.length >= 2) {
-                const code = parts[0];
-                let grade = '';
-                let subjectEndIndex = -1;
-                for (let i = parts.length - 1; i >= 1; i--) {
-                    const p = parts[i];
-                    if (/^[A-E,U]\*?(\([a-z]\))?$/.test(p) || p === 'A*') {
-                        grade = p;
-                        subjectEndIndex = i;
-                        break;
-                    }
-                }
-                if (grade && subjectEndIndex > 0) {
-                    const rawSubjectParts = parts.slice(1, subjectEndIndex);
-                    const subjectParts = rawSubjectParts.filter(p => !/^[\d\/]+$/.test(p));
-                    const subject = subjectParts.join(' ');
-                    if (subject) grades.push({ code, subject, grade });
-                }
+        // Must start with AWARD
+        if (!line.toUpperCase().startsWith('AWARD')) continue;
+
+        // Example: AWARD YMA01 MATHEMATICS 200/300 A(a)
+        const content = line.substring(5).trim(); // remove AWARD
+        const parts = content.split(/\s+/);
+
+        if (parts.length < 2) continue;
+
+        const code = parts[0];
+        let grade = '';
+        let subjectEndIndex = -1;
+
+        // Find Grade from right side
+        for (let i = parts.length - 1; i >= 1; i--) {
+            const p = parts[i];
+            // Format: A, A*, B(b), C(c), U
+            if (/^[A-EU]\*?(\([a-z]\))?$/i.test(p)) {
+                grade = p;
+                subjectEndIndex = i;
+                break;
+            }
+        }
+
+        if (grade && subjectEndIndex > 0) {
+            // Subject is everything between Code and Grade (excluding intermediate marks e.g. 200/300)
+            const middleParts = parts.slice(1, subjectEndIndex);
+            // Filter out numeric/scores
+            const subjectParts = middleParts.filter(p => !/^[\d\/]+$/.test(p));
+            const subject = subjectParts.join(' ');
+
+            if (subject) {
+                grades.push({ code, subject, grade });
             }
         }
     }
@@ -260,6 +340,6 @@ const parseStudentBlock = (text: string): StudentResult => {
         uci: uci || 'Unknown UCI',
         dob: dob || 'Unknown DOB',
         grades,
-        rawText: text.substring(0, 500)
+        rawText: text.substring(0, 300) // snippet for debug
     };
 };
