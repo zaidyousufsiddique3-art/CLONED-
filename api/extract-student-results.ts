@@ -97,7 +97,8 @@ const processAwardBlock = (block: string): ExtractedGrade | null => {
     if (!block.toUpperCase().includes("AWARD")) return null;
 
     // 2. Grade Regex (MATCH BEFORE TRIMMING/ SPLITTING)
-    const gradeRegex = /([A-EU])\*?\s*\(\s*([a-eu])\*?\s*\)/;
+    // CAPTURE GROUP 1: The official Pearson Grade (including optional *)
+    const gradeRegex = /([A-EU]\*?)\s*\(\s*([a-eu]\*?)\s*\)/;
 
     // We run matches on the full block string
     const gradeMatch = block.match(gradeRegex);
@@ -196,7 +197,7 @@ const parseStudentBlock = (text: string): StudentResult => {
     // 2. AWARD BUFFERING LOGIC
     const results: ExtractedGrade[] = []; // Named 'results'
 
-    const gradeChecker = /([A-EU])\*?\s*\(\s*([a-eu])\*?\s*\)/;
+    const gradeChecker = /([A-EU]\*?)\s*\(\s*([a-eu]\*?)\s*\)/;
 
     let currentBlock = "";
     let isCapture = false;
