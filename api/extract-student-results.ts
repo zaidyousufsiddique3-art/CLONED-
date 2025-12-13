@@ -71,6 +71,16 @@ const normalizeText = (text: string): string => {
         .replace(/[ \t]+/g, ' ')
         .replace(/\n\s+/g, '\n');
 
+    // --- HARD DEBUG SIGNALS ---
+    console.log("[DEBUG] textLen:", normalized.length);
+    console.log("[DEBUG] awardCount:", (normalized.match(/\bAWARD\b/gi) || []).length);
+    console.log(
+        "[DEBUG] gradeTokenCount:",
+        (normalized.match(/[A-Z]\s*\(\s*[a-z]\s*\)/g) || []).length
+    );
+    console.log("[DEBUG] sampleText:", normalized.slice(0, 800));
+    // ----------------------------
+
     return normalized;
 };
 
@@ -114,8 +124,8 @@ const parseStudentBlock = (text: string): StudentResult => {
         return line.toUpperCase().startsWith(keyword.toUpperCase());
     };
 
-    // Grade Regex (B(b)) - Strict: Capital, Open Paren, Lower, Close Paren
-    const gradeRegex = /([A-Z])\([a-z]\)/;
+    // Grade Regex - Space Tolerant: B ( b )
+    const gradeRegex = /([A-Z])\s*\(\s*([a-z])\s*\)/;
 
     for (const line of lines) {
         const cleanLine = line.trim();
@@ -171,19 +181,22 @@ const parseStudentBlock = (text: string): StudentResult => {
 };
 
 const processAwardBlock = (block: string, grades: ExtractedGrade[], logger?: (msg: string) => void) => {
+    // Unconditional Hard Log
+    console.log("[DEBUG] Processing Block:", block);
     if (logger) logger(`[DEBUG] Processing Block: "${block}"`);
 
     // 1. Strict Filters
     if (!block.toUpperCase().includes("AWARD")) return;
 
-    // Grade Regex: B(b) - Strict Capture
-    const gradeMatch = block.match(/([A-Z])\([a-z]\)/);
+    // Grade Regex - Space Tolerant
+    const gradeMatch = block.match(/([A-Z])\s*\(\s*([a-z])\s*\)/);
     if (!gradeMatch) {
+        console.log("[DEBUG] No grade match in block:", block);
         if (logger) logger(`[DEBUG] No grade match found in block.`);
         return;
     }
 
-    // Marks Regex: 225/300
+    // Marks Regex: 225/300 (Allow spaces)
     const marksMatch = block.match(/(\d+)\s*\/\s*(\d+)/);
     if (!marksMatch) {
         if (logger) logger(`[DEBUG] No marks match found in block.`);
@@ -200,7 +213,7 @@ const processAwardBlock = (block: string, grades: ExtractedGrade[], logger?: (ms
 
     if (!codeMatch) return;
     const code = codeMatch[1];
-    const grade = gradeMatch[1]; // Capital letter
+    const grade = gradeMatch[1]; // Capital letter from first capture group
 
     // Subject Extraction: Between Code limit and Marks start
     const codeIdx = content.indexOf(code);
