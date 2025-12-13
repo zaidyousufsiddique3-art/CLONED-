@@ -30,6 +30,8 @@ const PredictedGradesPortal: React.FC = () => {
     const [students, setStudents] = useState<StudentFile[]>([]);
     const [selectedStudentId, setSelectedStudentId] = useState('');
     const [loadingFolders, setLoadingFolders] = useState(true);
+    const [debugMode, setDebugMode] = useState(false);
+    const [stats, setStats] = useState({ scanned: 0, extracted: 0, lastFile: '' });
 
     useEffect(() => {
         fetchFolders();
@@ -90,14 +92,15 @@ const PredictedGradesPortal: React.FC = () => {
                     const blob = await response.blob();
                     const file = new File([blob], itemRef.name, { type: blob.type });
 
-                    // Extract - returns array now. Pass fullPath as ID for caching.
+                    // Extract
                     const results = await extractDataFromFile(file, itemRef.fullPath);
 
                     if (results && results.length > 0) {
                         results.forEach((data, idx) => {
-                            if (data.candidateName && data.candidateName !== 'Unknown Candidate') {
+                            // Filter valid candidates unless in DEBUG mode
+                            if (debugMode || (data.candidateName && data.candidateName !== 'Unknown Candidate')) {
                                 foundStudents.push({
-                                    id: `${itemRef.fullPath}_${idx}`, // Unique ID for each student in file
+                                    id: `${itemRef.fullPath}_${idx}`,
                                     fileName: itemRef.name,
                                     fileRef: itemRef,
                                     extractedData: data
@@ -105,6 +108,14 @@ const PredictedGradesPortal: React.FC = () => {
                             }
                         });
                     }
+
+                    setStats(prev => ({
+                        ...prev,
+                        scanned: processed + 1,
+                        extracted: foundStudents.length,
+                        lastFile: itemRef.name
+                    }));
+
                 } catch (err) {
                     console.error(`Error processing file ${itemRef.name}:`, err);
                 }
@@ -113,6 +124,8 @@ const PredictedGradesPortal: React.FC = () => {
                 setScanProgress(Math.round((processed / fileItems.length) * 100));
             }
 
+            // In debug mode, we might want to see raw counts
+            console.log(`Scan Complete. Found ${foundStudents.length} candidates.`);
             setStudents(foundStudents);
 
         } catch (error) {
@@ -134,6 +147,23 @@ const PredictedGradesPortal: React.FC = () => {
             <div>
                 <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Predicted Grades Analysis</h1>
                 <p className="text-slate-500 dark:text-slate-400">Analyze historical result data for student predictions.</p>
+                <div className="mt-2 flex items-center space-x-2">
+                    <input
+                        type="checkbox"
+                        id="debugMode"
+                        checked={debugMode}
+                        onChange={e => setDebugMode(e.target.checked)}
+                        className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    <label htmlFor="debugMode" className="text-xs text-slate-400 cursor-pointer">Enable Debug Mode (Show raw extracted data)</label>
+                </div>
+                {debugMode && (
+                    <div className="mt-2 p-2 bg-slate-100 dark:bg-slate-900 rounded text-xs font-mono text-slate-600 dark:text-slate-400">
+                        <p>Scanned Files: {stats.scanned}</p>
+                        <p>Candidates Extracted: {stats.extracted}</p>
+                        <p>Last File: {stats.lastFile}</p>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

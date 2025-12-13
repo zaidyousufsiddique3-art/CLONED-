@@ -47,10 +47,11 @@ export const extractDataFromFile = async (file: File, fileId: string): Promise<S
     const cacheRef = doc(db, 'extracted_results', safeId);
 
     // 1. Check Cache
+    // Bypass cache if user probably wants fresh debug (optional, but let's keep it simple for now)
     try {
         const cacheSnap = await getDoc(cacheRef);
         if (cacheSnap.exists()) {
-            console.log(`Cache hit for ${file.name}`);
+            console.log(`[DEBUG] Cache hit for ${file.name}`);
             return cacheSnap.data().results as StudentResult[];
         }
     } catch (err) {
@@ -73,9 +74,11 @@ export const extractDataFromFile = async (file: File, fileId: string): Promise<S
         }
 
         // Log extraction status
-        console.log(`Extracted ${text.length} chars from ${file.name} using ${extractionMethod}`);
+        console.log(`[DEBUG] Extracted ${text.length} chars from ${file.name} using ${extractionMethod}`);
+        console.log(`[DEBUG] First 500 chars snippet:\n${text.substring(0, 500)}`);
+
         if (text.length < 100) {
-            console.warn(`Extraction yielded very little text (${text.length} chars). Possible failure.`);
+            console.warn(`[DEBUG] Extraction yielded very little text (${text.length} chars). Possible failure.`);
         }
 
     } catch (err) {
@@ -85,7 +88,7 @@ export const extractDataFromFile = async (file: File, fileId: string): Promise<S
 
     // 3. Try AI API -> Fallback to Local immediately if failure
     try {
-        console.log(`Sending ${text.length} chars to AI analysis...`);
+        console.log(`[DEBUG] Sending ${text.length} chars to AI analysis...`);
         const response = await fetch('/api/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -110,12 +113,13 @@ export const extractDataFromFile = async (file: File, fileId: string): Promise<S
         return results;
 
     } catch (err) {
-        console.warn("AI Analysis failed. Falling back to local/client-side parsing.", err);
+        console.warn("[DEBUG] AI Analysis failed. Falling back to local/client-side parsing.", err);
 
         // 4. FALLBACK: Robust Client-Side Parsing
         const localResults = parseTextLocally(text);
 
         if (localResults.length > 0) {
+            console.log(`[DEBUG] Local Fallback found ${localResults.length} candidates.`);
             try {
                 await setDoc(cacheRef, {
                     results: localResults,
@@ -125,7 +129,7 @@ export const extractDataFromFile = async (file: File, fileId: string): Promise<S
                 });
             } catch (e) { console.warn("Cache save failed", e); }
         } else {
-            console.error("Local parsing also returned no results. Dumping snippet:", text.substring(0, 300));
+            console.error("[DEBUG] Local parsing also returned no results. Dumping snippet:", text.substring(0, 300));
         }
 
         return localResults;
@@ -151,7 +155,7 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
 
         // If very little text, render and OCR
         if (pageText.trim().length < 50) {
-            console.log(`Page ${i} seems to be scanned (text len ${pageText.length}). Running OCR with high scale...`);
+            console.log(`[DEBUG] Page ${i} seems to be scanned (text len ${pageText.length}). Running OCR with high scale...`);
             try {
                 // Determine scale based on viewport size to ensure good OCR resolution
                 // A4 is roughly 595x842. We want nice big text for Tesseract.
@@ -162,14 +166,16 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
                 canvas.width = viewport.width;
 
                 if (context) {
-                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    const renderContext: any = { canvasContext: context, viewport: viewport };
+                    await page.render(renderContext).promise;
 
-                    // Verify canvas has data
+                    // Verify canvas has data by checking a few pixels? 
+                    // Or just run OCR.
                     const worker = await createWorker('eng');
                     const ret = await worker.recognize(canvas);
                     await worker.terminate();
 
-                    console.log(`OCR Result Page ${i}: ${ret.data.text.length} chars`);
+                    console.log(`[DEBUG] OCR Result Page ${i}: ${ret.data.text.length} chars`);
                     pageText = ret.data.text;
                 }
             } catch (ocrErr) {
@@ -206,6 +212,8 @@ const parseTextLocally = (text: string): StudentResult[] => {
     if (chunks.length === 0 && normalized.length > 50) {
         chunks = [normalized];
     }
+
+    console.log(`[DEBUG] Split into ${chunks.length} student blocks`);
 
     const results: StudentResult[] = [];
 
