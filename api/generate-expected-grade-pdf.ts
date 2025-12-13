@@ -21,14 +21,16 @@ async function parseBody(req: any) {
 // Helper: Sanitize grades
 const normalizeGrade = (raw: string): string => {
     if (!raw) return '';
+    // Strip anything inside parentheses e.g., "A (a)" -> "A"
     const clean = raw.replace(/\s*\(.*\)/, '').trim();
+    // Strict Allowed Grades (Pearson Edexcel IAL/IAS)
     const allowList = ['A*', 'A', 'B', 'C', 'D', 'E', 'U'];
-    if (allowList.includes(clean)) return clean;
-    // Strict requirement: "Strip anything inside parentheses... Grades must be sanitized to ONLY..."
-    // If it's not in the allow list after cleaning, return empty or the clean version? 
-    // User said "Preserve ONLY these values". I'll return clean if it matches, else empty? 
-    // Safest is to return clean if it looks reasonable, but let's stick to the allow list strictly if possible.
-    return clean;
+
+    if (allowList.includes(clean)) {
+        return clean;
+    }
+    // If not in allow list, return empty string to prevent garbage on PDF
+    return '';
 };
 
 // EMBEDDED HTML TEMPLATE (Strictly following the provided image)
@@ -260,8 +262,7 @@ export default async function handler(req: any, res: any) {
             margin: { top: '0', bottom: '0', left: '0', right: '0' } // Controlled by HTML CSS padding
         });
 
-        // DEBUG CHECK
-        console.log(pdfBuffer.slice(0, 5).toString());
+        // DEBUG CHECK REMOVED
 
         // RESPONSE
         res.writeHead(200, {
