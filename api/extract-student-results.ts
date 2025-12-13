@@ -206,14 +206,104 @@ const parseTextLocally = (text: string): StudentResult[] => {
 
 // --- PDF Extraction (Server Side) ---
 
-const extractTextFromPdfBuffer = async (buffer: Buffer): Promise<string> => {
+const extractTextFromPdfBuffer = async (buffer: Buffer, gcsUri?: string): Promise<string> => {
     try {
         const data = await pdf(buffer);
         // pdf-parse provides the full raw text in data.text
-        return data.text || "";
+        if (data.text && data.text.trim().length > 100) {
+            return data.text;
+        }
     } catch (err: any) {
-        console.error("[API] pdf-parse failed:", err);
-        throw new Error("Failed to parse PDF with pdf-parse: " + err.message);
+        console.warn("[API] pdf-parse failed or empty, trying OCR strategy...", err.message);
+    }
+
+    // fallback to Google Vision OCR if text is empty or failed
+    if (gcsUri) {
+        return await extractTextWithOCR(gcsUri);
+    }
+
+    return "";
+};
+
+// --- Google Vision OCR Integration ---
+import { ImageAnnotatorClient } from '@google-cloud/vision';
+
+const extractTextWithOCR = async (gcsUri: string): Promise<string> => {
+    console.log(`[API] Triggering Google Vision OCR for ${gcsUri}`);
+
+    // We already have admin initialized, but Vision client needs its own credential config
+    // We can reuse the env vars
+    const client = new ImageAnnotatorClient({
+        credentials: {
+            client_email: process.env.FIREBASE_CLIENT_EMAIL,
+            private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+            project_id: process.env.FIREBASE_PROJECT_ID
+        }
+    });
+
+    try {
+        // Use async batch annotation for PDF files in GCS
+        // This is a long-running operation, but for 1-5 pages it might be acceptable?
+        // Actually, asyncBatchAnnotateFiles returns an Operation that we must poll.
+        // For a synchronous API, this is risky.
+        // However, there is no synchronous PDF text detection API that takes GCS URI.
+        // We must do async + polling.
+
+        const outputUri = `gs://${process.env.FIREBASE_STORAGE_BUCKET}/ocr_results/${Date.now()}_`;
+
+        const request = {
+            requests: [
+                {
+                    inputConfig: {
+                        gcsSource: { uri: gcsUri },
+                        mimeType: 'application/pdf',
+                    },
+                    features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
+                    outputConfig: {
+                        gcsDestination: { uri: outputUri },
+                        batchSize: 5 // process up to 5 pages per chunk
+                    },
+                },
+            ],
+        };
+
+        const [operation] = await client.asyncBatchAnnotateFiles(request as any);
+        console.log(`[API] OCR Operation started: ${operation.name}`);
+
+        const [filesResponse] = await operation.promise();
+        console.log(`[API] OCR Operation completed.`);
+
+        // Now read the output json(s) from GCS
+        // outputUri prefix + "output-1-to-X.json"
+
+        const bucket = admin.storage().bucket();
+        // List files with prefix
+        const [files] = await bucket.getFiles({ prefix: `ocr_results/${outputUri.split('/').pop()}` });
+
+        let fullText = "";
+
+        for (const file of files) {
+            if (file.name.endsWith('.json')) {
+                const [content] = await file.download();
+                const response = JSON.parse(content.toString());
+                // response.responses[i].fullTextAnnotation.text
+                if (response.responses) {
+                    for (const res of response.responses) {
+                        if (res.fullTextAnnotation) {
+                            fullText += res.fullTextAnnotation.text + "\n";
+                        }
+                    }
+                }
+            }
+            // Cleanup temp file
+            await file.delete().catch(() => { });
+        }
+
+        return fullText;
+
+    } catch (error: any) {
+        console.error("[API] Google Vision OCR failed:", error);
+        return "";
     }
 };
 
@@ -250,7 +340,9 @@ export default async function handler(req: any, res: any) {
         let text = '';
         try {
             if (filePath.toLowerCase().endsWith('.pdf')) {
-                text = await extractTextFromPdfBuffer(buffer);
+                // Construct GCS URI: gs://<bucket>/<filePath>
+                const gcsUri = `gs://${bucket.name}/${filePath}`;
+                text = await extractTextFromPdfBuffer(buffer, gcsUri);
             } else {
                 // Determine if we need other handlers?
                 // For now, assume PDF only per requirement
