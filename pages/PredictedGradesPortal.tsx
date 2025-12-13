@@ -267,6 +267,7 @@ const PredictedGradesPortal: React.FC = () => {
                 DOCUMENT_ISSUE_DATE: formatDateWithOrdinal(new Date()),
                 IAS_SESSION_MONTH_YEAR: iasSession,
                 IAL_SESSION_MONTH_YEAR: ialSession,
+                GENDER: gender,
             };
 
             // Populate Original and Predicted Grades (Max 4)

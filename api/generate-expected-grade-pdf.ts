@@ -43,7 +43,7 @@ const HTML_TEMPLATE = `
             font-family: "Helvetica", "Arial", sans-serif;
             font-size: 11pt; /* Adjusted to look like the image */
             line-height: 1.5;
-            padding: 40px 50px;
+            padding: 40px 95px; /* ~25mm left/right margins */
             color: #000;
         }
         .header-placeholder {
@@ -139,7 +139,7 @@ const HTML_TEMPLATE = `
 
     <!-- 5. Paragraph 1 -->
     <div class="content-para">
-        <span class="bold">{{STUDENT_FULL_NAME}}</span>, <span class="bold">Unique Candidate Identifier</span> (<span class="bold">{{UCI_NUMBER}}</span>) had sat his London Edexcel INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in {{IAS_SESSION_MONTH_YEAR}}. He had obtained the following results:
+        <span class="bold">{{STUDENT_FULL_NAME}}</span>, <span class="bold">Unique Candidate Identifier</span> (<span class="bold">{{UCI_NUMBER}}</span>) had sat {{PRONOUN_POSSESSIVE}} London Edexcel INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in {{IAS_SESSION_MONTH_YEAR}}. {{PRONOUN_SUBJECT_TITLE}} had obtained the following results:
     </div>
 
     <!-- 6. Original Results -->
@@ -152,7 +152,7 @@ const HTML_TEMPLATE = `
 
     <!-- 7. Paragraph 2 -->
     <div class="content-para">
-        <span class="bold">{{STUDENT_FULL_NAME}}</span> will be sitting his London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL) examination which will be held during {{IAL_SESSION_MONTH_YEAR}}. Based on his IAS results and the performance in the school examination, the respective subject teachers firmly expect him to obtain the following results in the {{IAL_SESSION_MONTH_YEAR}} IAL Examination:
+        <span class="bold">{{STUDENT_FULL_NAME}}</span> will be sitting {{PRONOUN_POSSESSIVE}} London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL) examination which will be held during {{IAL_SESSION_MONTH_YEAR}}. Based on {{PRONOUN_POSSESSIVE}} IAS results and the performance in the school examination, the respective subject teachers firmly expect {{PRONOUN_OBJECT}} to obtain the following results in the {{IAL_SESSION_MONTH_YEAR}} IAL Examination:
     </div>
 
     <!-- 8. Predicted Results -->
@@ -165,7 +165,7 @@ const HTML_TEMPLATE = `
 
     <!-- 9. Footer Text -->
     <div class="footer">
-        This letter is issued on his request to be reviewed by Universities for admission and scholarship.
+        This letter is issued on {{PRONOUN_POSSESSIVE}} request to be reviewed by Universities for admission and scholarship.
     </div>
 
     <!-- 10. Signatures -->
@@ -200,6 +200,20 @@ export default async function handler(req: any, res: any) {
         let html = HTML_TEMPLATE;
 
         // --- REPLACE PLACEHOLDERS ---
+
+        // Gender Logic
+        const gender = payload.GENDER || 'male';
+        const isFemale = gender === 'female';
+
+        const pronouns = {
+            possessive: isFemale ? 'her' : 'his',
+            subjectTitle: isFemale ? 'She' : 'He',
+            object: isFemale ? 'her' : 'him'
+        };
+
+        html = html.replace(/{{PRONOUN_POSSESSIVE}}/g, pronouns.possessive)
+            .replace(/{{PRONOUN_SUBJECT_TITLE}}/g, pronouns.subjectTitle)
+            .replace(/{{PRONOUN_OBJECT}}/g, pronouns.object);
 
         // Document Info
         html = html.replace('{{DOCUMENT_ISSUE_DATE}}', payload.DOCUMENT_ISSUE_DATE || '');
@@ -245,7 +259,7 @@ export default async function handler(req: any, res: any) {
 
         browser = await puppeteer.launch({
             args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
+            defaultViewport: chromium.defaultViewport as any,
             executablePath: await chromium.executablePath(),
             headless: true,
         });
