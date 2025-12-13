@@ -8,7 +8,9 @@ import {
     Loader2,
     ChevronRight,
     AlertCircle,
-    TrendingUp
+    TrendingUp,
+    Download,
+    X
 } from 'lucide-react';
 import { ref, listAll, getDownloadURL, getBytes } from 'firebase/storage';
 import { storage } from '../firebase/firebaseConfig';
@@ -17,6 +19,7 @@ import { storage } from '../firebase/firebaseConfig';
 import { StudentResult } from '../services/extractionService';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
+import jsPDF from 'jspdf';
 
 const BASE_PATH = 'superadmin_documents/';
 
@@ -39,6 +42,10 @@ const PredictedGradesPortal: React.FC = () => {
     const [debugMode, setDebugMode] = useState(false);
     const [stats, setStats] = useState({ scanned: 0, extracted: 0, lastFile: '' });
     const [showPredicted, setShowPredicted] = useState(false);
+    const [showPdfModal, setShowPdfModal] = useState(false);
+    const [iasSession, setIasSession] = useState('');
+    const [ialSession, setIalSession] = useState('');
+    const [generatingPdf, setGeneratingPdf] = useState(false);
 
     useEffect(() => {
         fetchFolders();
@@ -213,6 +220,222 @@ const PredictedGradesPortal: React.FC = () => {
         }
     };
 
+    // Format student name: "LASTNAME: FIRSTNAME" -> "FIRSTNAME LASTNAME"
+    const formatStudentName = (name: string): string => {
+        if (!name) return '';
+        // Remove semicolons
+        let cleaned = name.replace(/;/g, '');
+        // Check for colon separator
+        if (cleaned.includes(':')) {
+            const parts = cleaned.split(':');
+            const before = parts[0].trim();
+            const after = parts[1]?.trim() || '';
+            return `${after} ${before}`.trim();
+        }
+        return cleaned.trim();
+    };
+
+    // Format date with ordinal suffix (e.g., "6th September 2020")
+    const formatDateWithOrdinal = (date: Date): string => {
+        const day = date.getDate();
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'];
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+
+        let suffix = 'th';
+        if (day === 1 || day === 21 || day === 31) suffix = 'st';
+        else if (day === 2 || day === 22) suffix = 'nd';
+        else if (day === 3 || day === 23) suffix = 'rd';
+
+        return `${day}${suffix} ${month} ${year}`;
+    };
+
+    const generatePDF = async () => {
+        if (!selectedStudent || !iasSession || !ialSession) return;
+
+        setGeneratingPdf(true);
+
+        try {
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Background color
+            doc.setFillColor(255, 254, 251); // #fffefb
+            doc.rect(0, 0, 210, 297, 'F');
+
+            // Load and add logo
+            const logoImg = new Image();
+            logoImg.crossOrigin = 'Anonymous';
+
+            await new Promise<void>((resolve, reject) => {
+                logoImg.onload = () => resolve();
+                logoImg.onerror = reject;
+                logoImg.src = '/assets/logo.png';
+            });
+
+            // Add logo (left side)
+            doc.addImage(logoImg, 'PNG', 15, 10, 25, 25);
+
+            // Header text (right of logo)
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.text('SRI LANKAN INTERNATIONAL SCHOOL RIYADH', 105, 18, { align: 'center' });
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            doc.text('المدرسة السريلانكية العالمية بالرياض', 105, 26, { align: 'center' });
+
+            doc.setFontSize(9);
+            doc.text('License No : 41G | رقم الترخيص : ۱ ٤ ج', 105, 33, { align: 'center' });
+
+            // Horizontal line
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.3);
+            doc.line(15, 40, 195, 40);
+
+            // Date (a)
+            const currentDate = formatDateWithOrdinal(new Date());
+            doc.setFontSize(11);
+            doc.text(currentDate + ',', 15, 52);
+
+            // TO WHOM IT MAY CONCERN
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.text('TO WHOM IT MAY CONCERN', 105, 65, { align: 'center' });
+
+            // Subject line with IAL session (b)
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            const subjectLine = `EXPECTED GRADE SHEET – LONDON EDEXCEL IAL EXAMINATION – ${ialSession.toUpperCase()}`;
+            doc.text(subjectLine, 105, 78, { align: 'center' });
+            doc.setLineWidth(0.2);
+            doc.line(15, 80, 195, 80);
+
+            // Student name and UCI paragraph (c, d, e)
+            const studentName = formatStudentName(selectedStudent.candidateName);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+
+            let yPos = 90;
+            const lineHeight = 5;
+            const marginLeft = 15;
+            const maxWidth = 180;
+
+            // First paragraph
+            doc.setFont('helvetica', 'bold');
+            doc.text(studentName, marginLeft, yPos);
+            const nameWidth = doc.getTextWidth(studentName);
+
+            doc.setFont('helvetica', 'normal');
+            doc.text(', Unique Candidate Identifier ', marginLeft + nameWidth, yPos);
+
+            const uciLabelWidth = doc.getTextWidth(', Unique Candidate Identifier ');
+            doc.setFont('helvetica', 'bold');
+            doc.text(selectedStudent.uci, marginLeft + nameWidth + uciLabelWidth, yPos);
+
+            yPos += lineHeight;
+            doc.setFont('helvetica', 'normal');
+            doc.text(`had sat his London Edexcel INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in `, marginLeft, yPos);
+
+            yPos += lineHeight;
+            doc.setFont('helvetica', 'bold');
+            doc.text(iasSession, marginLeft, yPos);
+            const iasWidth = doc.getTextWidth(iasSession);
+            doc.setFont('helvetica', 'normal');
+            doc.text('. He had obtained the following results:', marginLeft + iasWidth, yPos);
+
+            // Actual Results table (f)
+            yPos += 12;
+            doc.setFont('helvetica', 'bold');
+            const results = selectedStudent.results || [];
+
+            results.forEach((r) => {
+                const subjectText = r.subject.toUpperCase();
+                const gradeText = r.grade;
+                doc.text(subjectText, 105, yPos, { align: 'center' });
+                doc.text(gradeText, 150, yPos);
+                yPos += lineHeight;
+            });
+
+            // Second paragraph (g, h)
+            yPos += 8;
+            doc.setFont('helvetica', 'bold');
+            doc.text(studentName, marginLeft, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(' will be sitting his London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL)', marginLeft + doc.getTextWidth(studentName), yPos);
+
+            yPos += lineHeight;
+            doc.text('examination which will be held during ', marginLeft, yPos);
+            doc.setFont('helvetica', 'bold');
+            doc.text(ialSession, marginLeft + doc.getTextWidth('examination which will be held during '), yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text('. Based on his IAS results and the performance in the', marginLeft + doc.getTextWidth('examination which will be held during ' + ialSession), yPos);
+
+            yPos += lineHeight;
+            doc.text('school examination, the respective subject teachers firmly expect him to obtain the following results in the', marginLeft, yPos);
+
+            yPos += lineHeight;
+            doc.setFont('helvetica', 'bold');
+            doc.text(ialSession, marginLeft, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(' IAL Examination:', marginLeft + doc.getTextWidth(ialSession), yPos);
+
+            // Predicted Results table (i)
+            yPos += 12;
+            doc.setFont('helvetica', 'bold');
+
+            results.forEach((r) => {
+                const subjectText = r.subject.toUpperCase();
+                const predictedGrade = calculatePredictedGrade(r.grade);
+                doc.text(subjectText, 105, yPos, { align: 'center' });
+                doc.text(`${predictedGrade} (${predictedGrade.toLowerCase().replace('*', '*')})`, 150, yPos);
+                yPos += lineHeight;
+            });
+
+            // Closing statement
+            yPos += 10;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text('This letter is issued on his request to be reviewed by Universities for admission and scholarship.', marginLeft, yPos);
+
+            // Signature section
+            yPos = 260;
+            doc.setLineWidth(0.3);
+            doc.line(15, yPos, 70, yPos);
+            doc.line(140, yPos, 195, yPos);
+
+            yPos += 5;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Ruxshan Razak', 15, yPos);
+            doc.text('S.M.M. Hajath', 140, yPos);
+
+            yPos += 5;
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(180, 50, 50);
+            doc.text('Principal', 15, yPos);
+            doc.text('Academic & Public Exams Coordinator', 140, yPos);
+
+            // Save PDF
+            const fileName = `Predicted_Grades_${studentName.replace(/\s+/g, '_')}.pdf`;
+            doc.save(fileName);
+
+            setShowPdfModal(false);
+            setIasSession('');
+            setIalSession('');
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('Error generating PDF. Please try again.');
+        } finally {
+            setGeneratingPdf(false);
+        }
+    };
+
+
     return (
         <div className="space-y-6 animate-fade-in">
             <div>
@@ -318,6 +541,14 @@ const PredictedGradesPortal: React.FC = () => {
                                     className="w-full py-2.5 px-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-medium transition-colors shadow-lg shadow-brand-900/50 flex items-center justify-center"
                                 >
                                     View Predicted Results
+                                </button>
+                                <button
+                                    onClick={() => setShowPdfModal(true)}
+                                    disabled={!showPredicted}
+                                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors shadow-lg shadow-emerald-900/50 flex items-center justify-center gap-2"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Generate PDF
                                 </button>
                             </div>
                         </div>
@@ -437,6 +668,80 @@ const PredictedGradesPortal: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* PDF Generation Modal */}
+            {showPdfModal && user?.role === UserRole.SUPER_ADMIN && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <Download className="w-5 h-5 text-brand-600" />
+                                Generate PDF Letter
+                            </h3>
+                            <button
+                                onClick={() => setShowPdfModal(false)}
+                                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    IAS Session Month and Year
+                                </label>
+                                <input
+                                    type="text"
+                                    value={iasSession}
+                                    onChange={(e) => setIasSession(e.target.value)}
+                                    placeholder="e.g., June 2020"
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white transition-shadow"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    IAL Session Month and Year
+                                </label>
+                                <input
+                                    type="text"
+                                    value={ialSession}
+                                    onChange={(e) => setIalSession(e.target.value)}
+                                    placeholder="e.g., June 2021"
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white transition-shadow"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-slate-200 dark:border-slate-700 flex gap-3">
+                            <button
+                                onClick={() => setShowPdfModal(false)}
+                                className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={generatePDF}
+                                disabled={!iasSession || !ialSession || generatingPdf}
+                                className="flex-1 py-3 px-4 bg-brand-600 hover:bg-brand-500 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                            >
+                                {generatingPdf ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Generating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="w-4 h-4" />
+                                        Submit & Download
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

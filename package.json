@@ -17,6 +17,7 @@
     "@google-cloud/vision": "^5.3.4",
     "firebase": "^12.6.0",
     "firebase-admin": "^13.6.0",
+    "jspdf": "^3.0.4",
     "lucide-react": "^0.554.0",
     "openai": "^6.10.0",
     "pdf-parse": "^1.1.1",
