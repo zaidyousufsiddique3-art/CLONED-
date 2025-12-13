@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Expected Grade Sheet</title>
+  <style>
+    body {
+      font-family: "Times New Roman", serif;
+      font-size: 12px;
+      line-height: 1.5;
+      margin: 40px;
+      color: #000;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .school-name {
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    h3 {
+      text-align: center;
+      text-decoration: underline;
+      margin: 25px 0;
+    }
+
+    p {
+      margin: 10px 0;
+      text-align: justify;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+
+    th, td {
+      padding: 6px;
+      text-align: left;
+    }
+
+    .grade {
+      text-align: right;
+      width: 80px;
+      font-weight: bold;
+    }
+
+    .signatures {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 50px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="school-name">SRI LANKAN INTERNATIONAL SCHOOL RIYADH</div>
+    <div>License No: 41G</div>
+  </div>
+
+  <div class="meta">
+    <div>{{DOCUMENT_ISSUE_DATE}}</div>
+    <div>{{IAL_SESSION_MONTH_YEAR}}</div>
+  </div>
+
+  <h3>TO WHOM IT MAY CONCERN</h3>
+
+  <p>
+    <strong>EXPECTED GRADE SHEET – LONDON EDEXCEL IAL EXAMINATION – {{IAL_SESSION_MONTH_YEAR}}</strong>
+  </p>
+
+  <p>
+    <strong>{{STUDENT_FULL_NAME}}</strong>, Unique Candidate Identifier
+    (<strong>{{UCI_NUMBER}}</strong>) had sat his London Edexcel
+    INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in
+    {{IAS_SESSION_MONTH_YEAR}}. He had obtained the following results:
+  </p>
+
+  <table>
+    <tbody>
+      {{ORIGINAL_RESULTS_ROWS}}
+    </tbody>
+  </table>
+
+  <p>
+    {{STUDENT_FULL_NAME}} will be sitting his London Edexcel
+    INTERNATIONAL ADVANCED LEVEL (IAL) examination which will be held during
+    {{IAL_SESSION_MONTH_YEAR}}. Based on his IAS results and the performance
+    in the school examination, the respective subject teachers firmly expect
+    him to obtain the following results in the {{IAL_SESSION_MONTH_YEAR}} IAL
+    Examination:
+  </p>
+
+  <table>
+    <tbody>
+      {{PREDICTED_RESULTS_ROWS}}
+    </tbody>
+  </table>
+
+  <p>
+    This letter is issued on his request to be reviewed by Universities for
+    admission and scholarship.
+  </p>
+
+  <div class="signatures">
+    <div>
+      ____________________<br />
+      Ruxshan Razak<br />
+      Principal
+    </div>
+    <div>
+      ____________________<br />
+      S.M.M. Hajath<br />
+      Academic & Public Exams Coordinator
+    </div>
+  </div>
+
+</body>
+</html>
