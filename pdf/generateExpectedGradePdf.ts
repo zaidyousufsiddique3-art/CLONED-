@@ -128,34 +128,111 @@ export const generateExpectedGradePdf = async (payload: ExpectedGradePdfPayload)
         const pages = pdfDoc.getPages();
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-        // 3. Render fields
-        // We iterate over the payload keys to allow strict mapping
-        for (const [key, value] of Object.entries(payload)) {
-            // Rule: If ANY value === "" or null -> DO NOT render
-            if (value === null || value === undefined || value === '') {
-                continue;
+        // 3. Render fields in STRICT ZONES
+
+        const page = pages[0];
+
+        // --- ZONE 1: PARAGRAPH / INLINE TEXT ---
+        // Render simple scalar fields
+        const inlineFields = [
+            'DOCUMENT_ISSUE_DATE',
+            'IAL_SESSION_MONTH_YEAR_TITLE',
+            'STUDENT_FULL_NAME',
+            'UCI_NUMBER',
+            'IAS_SESSION_MONTH_YEAR',
+            'IAL_SESSION_MONTH_YEAR'
+        ];
+
+        for (const key of inlineFields) {
+            // Special handling for the title mapping if payload uses IAL_SESSION_MONTH_YEAR
+            let valStr = '';
+            if (key === 'IAL_SESSION_MONTH_YEAR_TITLE') {
+                valStr = payload.IAL_SESSION_MONTH_YEAR;
+            } else {
+                valStr = String((payload as any)[key] || '');
             }
+
+            if (!valStr) continue;
 
             const config = FIELD_MAP[key];
-
-            // Should be in our map, else ignore
-            if (!config) continue;
-
-            // Page safety check
-            if (config.page >= pages.length) {
-                console.warn(`[src/pdf] Field ${key} references Page ${config.page} but doc only has ${pages.length} pages.`);
-                continue;
+            if (config) {
+                page.drawText(valStr, {
+                    x: config.x,
+                    y: config.y,
+                    size: config.size,
+                    font: font,
+                    color: rgb(0, 0, 0),
+                });
             }
+        }
 
-            const page = pages[config.page];
+        // --- ZONE 2: ORIGINAL RESULTS (ROW BLOCK) ---
+        // Start Y: 580, Spacing: 20
+        let currentY_Original = 580;
+        const ROW_SPACING = 20;
 
-            page.drawText(String(value), {
-                x: config.x,
-                y: config.y,
-                size: config.size,
-                font: font,
-                color: rgb(0, 0, 0),
-            });
+        for (let i = 1; i <= 4; i++) {
+            const subjectKey = `ORIGINAL_SUBJECT_${i}`;
+            const gradeKey = `ORIGINAL_GRADE_${i}`;
+
+            const subject = (payload as any)[subjectKey];
+            const grade = (payload as any)[gradeKey];
+
+            if (subject && grade) {
+                // Render Subject (Left: 120)
+                page.drawText(String(subject), {
+                    x: 120,
+                    y: currentY_Original,
+                    size: 10,
+                    font: font,
+                    color: rgb(0, 0, 0),
+                });
+
+                // Render Grade (Right Column: 400)
+                page.drawText(String(grade), {
+                    x: 400,
+                    y: currentY_Original,
+                    size: 10,
+                    font: font,
+                    color: rgb(0, 0, 0),
+                });
+
+                currentY_Original -= ROW_SPACING;
+            }
+        }
+
+        // --- ZONE 3: PREDICTED RESULTS (ROW BLOCK) ---
+        // Start Y: 380, Spacing: 20
+        let currentY_Predicted = 380;
+
+        for (let i = 1; i <= 4; i++) {
+            const subjectKey = `PREDICTED_SUBJECT_${i}`;
+            const gradeKey = `PREDICTED_GRADE_${i}`;
+
+            const subject = (payload as any)[subjectKey];
+            const grade = (payload as any)[gradeKey];
+
+            if (subject && grade) {
+                // Render Subject (Left: 120)
+                page.drawText(String(subject), {
+                    x: 120,
+                    y: currentY_Predicted,
+                    size: 10,
+                    font: font,
+                    color: rgb(0, 0, 0),
+                });
+
+                // Render Grade (Right Column: 400)
+                page.drawText(String(grade), {
+                    x: 400,
+                    y: currentY_Predicted,
+                    size: 10,
+                    font: font,
+                    color: rgb(0, 0, 0),
+                });
+
+                currentY_Predicted -= ROW_SPACING;
+            }
         }
 
         // 4. Save and Return Buffer
