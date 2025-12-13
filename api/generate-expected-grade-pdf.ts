@@ -2,6 +2,23 @@ import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 import admin from 'firebase-admin';
 
+// STEP 1 — FORCE NODE RUNTIME (NON-NEGOTIABLE)
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
+
+// Helper: Parse body since bodyParser is false
+async function parseBody(req: any) {
+    const buffers = [];
+    for await (const chunk of req) {
+        buffers.push(chunk);
+    }
+    const data = Buffer.concat(buffers).toString();
+    return JSON.parse(data);
+}
+
 // Initialize Firebase Admin (Singleton)
 if (!admin.apps.length) {
     admin.initializeApp({
@@ -17,9 +34,7 @@ if (!admin.apps.length) {
 // Helper: Sanitize grades
 const normalizeGrade = (raw: string): string => {
     if (!raw) return '';
-    // Remove anything in parentheses and trim
     const clean = raw.replace(/\s*\(.*\)/, '').trim();
-    // Allow list
     const allowList = ['A*', 'A', 'B', 'C', 'D', 'E', 'U'];
     if (allowList.includes(clean)) return clean;
     return clean;
@@ -52,8 +67,8 @@ export default async function handler(req: any, res: any) {
     let browser = null;
 
     try {
-        const payload = req.body;
-        console.log("HTML PIPELINE EXECUTED (PUPPETEER)");
+        const payload = await parseBody(req);
+        console.log("HTML PIPELINE EXECUTED (FINAL FIX)");
 
         // 1. Download HTML Template from Firebase
         const bucket = admin.storage().bucket();
@@ -91,8 +106,6 @@ export default async function handler(req: any, res: any) {
             .replace('{{STUDENT_FULL_NAME}}', payload.STUDENT_FULL_NAME || '')
             .replace('{{UCI_NUMBER}}', payload.UCI_NUMBER || '')
             .replace('{{IAS_SESSION_MONTH_YEAR}}', payload.IAS_SESSION_MONTH_YEAR || '')
-            .replace('{{IAL_SESSION_MONTH_YEAR}}', payload.IAL_SESSION_MONTH_YEAR || '') // First occurrence (paragraph 2) if unique
-            // Safe string replacement for remaining occurrences
             .split('{{IAL_SESSION_MONTH_YEAR}}').join(payload.IAL_SESSION_MONTH_YEAR || '');
 
         // Generate Rows
@@ -102,45 +115,52 @@ export default async function handler(req: any, res: any) {
         html = html.replace('{{ORIGINAL_RESULTS_ROWS}}', originalRows)
             .replace('{{PREDICTED_RESULTS_ROWS}}', predictedRows);
 
-        // 4. Render PDF with Puppeteer Core + @sparticuz/chromium
+        // STEP 2 — PUPPETEER SETUP (VERCEL SAFE)
         browser = await puppeteer.launch({
             args: chromium.args,
             defaultViewport: chromium.defaultViewport,
             executablePath: await chromium.executablePath(),
-            headless: true, // Hardcoded for safety
+            headless: true,
         });
 
         const page = await browser.newPage();
 
-        // Optimize for speed/serverless
+        // STEP 3 — HTML RENDERING (REQUIRED)
         await page.setContent(html, {
-            waitUntil: 'domcontentloaded'
+            waitUntil: 'networkidle0',
         });
 
+        // STEP 4 — PDF GENERATION (STRICT)
         const pdfBuffer = await page.pdf({
             format: 'A4',
             printBackground: true,
         });
 
+        // DEBUG VERIFICATION (ONCE)
+        console.log(pdfBuffer.slice(0, 5).toString());
+
+        // STEP 5 — RESPONSE (THIS IS THE ROOT CAUSE)
+        res.writeHead(200, {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="Expected_Grade_Sheet_${Date.now()}.pdf"`,
+            'Content-Length': pdfBuffer.length,
+        });
+
+        res.end(pdfBuffer);
+
+        // STEP 6 — CLOSE RESOURCES
         await page.close();
         await browser.close();
         browser = null;
 
-        // RESPONSE HANDLING (NON-NEGOTIABLE)
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="Expected_Grade_Sheet_${Date.now()}.pdf"`
-        );
-        res.setHeader('Content-Length', pdfBuffer.length);
-
-        res.status(200).send(pdfBuffer);
-
     } catch (error: any) {
         console.error('Error in HTML-to-PDF pipeline:', error);
-        if (browser) {
+        if (browser) { // Clean up browser even on error
             await browser.close();
         }
-        res.status(500).json({ error: 'Failed to generate PDF', details: error.message });
+        // Fallback response if headers haven't been sent
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to generate PDF', details: error.message });
+        }
     }
 }
