@@ -1,27 +1,22 @@
 
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getStorage } from 'firebase-admin/storage';
+import admin from 'firebase-admin';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 
 // Initialize Firebase Admin (Singleton)
-if (!getApps().length) {
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
-        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-        : {
-            projectId: process.env.VITE_FIREBASE_PROJECT_ID || "slisr-updated",
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
             privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        };
-
-    initializeApp({
-        credential: cert(serviceAccount),
-        storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || "slisr-updated.firebasestorage.app"
+        }),
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     });
 }
 
-const storage = getStorage();
+const storage = admin.storage();
 
 export const config = {
     api: {
