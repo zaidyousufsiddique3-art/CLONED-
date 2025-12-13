@@ -2,13 +2,10 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 // @ts-ignore
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
 
 // Disable workers for Node.js environment
-// @ts-ignore
-if (pdfjsLib.GlobalWorkerOptions) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-}
+pdfjsLib.GlobalWorkerOptions.workerSrc = null;
 
 // Initialize Firebase Admin (Singleton)
 if (!getApps().length) {
