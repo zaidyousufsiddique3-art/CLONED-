@@ -90,8 +90,8 @@ const HTML_TEMPLATE = `
         }
         .result-row {
             display: block;
-            margin-bottom: 3px;
-            line-height: 1.2;
+            margin-bottom: 8px;
+            line-height: 1.5;
         }
         .result-row:last-child {
             margin-bottom: 0;
