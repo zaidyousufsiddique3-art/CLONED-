@@ -162,11 +162,10 @@ const PredictedGradesPortal: React.FC = () => {
         }
     };
 
-    const getSelectedStudentData = () => {
+    // 3. ENSURE selectedStudent IS RECOMPUTED ON STATE CHANGE
+    const data = React.useMemo(() => {
         return students.find(s => s.id === selectedStudentId)?.extractedData;
-    };
-
-    const data = getSelectedStudentData();
+    }, [students, selectedStudentId]);
 
     // 2. CONFIRM STATE IS SET CORRECTLY
     useEffect(() => {
@@ -183,9 +182,12 @@ const PredictedGradesPortal: React.FC = () => {
         }
     }, [selectedStudentId, data]);
 
-    // MANDATORY FRONTEND LOG
+    // MANDATORY FRONTEND LOG & ASSERTION
     if (data) {
-        console.log("[DEBUG] FRONTEND student.results:", data.results);
+        console.log("[DEBUG] RENDER SOURCE CHECK:", data, data?.results);
+        if (!Array.isArray(data.results)) {
+            console.error("RESULTS IS NOT ARRAY", data.results);
+        }
     }
 
 
