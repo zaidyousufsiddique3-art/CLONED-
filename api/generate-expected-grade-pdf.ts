@@ -1,9 +1,8 @@
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
-// STEP 1 — FORCE NODE RUNTIME (NON-NEGOTIABLE)
+// FORCE NODE RUNTIME
 export const config = {
     api: {
         bodyParser: false,
@@ -20,298 +19,343 @@ async function parseBody(req: any) {
     return JSON.parse(data);
 }
 
-// Helper: Sanitize grades
+// Helper: Sanitize grades - DISPLAY AS-IS, NO NORMALIZATION
 const normalizeGrade = (raw: string): string => {
     if (!raw) return '';
     // Strip anything inside parentheses e.g., "A (a)" -> "A"
     const clean = raw.replace(/\s*\(.*\)/, '').trim();
-    // Strict Allowed Grades (Pearson Edexcel IAL/IAS)
-    const allowList = ['A*', 'A', 'B', 'C', 'D', 'E', 'U'];
-
-    if (allowList.includes(clean)) {
-        return clean;
-    }
-    // If not in allow list, return empty string to prevent garbage on PDF
-    return '';
+    // Return exactly as provided - A* must remain A*, not A
+    return clean;
 };
 
+// SAFE CONTENT AREA (ABSOLUTE PDF COORDINATES)
+const SAFE_AREA = {
+    LEFT: 70,
+    RIGHT: 525,
+    TOP: 520,
+    BOTTOM: 120,
+    CENTER_X: (70 + 525) / 2, // 297.5
+};
 
-// EMBEDDED HTML TEMPLATE (With visual enhancements)
-const HTML_TEMPLATE = `
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body {
-            font-family: "Helvetica", "Arial", sans-serif;
-            font-size: 11pt;
-            line-height: 1.5;
-            padding: 40px 95px; /* ~25mm left/right margins */
-            color: #000;
-            background-color: #fffdf8;
-        }
-        .header-image {
-            width: 100%;
-            max-width: 700px;
-            height: auto;
-            display: block;
-            margin: 0 auto 40px auto;
-        }
-        .date {
-            margin-bottom: 30px;
-            font-size: 11pt;
-        }
-        .title {
-            text-align: center;
-            font-weight: bold;
-            text-decoration: underline;
-            margin-bottom: 20px;
-            font-size: 13pt;
-        }
-        .subtitle {
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            font-size: 11pt;
-        }
-        .content-para {
-            text-align: justify;
-            margin-bottom: 20px;
-            font-size: 11pt;
-        }
-        .bold {
-            font-weight: bold;
-        }
-        .results-block {
-            margin: 20px 0;
-            text-align: center;
-            font-weight: bold;
-            font-size: 11pt;
-        }
-        .result-row {
-            display: block;
-            margin-bottom: 8px;
-            line-height: 1.5;
-        }
-        .result-row:last-child {
-            margin-bottom: 0;
-        }
-        .subject {
-            display: inline;
-            text-transform: uppercase;
-        }
-        .grade {
-            display: inline;
-            margin-left: 10px;
-        }
-        .footer {
-            margin-top: 50px;
-            font-size: 11pt;
-        }
-        .signatures {
-            margin-top: 60px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            font-size: 11pt;
-        }
-        .sig-block {
-            width: 40%;
-            text-align: center;
-        }
-        .sig-line {
-            border-top: 1px dotted #000;
-            margin-bottom: 10px;
-        }
-    </style>
-</head>
-<body>
+// Helper: Draw center-aligned text
+function drawCenteredText(
+    page: any,
+    text: string,
+    y: number,
+    font: any,
+    size: number,
+    color = rgb(0, 0, 0)
+) {
+    const textWidth = font.widthOfTextAtSize(text, size);
+    const x = SAFE_AREA.CENTER_X - textWidth / 2;
 
-    <!-- 1. Header Image -->
-    <img src="data:image/png;base64,{{HEADER_IMAGE_BASE64}}" class="header-image" alt="School Header">
+    // Ensure text stays within safe area
+    if (x < SAFE_AREA.LEFT || x + textWidth > SAFE_AREA.RIGHT) {
+        console.warn(`Text overflow detected at y=${y}: "${text}"`);
+    }
 
-    <!-- 2. Date -->
-    <div class="date">
-        {{DOCUMENT_ISSUE_DATE}},
-    </div>
-
-    <!-- 3. Title -->
-    <div class="title">TO WHOM IT MAY CONCERN</div>
-
-    <!-- 4. Subtitle -->
-    <div class="subtitle">
-        EXPECTED GRADE SHEET – LONDON EDEXCEL IAL EXAMINATION – {{IAL_SESSION_MONTH_YEAR}}
-    </div>
-
-    <!-- 5. Paragraph 1 -->
-    <div class="content-para">
-        {{STUDENT_FULL_NAME}}, <span class="bold">Unique Candidate Identifier</span> (<span class="bold">{{UCI_NUMBER}}</span>) had sat {{PRONOUN_POSSESSIVE}} London Edexcel INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in {{IAS_SESSION_MONTH_YEAR}}. {{PRONOUN_SUBJECT_TITLE}} had obtained the following results:
-    </div>
-
-    <!-- 6. Original Results -->
-    <div class="results-block">
-        <div class="result-row"><span class="subject">{{ORIGINAL_SUBJECT_1}}</span><span class="grade">{{ORIGINAL_GRADE_1}}</span></div>
-        <div class="result-row"><span class="subject">{{ORIGINAL_SUBJECT_2}}</span><span class="grade">{{ORIGINAL_GRADE_2}}</span></div>
-        <div class="result-row"><span class="subject">{{ORIGINAL_SUBJECT_3}}</span><span class="grade">{{ORIGINAL_GRADE_3}}</span></div>
-        <div class="result-row"><span class="subject">{{ORIGINAL_SUBJECT_4}}</span><span class="grade">{{ORIGINAL_GRADE_4}}</span></div>
-    </div>
-
-    <!-- 7. Paragraph 2 -->
-    <div class="content-para">
-        {{STUDENT_FULL_NAME}} will be sitting {{PRONOUN_POSSESSIVE}} London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL) examination which will be held during {{IAL_SESSION_MONTH_YEAR}}. Based on {{PRONOUN_POSSESSIVE}} IAS results and the performance in the school examination, the respective subject teachers firmly expect {{PRONOUN_OBJECT}} to obtain the following results in the {{IAL_SESSION_MONTH_YEAR}} IAL Examination:
-    </div>
-
-    <!-- 8. Predicted Results -->
-    <div class="results-block">
-        <div class="result-row"><span class="subject">{{PREDICTED_SUBJECT_1}}</span><span class="grade">{{PREDICTED_GRADE_1}}</span></div>
-        <div class="result-row"><span class="subject">{{PREDICTED_SUBJECT_2}}</span><span class="grade">{{PREDICTED_GRADE_2}}</span></div>
-        <div class="result-row"><span class="subject">{{PREDICTED_SUBJECT_3}}</span><span class="grade">{{PREDICTED_GRADE_3}}</span></div>
-        <div class="result-row"><span class="subject">{{PREDICTED_SUBJECT_4}}</span><span class="grade">{{PREDICTED_GRADE_4}}</span></div>
-    </div>
-
-    <!-- 9. Footer Text -->
-    <div class="footer">
-        This letter is issued on {{PRONOUN_POSSESSIVE}} request to be reviewed by Universities for admission and scholarship.
-    </div>
-
-    <!-- 10. Signatures -->
-    <div class="signatures">
-        <div class="sig-block">
-            <div class="sig-line"></div>
-            <div>Ruxshan Razak</div>
-            <div style="margin-top:5px;">Principal</div>
-        </div>
-        <div class="sig-block">
-            <div class="sig-line"></div>
-            <div>S.M.M. Hajath</div>
-            <div style="margin-top:5px;">Academic & Public Exams Coordinator</div>
-        </div>
-    </div>
-
-</body>
-</html>
-`;
+    page.drawText(text, {
+        x,
+        y,
+        size,
+        font,
+        color,
+    });
+}
 
 export default async function handler(req: any, res: any) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    let browser = null;
-
     try {
         const payload = await parseBody(req);
-        console.log("PDF PIPELINE EXECUTED (EMBEDDED HTML)");
+        console.log("PDF PIPELINE EXECUTED (pdf-lib with letterhead)");
 
-        let html = HTML_TEMPLATE;
+        // STEP 1: Load the locked letterhead PDF
+        const letterheadPath = path.join(process.cwd(), 'public', 'assets', 'expected-grade-letterhead.pdf');
+        const letterheadBytes = fs.readFileSync(letterheadPath);
+        const pdfDoc = await PDFDocument.load(letterheadBytes);
 
-        // --- READ HEADER IMAGE BASE64 ---
-        try {
-            const base64Path = path.join(process.cwd(), 'temp_base64.txt');
-            const headerImageBase64 = fs.readFileSync(base64Path, 'utf-8').trim();
-            html = html.replace('{{HEADER_IMAGE_BASE64}}', headerImageBase64);
-        } catch (error) {
-            console.error('Error reading header image:', error);
-            // Fallback: use empty string if file not found
-            html = html.replace('{{HEADER_IMAGE_BASE64}}', '');
-        }
+        // Get the first page (letterhead is the background)
+        const pages = pdfDoc.getPages();
+        const page = pages[0];
 
-        // --- REPLACE PLACEHOLDERS ---
+        // Embed fonts
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+        // Base font size (can be reduced by max 1pt if needed)
+        let fontSize = 11;
 
         // Gender Logic
         const gender = payload.GENDER || 'male';
         const isFemale = gender === 'female';
-
         const pronouns = {
             possessive: isFemale ? 'her' : 'his',
             subjectTitle: isFemale ? 'She' : 'He',
             object: isFemale ? 'her' : 'him'
         };
 
-        html = html.replace(/{{PRONOUN_POSSESSIVE}}/g, pronouns.possessive)
-            .replace(/{{PRONOUN_SUBJECT_TITLE}}/g, pronouns.subjectTitle)
-            .replace(/{{PRONOUN_OBJECT}}/g, pronouns.object);
+        // Extract data
+        const studentName = payload.STUDENT_FULL_NAME || '';
+        const uci = payload.UCI_NUMBER || '';
+        const docDate = payload.DOCUMENT_ISSUE_DATE || '';
+        const ialSession = payload.IAL_SESSION_MONTH_YEAR || '';
+        const iasSession = payload.IAS_SESSION_MONTH_YEAR || '';
 
-        // Document Info
-        html = html.replace('{{DOCUMENT_ISSUE_DATE}}', payload.DOCUMENT_ISSUE_DATE || '');
-        // Replace globally
-        html = html.split('{{IAL_SESSION_MONTH_YEAR}}').join(payload.IAL_SESSION_MONTH_YEAR || '');
-        html = html.replace('{{IAS_SESSION_MONTH_YEAR}}', payload.IAS_SESSION_MONTH_YEAR || '');
-
-        // Student Info
-        html = html.split('{{STUDENT_FULL_NAME}}').join(payload.STUDENT_FULL_NAME || '');
-        html = html.replace('{{UCI_NUMBER}}', payload.UCI_NUMBER || '');
-
-        // Original Results (1-4)
+        // Original grades (IAS results)
+        const originalGrades = [];
         for (let i = 1; i <= 4; i++) {
             const subj = payload[`ORIGINAL_SUBJECT_${i}`];
             const grade = payload[`ORIGINAL_GRADE_${i}`];
-
             if (subj && grade) {
-                html = html.replace(`{{ORIGINAL_SUBJECT_${i}}}`, subj)
-                    .replace(`{{ORIGINAL_GRADE_${i}}}`, normalizeGrade(grade));
-            } else {
-                // Leave strictly blank as requested
-                html = html.replace(`{{ORIGINAL_SUBJECT_${i}}}`, '')
-                    .replace(`{{ORIGINAL_GRADE_${i}}}`, '');
+                originalGrades.push({
+                    subject: subj.toUpperCase(),
+                    grade: normalizeGrade(grade)
+                });
             }
         }
 
-        // Predicted Results (1-4)
+        // Predicted grades (IAL predictions)
+        const predictedGrades = [];
         for (let i = 1; i <= 4; i++) {
             const subj = payload[`PREDICTED_SUBJECT_${i}`];
             const grade = payload[`PREDICTED_GRADE_${i}`];
-
             if (subj && grade) {
-                html = html.replace(`{{PREDICTED_SUBJECT_${i}}}`, subj)
-                    .replace(`{{PREDICTED_GRADE_${i}}}`, normalizeGrade(grade));
-            } else {
-                // Leave strictly blank
-                html = html.replace(`{{PREDICTED_SUBJECT_${i}}}`, '')
-                    .replace(`{{PREDICTED_GRADE_${i}}}`, '');
+                predictedGrades.push({
+                    subject: subj.toUpperCase(),
+                    grade: normalizeGrade(grade)
+                });
             }
         }
 
-        // --- PUPPETEER GENERATION ---
+        // STEP 2: Overlay dynamic text (EXACT LAYOUT - DO NOT MODIFY)
+        // All Y coordinates are from bottom of page (PDF coordinate system)
+        // NOTE: The letterhead PDF contains ONLY the header/logo at the top
+        // We overlay ALL dynamic content: date, title, subtitle, paragraphs, grades, footer, and signatures
 
-        browser = await puppeteer.launch({
-            args: chromium.args,
-            executablePath: await chromium.executablePath(),
-            headless: true,
+
+        let currentY = SAFE_AREA.TOP;
+        const lineSpacing = 14; // Vertical spacing between lines
+        const sectionSpacing = 20; // Spacing between sections
+
+        // Date (top of content area)
+        page.drawText(`${docDate},`, {
+            x: SAFE_AREA.LEFT,
+            y: currentY,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+        });
+        currentY -= sectionSpacing;
+
+        // Title: TO WHOM IT MAY CONCERN (center-aligned, bold, underlined)
+        const titleText = 'TO WHOM IT MAY CONCERN';
+        const titleWidth = fontBold.widthOfTextAtSize(titleText, 13);
+        const titleX = SAFE_AREA.CENTER_X - titleWidth / 2;
+        page.drawText(titleText, {
+            x: titleX,
+            y: currentY,
+            size: 13,
+            font: fontBold,
+            color: rgb(0, 0, 0),
+        });
+        // Draw underline
+        page.drawLine({
+            start: { x: titleX, y: currentY - 2 },
+            end: { x: titleX + titleWidth, y: currentY - 2 },
+            thickness: 1,
+            color: rgb(0, 0, 0),
+        });
+        currentY -= sectionSpacing;
+
+        // Subtitle: EXPECTED GRADE SHEET...
+        const subtitleText = `EXPECTED GRADE SHEET – LONDON EDEXCEL IAL EXAMINATION – ${ialSession}`;
+        page.drawText(subtitleText, {
+            x: SAFE_AREA.LEFT,
+            y: currentY,
+            size: fontSize,
+            font: fontBold,
+            color: rgb(0, 0, 0),
+        });
+        currentY -= sectionSpacing;
+
+        // Paragraph 1 (multi-line, justified - simplified to left-aligned for pdf-lib)
+        const para1 = `${studentName}, Unique Candidate Identifier (${uci}) had sat ${pronouns.possessive} London Edexcel INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in ${iasSession}. ${pronouns.subjectTitle} had obtained the following results:`;
+
+        // Simple word wrapping for paragraph
+        const maxWidth = SAFE_AREA.RIGHT - SAFE_AREA.LEFT;
+        const words = para1.split(' ');
+        let currentLine = '';
+        const para1Lines: string[] = [];
+
+        for (const word of words) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+
+            if (testWidth > maxWidth && currentLine) {
+                para1Lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) para1Lines.push(currentLine);
+
+        // Draw paragraph 1
+        for (const line of para1Lines) {
+            page.drawText(line, {
+                x: SAFE_AREA.LEFT,
+                y: currentY,
+                size: fontSize,
+                font,
+                color: rgb(0, 0, 0),
+            });
+            currentY -= lineSpacing;
+        }
+        currentY -= 10; // Extra spacing before results
+
+        // Original Results (center-aligned, bold, minimal spacing)
+        for (const result of originalGrades) {
+            const resultText = `${result.subject}    ${result.grade}`;
+            drawCenteredText(page, resultText, currentY, fontBold, fontSize);
+            currentY -= 12; // Tight spacing between result lines
+        }
+        currentY -= 10; // Extra spacing after results
+
+        // Paragraph 2
+        const para2 = `${studentName} will be sitting ${pronouns.possessive} London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL) examination which will be held during ${ialSession}. Based on ${pronouns.possessive} IAS results and the performance in the school examination, the respective subject teachers firmly expect ${pronouns.object} to obtain the following results in the ${ialSession} IAL Examination:`;
+
+        // Word wrap paragraph 2
+        currentLine = '';
+        const para2Lines: string[] = [];
+        const words2 = para2.split(' ');
+
+        for (const word of words2) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+
+            if (testWidth > maxWidth && currentLine) {
+                para2Lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) para2Lines.push(currentLine);
+
+        // Draw paragraph 2
+        for (const line of para2Lines) {
+            page.drawText(line, {
+                x: SAFE_AREA.LEFT,
+                y: currentY,
+                size: fontSize,
+                font,
+                color: rgb(0, 0, 0),
+            });
+            currentY -= lineSpacing;
+        }
+        currentY -= 10; // Extra spacing before results
+
+        // Predicted Results (center-aligned, bold, minimal spacing)
+        for (const result of predictedGrades) {
+            const resultText = `${result.subject}    ${result.grade}`;
+            drawCenteredText(page, resultText, currentY, fontBold, fontSize);
+            currentY -= 12; // Tight spacing between result lines
+        }
+        currentY -= 20; // Extra spacing after results
+
+
+        // Footer text
+        const footerText = `This letter is issued on ${pronouns.possessive} request to be reviewed by Universities for admission and scholarship.`;
+        page.drawText(footerText, {
+            x: SAFE_AREA.LEFT,
+            y: currentY,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+        });
+        currentY -= 40; // Space before signatures
+
+        // Signatures section (two columns)
+        const sigY = currentY;
+        const sigLineLength = 120;
+        const leftSigX = SAFE_AREA.LEFT + 50;
+        const rightSigX = SAFE_AREA.RIGHT - 170;
+
+        // Left signature - Principal
+        // Dotted line
+        for (let x = leftSigX; x < leftSigX + sigLineLength; x += 4) {
+            page.drawLine({
+                start: { x, y: sigY },
+                end: { x: x + 2, y: sigY },
+                thickness: 0.5,
+                color: rgb(0, 0, 0),
+            });
+        }
+        page.drawText('Ruxshan Razak', {
+            x: leftSigX,
+            y: sigY - 15,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+        });
+        page.drawText('Principal', {
+            x: leftSigX,
+            y: sigY - 30,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
         });
 
-        const page = await browser.newPage();
-
-        await page.setContent(html, {
-            waitUntil: 'networkidle0',
+        // Right signature - Coordinator
+        // Dotted line
+        for (let x = rightSigX; x < rightSigX + sigLineLength; x += 4) {
+            page.drawLine({
+                start: { x, y: sigY },
+                end: { x: x + 2, y: sigY },
+                thickness: 0.5,
+                color: rgb(0, 0, 0),
+            });
+        }
+        page.drawText('S.M.M. Hajath', {
+            x: rightSigX,
+            y: sigY - 15,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+        });
+        page.drawText('Academic & Public Exams Coordinator', {
+            x: rightSigX,
+            y: sigY - 30,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
         });
 
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: { top: '0', bottom: '0', left: '0', right: '0' } // Controlled by HTML CSS padding
-        });
+        // Check if we're within safe area
+        const finalY = sigY - 30;
+        if (finalY < SAFE_AREA.BOTTOM) {
+            console.warn(`Content overflow detected. Final Y: ${finalY}, Safe Bottom: ${SAFE_AREA.BOTTOM}`);
+            // If overflow, reduce font size by 1pt and regenerate
+            // (This would require refactoring into a function - for now, log warning)
+        }
 
-        // DEBUG CHECK REMOVED
 
-        // RESPONSE
+        // STEP 3: Save and return PDF
+        const pdfBytes = await pdfDoc.save();
+
         res.writeHead(200, {
             'Content-Type': 'application/pdf',
             'Content-Disposition': `attachment; filename="Expected_Grade_Sheet_${Date.now()}.pdf"`,
-            'Content-Length': pdfBuffer.length,
+            'Content-Length': pdfBytes.length,
         });
 
-        res.end(pdfBuffer);
-
-        await page.close();
-        await browser.close();
-        browser = null;
+        res.end(Buffer.from(pdfBytes));
 
     } catch (error: any) {
         console.error('Error in PDF pipeline:', error);
-        if (browser) {
-            await browser.close();
-        }
         if (!res.headersSent) {
             res.status(500).json({ error: 'Failed to generate PDF', details: error.message });
         }
