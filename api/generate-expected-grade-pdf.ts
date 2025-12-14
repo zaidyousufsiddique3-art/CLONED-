@@ -193,39 +193,91 @@ export default async function handler(req: any, res: any) {
         });
         currentY -= 35; // Visual Match: Gap between Subtitle and Paragraph 1
 
-        // Paragraph 1 (multi-line, justified - simplified to left-aligned for pdf-lib)
-        const para1 = `${studentName}, Unique Candidate Identifier (${uci}) had sat ${pronouns.possessive} London Edexcel INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in ${iasSession}. ${pronouns.subjectTitle} had obtained the following results:`;
+        // Helper: Draw justified text
+        function drawJustifiedText(
+            page: any,
+            text: string,
+            y: number,
+            font: any,
+            fontSize: number,
+            maxWidth: number,
+            lineSpacing: number
+        ): number {
+            const words = text.split(' ');
+            let currentLine: string[] = [];
+            let currentLineY = y;
 
-        // Simple word wrapping for paragraph
-        const maxWidth = SAFE_AREA.RIGHT - SAFE_AREA.LEFT;
-        const words = para1.split(' ');
-        let currentLine = '';
-        const para1Lines: string[] = [];
+            for (const word of words) {
+                const testLine = [...currentLine, word].join(' ');
+                const testWidth = font.widthOfTextAtSize(testLine, fontSize);
 
-        for (const word of words) {
-            const testLine = currentLine ? `${currentLine} ${word}` : word;
-            const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+                if (testWidth > maxWidth && currentLine.length > 0) {
+                    // Draw current line justified
+                    const lineText = currentLine.join(' ');
+                    const lineWidth = font.widthOfTextAtSize(lineText, fontSize);
+                    const extraSpace = maxWidth - lineWidth;
+                    const wordsInLine = currentLine.length;
 
-            if (testWidth > maxWidth && currentLine) {
-                para1Lines.push(currentLine);
-                currentLine = word;
-            } else {
-                currentLine = testLine;
+                    if (wordsInLine > 1) {
+                        const spacePerWord = extraSpace / (wordsInLine - 1);
+                        let currentWordX = SAFE_AREA.LEFT;
+
+                        for (let i = 0; i < wordsInLine; i++) {
+                            page.drawText(currentLine[i], {
+                                x: currentWordX,
+                                y: currentLineY,
+                                size: fontSize,
+                                font,
+                                color: rgb(0, 0, 0),
+                            });
+
+                            // Advance X by word width + normal space + extra space
+                            const wordWidth = font.widthOfTextAtSize(currentLine[i], fontSize);
+                            // Standard space width
+                            const spaceWidth = font.widthOfTextAtSize(' ', fontSize);
+
+                            if (i < wordsInLine - 1) {
+                                currentWordX += wordWidth + spaceWidth + spacePerWord;
+                            }
+                        }
+                    } else {
+                        // Single word line - left align
+                        page.drawText(lineText, {
+                            x: SAFE_AREA.LEFT,
+                            y: currentLineY,
+                            size: fontSize,
+                            font,
+                            color: rgb(0, 0, 0),
+                        });
+                    }
+
+                    currentLine = [word];
+                    currentLineY -= lineSpacing;
+                } else {
+                    currentLine.push(word);
+                }
             }
-        }
-        if (currentLine) para1Lines.push(currentLine);
 
-        // Draw paragraph 1
-        for (const line of para1Lines) {
-            page.drawText(line, {
-                x: SAFE_AREA.LEFT,
-                y: currentY,
-                size: fontSize,
-                font,
-                color: rgb(0, 0, 0),
-            });
-            currentY -= lineSpacing;
+            // Draw last line (left aligned)
+            if (currentLine.length > 0) {
+                page.drawText(currentLine.join(' '), {
+                    x: SAFE_AREA.LEFT,
+                    y: currentLineY,
+                    size: fontSize,
+                    font,
+                    color: rgb(0, 0, 0),
+                });
+                currentLineY -= lineSpacing;
+            }
+
+            return currentLineY; // Return new Y position
         }
+        //... (in handler)
+
+        // Paragraph 1 (Justified)
+        const para1 = `${studentName}, Unique Candidate Identifier (${uci}) had sat ${pronouns.possessive} London Edexcel INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in ${iasSession}. ${pronouns.subjectTitle} had obtained the following results:`;
+        const maxWidth = SAFE_AREA.RIGHT - SAFE_AREA.LEFT;
+        currentY = drawJustifiedText(page, para1, currentY, font, fontSize, maxWidth, lineSpacing);
         currentY -= 10; // Extra spacing before results
 
         // Original Results (center-aligned, bold, minimal spacing)
@@ -236,38 +288,9 @@ export default async function handler(req: any, res: any) {
         }
         currentY -= 10; // Extra spacing after results
 
-        // Paragraph 2
+        // Paragraph 2 (Justified)
         const para2 = `${studentName} will be sitting ${pronouns.possessive} London Edexcel INTERNATIONAL ADVANCED LEVEL (IAL) examination which will be held during ${ialSession}. Based on ${pronouns.possessive} IAS results and the performance in the school examination, the respective subject teachers firmly expect ${pronouns.object} to obtain the following results in the ${ialSession} IAL Examination:`;
-
-        // Word wrap paragraph 2
-        currentLine = '';
-        const para2Lines: string[] = [];
-        const words2 = para2.split(' ');
-
-        for (const word of words2) {
-            const testLine = currentLine ? `${currentLine} ${word}` : word;
-            const testWidth = font.widthOfTextAtSize(testLine, fontSize);
-
-            if (testWidth > maxWidth && currentLine) {
-                para2Lines.push(currentLine);
-                currentLine = word;
-            } else {
-                currentLine = testLine;
-            }
-        }
-        if (currentLine) para2Lines.push(currentLine);
-
-        // Draw paragraph 2
-        for (const line of para2Lines) {
-            page.drawText(line, {
-                x: SAFE_AREA.LEFT,
-                y: currentY,
-                size: fontSize,
-                font,
-                color: rgb(0, 0, 0),
-            });
-            currentY -= lineSpacing;
-        }
+        currentY = drawJustifiedText(page, para2, currentY, font, fontSize, maxWidth, lineSpacing);
         currentY -= 10; // Extra spacing before results
 
         // Predicted Results (center-aligned, bold, minimal spacing)
@@ -278,17 +301,12 @@ export default async function handler(req: any, res: any) {
         }
         currentY -= 20; // Extra spacing after results
 
-
-        // Footer text
+        // Footer text (Justified)
         const footerText = `This letter is issued on ${pronouns.possessive} request to be reviewed by Universities for admission and scholarship.`;
-        page.drawText(footerText, {
-            x: SAFE_AREA.LEFT,
-            y: currentY,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
-        });
-        currentY -= 40; // Space before signatures
+        currentY = drawJustifiedText(page, footerText, currentY, font, fontSize, maxWidth, lineSpacing);
+
+        currentY -= 60; // Increased space before signatures (Visual adjustment)
+
 
         // Signatures section (two columns)
         const sigY = currentY;
