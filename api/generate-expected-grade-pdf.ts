@@ -29,10 +29,11 @@ const normalizeGrade = (raw: string): string => {
 };
 
 // SAFE CONTENT AREA (ABSOLUTE PDF COORDINATES)
+// Top adjusted to 680 to start immediately below the header divider line
 const SAFE_AREA = {
     LEFT: 70,
     RIGHT: 525,
-    TOP: 520,
+    TOP: 680,
     BOTTOM: 120,
     CENTER_X: (70 + 525) / 2, // 297.5
 };
@@ -151,8 +152,9 @@ export default async function handler(req: any, res: any) {
 
 
         let currentY = SAFE_AREA.TOP;
-        const lineSpacing = 14; // Vertical spacing between lines
+        const lineSpacing = 18; // 1.5 line spacing (1.5 * 12pt approx)
         const sectionSpacing = 20; // Spacing between sections
+        const resultSpacing = 20; // 2x vertical spacing between grade rows
 
         // Date (top of content area)
         page.drawText(`${docDate},`, {
@@ -234,7 +236,7 @@ export default async function handler(req: any, res: any) {
         for (const result of originalGrades) {
             const resultText = `${result.subject}    ${result.grade}`;
             drawCenteredText(page, resultText, currentY, fontBold, fontSize);
-            currentY -= 12; // Tight spacing between result lines
+            currentY -= resultSpacing;
         }
         currentY -= 10; // Extra spacing after results
 
@@ -276,7 +278,7 @@ export default async function handler(req: any, res: any) {
         for (const result of predictedGrades) {
             const resultText = `${result.subject}    ${result.grade}`;
             drawCenteredText(page, resultText, currentY, fontBold, fontSize);
-            currentY -= 12; // Tight spacing between result lines
+            currentY -= resultSpacing;
         }
         currentY -= 20; // Extra spacing after results
 
