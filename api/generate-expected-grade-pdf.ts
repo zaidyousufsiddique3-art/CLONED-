@@ -305,7 +305,7 @@ export default async function handler(req: any, res: any) {
         const footerText = `This letter is issued on ${pronouns.possessive} request to be reviewed by Universities for admission and scholarship.`;
         currentY = drawJustifiedText(page, footerText, currentY, font, fontSize, maxWidth, lineSpacing);
 
-        currentY -= 60; // Increased space before signatures (Visual adjustment)
+        currentY -= 85; // Increased space before signatures (Match Screenshot 1 Y-position)
 
 
         // Signatures section (two columns)
