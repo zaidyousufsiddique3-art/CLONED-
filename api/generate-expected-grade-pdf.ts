@@ -21,11 +21,7 @@ async function parseBody(req: any) {
 
 // Helper: Sanitize grades - DISPLAY AS-IS, NO NORMALIZATION
 const normalizeGrade = (raw: string): string => {
-    if (!raw) return '';
-    // Strip anything inside parentheses e.g., "A (a)" -> "A"
-    const clean = raw.replace(/\s*\(.*\)/, '').trim();
-    // Return exactly as provided - A* must remain A*, not A
-    return clean;
+    return raw || ''; // Return exactly as provided, preserving parentheses content
 };
 
 // SAFE CONTENT AREA (ABSOLUTE PDF COORDINATES)
@@ -153,7 +149,7 @@ export default async function handler(req: any, res: any) {
 
         let currentY = SAFE_AREA.TOP;
         const lineSpacing = 18; // 1.5 line spacing (1.5 * 12pt approx)
-        const sectionSpacing = 20; // Spacing between sections
+        const sectionSpacing = 20; // Default spacing (unused for header sections now)
         const resultSpacing = 20; // 2x vertical spacing between grade rows
 
         // Date (top of content area)
@@ -164,7 +160,7 @@ export default async function handler(req: any, res: any) {
             font,
             color: rgb(0, 0, 0),
         });
-        currentY -= sectionSpacing;
+        currentY -= 50; // Visual Match: Large gap between Date and Title
 
         // Title: TO WHOM IT MAY CONCERN (center-aligned, bold, underlined)
         const titleText = 'TO WHOM IT MAY CONCERN';
@@ -184,7 +180,7 @@ export default async function handler(req: any, res: any) {
             thickness: 1,
             color: rgb(0, 0, 0),
         });
-        currentY -= sectionSpacing;
+        currentY -= 35; // Visual Match: Gap between Title and Subtitle
 
         // Subtitle: EXPECTED GRADE SHEET...
         const subtitleText = `EXPECTED GRADE SHEET – LONDON EDEXCEL IAL EXAMINATION – ${ialSession}`;
@@ -195,7 +191,7 @@ export default async function handler(req: any, res: any) {
             font: fontBold,
             color: rgb(0, 0, 0),
         });
-        currentY -= sectionSpacing;
+        currentY -= 35; // Visual Match: Gap between Subtitle and Paragraph 1
 
         // Paragraph 1 (multi-line, justified - simplified to left-aligned for pdf-lib)
         const para1 = `${studentName}, Unique Candidate Identifier (${uci}) had sat ${pronouns.possessive} London Edexcel INTERNATIONAL SUBSIDIARY LEVEL (IAS) examination in ${iasSession}. ${pronouns.subjectTitle} had obtained the following results:`;
