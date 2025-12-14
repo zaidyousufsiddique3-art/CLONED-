@@ -73,9 +73,40 @@ export default async function handler(req: any, res: any) {
         console.log("PDF PIPELINE EXECUTED (pdf-lib with letterhead)");
 
         // STEP 1: Load the locked letterhead PDF
-        const letterheadPath = path.join(process.cwd(), 'public', 'assets', 'expected-grade-letterhead.pdf');
-        const letterheadBytes = fs.readFileSync(letterheadPath);
+        // In Vercel, we need to use a path relative to the deployment root
+        // Try multiple possible paths for local dev vs Vercel deployment
+        let letterheadPath: string;
+        let letterheadBytes: Buffer;
+
+        const possiblePaths = [
+            path.join(process.cwd(), 'public', 'assets', 'expected-grade-letterhead.pdf'),
+            path.join(process.cwd(), 'api', 'expected-grade-letterhead.pdf'),
+            path.join(__dirname, 'expected-grade-letterhead.pdf'),
+            path.join(__dirname, '..', 'public', 'assets', 'expected-grade-letterhead.pdf'),
+        ];
+
+        let foundPath = false;
+        for (const tryPath of possiblePaths) {
+            try {
+                if (fs.existsSync(tryPath)) {
+                    letterheadPath = tryPath;
+                    letterheadBytes = fs.readFileSync(tryPath);
+                    foundPath = true;
+                    console.log(`✓ Letterhead loaded from: ${tryPath}`);
+                    break;
+                }
+            } catch (err) {
+                // Continue to next path
+            }
+        }
+
+        if (!foundPath) {
+            console.error('Letterhead PDF not found. Tried paths:', possiblePaths);
+            throw new Error('Letterhead PDF file not found in any expected location');
+        }
+
         const pdfDoc = await PDFDocument.load(letterheadBytes);
+
 
         // Get the first page (letterhead is the background)
         const pages = pdfDoc.getPages();
