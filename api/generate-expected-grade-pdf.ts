@@ -311,7 +311,7 @@ export default async function handler(req: any, res: any) {
         // Signatures section (two columns)
         const sigY = currentY;
         const sigLineLength = 120;
-        const leftSigX = SAFE_AREA.LEFT + 50;
+        const leftSigX = SAFE_AREA.LEFT; // Aligned with left margin
         const rightSigX = SAFE_AREA.RIGHT - 170;
 
         // Left signature - Principal
