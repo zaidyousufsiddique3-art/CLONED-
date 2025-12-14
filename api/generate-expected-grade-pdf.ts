@@ -73,10 +73,9 @@ export default async function handler(req: any, res: any) {
         console.log("PDF PIPELINE EXECUTED (pdf-lib with letterhead)");
 
         // STEP 1: Load the locked letterhead PDF
-        // CRITICAL: Verify file exists before attempting to read
+        // CRITICAL: Letterhead must be in /assets (server-bundled), NOT /public (static)
         const letterheadPath = path.join(
             process.cwd(),
-            "public",
             "assets",
             "expected-grade-letterhead.pdf"
         );
@@ -90,6 +89,7 @@ export default async function handler(req: any, res: any) {
         console.log(`✓ Letterhead found at: ${letterheadPath}`);
         const letterheadBytes = fs.readFileSync(letterheadPath);
         const pdfDoc = await PDFDocument.load(letterheadBytes);
+
 
         // Get the first page (letterhead is the background)
         const pages = pdfDoc.getPages();
