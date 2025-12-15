@@ -1,6 +1,6 @@
 
 import OpenAI from 'openai';
-import { createRateLimiter, getClientIp } from '../lib/rateLimit';
+import { createRateLimiter, getClientIp } from './_lib/rateLimit';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -20,6 +20,7 @@ export default async function handler(req: any, res: any) {
         }
     } catch (err) {
         console.error("Rate limiting error:", err);
+        return res.status(503).json({ error: "Service temporarily unavailable (Rate Limit Check Failed)" });
     }
 
     if (req.method !== 'POST') {

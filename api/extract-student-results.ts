@@ -2,7 +2,7 @@ import admin from 'firebase-admin';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
-import { createRateLimiter, getClientIp } from '../lib/rateLimit';
+import { createRateLimiter, getClientIp } from './_lib/rateLimit';
 
 // Initialize Firebase Admin (Singleton)
 if (!admin.apps.length) {
@@ -391,6 +391,7 @@ export default async function handler(req: any, res: any) {
         }
     } catch (err) {
         console.error("Rate limiting error:", err);
+        return res.status(503).json({ error: "Service temporarily unavailable (Rate Limit Check Failed)" });
     }
 
     if (req.method !== 'POST') {
