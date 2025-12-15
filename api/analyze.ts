@@ -1,11 +1,27 @@
 
 import OpenAI from 'openai';
+import { createRateLimiter, getClientIp } from '../lib/rateLimit';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-export default async function handler(req, res) {
+export default async function handler(req: any, res: any) {
+    // RATE LIMITING (AI/Extraction: 10 req / 5 min)
+    try {
+        const limiter = createRateLimiter(10, "5 m");
+        const ip = getClientIp(req);
+        const { success } = await limiter.limit(`extract:${ip}`);
+
+        if (!success) {
+            return res.status(429).json({
+                error: "Too many requests. Please wait a few minutes and try again."
+            });
+        }
+    } catch (err) {
+        console.error("Rate limiting error:", err);
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

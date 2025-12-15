@@ -2,6 +2,7 @@ import admin from 'firebase-admin';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
+import { createRateLimiter, getClientIp } from '../lib/rateLimit';
 
 // Initialize Firebase Admin (Singleton)
 if (!admin.apps.length) {
@@ -377,6 +378,21 @@ const extractTextWithOCR = async (gcsUri: string): Promise<string> => {
 // --- API Handler ---
 
 export default async function handler(req: any, res: any) {
+    // RATE LIMITING (Extraction: 10 req / 5 min)
+    try {
+        const limiter = createRateLimiter(10, "5 m");
+        const ip = getClientIp(req);
+        const { success } = await limiter.limit(`extract:${ip}`);
+
+        if (!success) {
+            return res.status(429).json({
+                error: "Too many requests. Please wait a few minutes and try again."
+            });
+        }
+    } catch (err) {
+        console.error("Rate limiting error:", err);
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
