@@ -2,7 +2,7 @@ import admin from 'firebase-admin';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
-import { createRateLimiter, getClientIp } from './_lib/rateLimit';
+import { createRateLimiter, getClientIp } from './_lib/rateLimit.js';
 
 // Initialize Firebase Admin (Singleton)
 if (!admin.apps.length) {

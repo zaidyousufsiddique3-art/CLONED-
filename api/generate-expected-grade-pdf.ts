@@ -60,7 +60,7 @@ function drawCenteredText(
     });
 }
 
-import { createRateLimiter, getClientIp } from './_lib/rateLimit';
+import { createRateLimiter, getClientIp } from './_lib/rateLimit.js';
 
 export default async function handler(req: any, res: any) {
     // RATE LIMITING (Heavy Endpoint: 10 req / 5 min)
