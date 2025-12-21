@@ -197,20 +197,20 @@ const Login: React.FC = () => {
 
                     {/* Left Column: Hero Section (Prominent) */}
                     <div className="hidden lg:flex flex-col space-y-12 animate-fade-in pl-8">
-                        <div className="space-y-8">
-                            <div className="flex items-center gap-6 mb-4">
+                        <div className="space-y-10">
+                            <div className="flex items-center gap-6 mb-6">
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-brand-600/20 blur-2xl rounded-full"></div>
-                                    <img src="/assets/logo.png" alt="SLISR Logo" className="relative h-32 w-auto object-contain drop-shadow-[0_0_30px_rgba(225,29,72,0.3)]" />
+                                    <img src="/assets/logo.png" alt="SLISR Logo" className="relative h-40 w-auto object-contain drop-shadow-[0_0_30px_rgba(225,29,72,0.3)]" />
                                 </div>
-                                <div className="h-20 w-[1px] bg-slate-800/60"></div>
-                                <div className="flex flex-col">
-                                    <span className="text-white font-black tracking-[0.4em] text-lg uppercase">SLISR</span>
-                                    <span className="text-slate-500 font-bold tracking-[0.2em] text-xs uppercase">Official Records Portal</span>
+                                <div className="h-24 w-[1px] bg-slate-800/60"></div>
+                                <div className="flex flex-col space-y-1">
+                                    <span className="text-white font-black tracking-[0.4em] text-xl uppercase">SLISR</span>
+                                    <span className="text-slate-500 font-bold tracking-[0.2em] text-sm uppercase">Official Records Portal</span>
                                 </div>
                             </div>
 
-                            <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 text-[10px] font-black tracking-[0.3em] uppercase shadow-[0_0_20px_rgba(244,63,94,0.1)]">
+                            <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 text-xs font-black tracking-[0.3em] uppercase shadow-[0_0_20px_rgba(244,63,94,0.1)]">
                                 <span className="relative flex h-2.5 w-2.5">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-600"></span>
@@ -218,16 +218,16 @@ const Login: React.FC = () => {
                                 Verified Institutional Hub
                             </div>
 
-                            <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tighter leading-[1.1]">
+                            <h1 className="text-5xl lg:text-6xl font-black text-white tracking-tighter leading-[1.1]">
                                 Secure Access To <br className="block" />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-brand-500 whitespace-nowrap">Academic Documents</span>
                             </h1>
 
-                            <p className="text-slate-400 text-base max-w-lg leading-relaxed font-medium">
+                            <p className="text-slate-400 text-lg max-w-xl leading-relaxed font-medium">
                                 Official SLISR documents, securely accessed through a centralized institutional portal.
                             </p>
 
-                            <p className="text-slate-500 text-sm max-w-lg leading-relaxed">
+                            <p className="text-slate-500 text-base max-w-xl leading-relaxed">
                                 The SLISR Docs Portal enables authorized students, staff, and administrators to access verified academic records with institutional-grade security and compliance.
                             </p>
                         </div>
