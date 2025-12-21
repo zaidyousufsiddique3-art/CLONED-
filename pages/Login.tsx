@@ -193,11 +193,11 @@ const Login: React.FC = () => {
 
             <main className="flex-grow flex items-center justify-center relative z-10 w-full px-6 lg:px-12 py-12 lg:py-0">
                 {/* Expanded Container for 70-80% Page Consumption */}
-                <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center mx-auto">
+                <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-12 lg:gap-32 items-stretch mx-auto">
 
                     {/* Left Column: Hero Section (Prominent) */}
-                    <div className="hidden lg:flex flex-col space-y-8 animate-fade-in pl-8 justify-center h-full">
-                        <div className="space-y-8">
+                    <div className="hidden lg:flex flex-col space-y-12 animate-fade-in pl-8 justify-center py-12">
+                        <div className="space-y-10">
                             <div className="flex items-center gap-6 mb-2">
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-brand-600/20 blur-2xl rounded-full"></div>
@@ -218,26 +218,40 @@ const Login: React.FC = () => {
                                 Verified Institutional Hub
                             </div>
 
-                            <h1 className="text-5xl lg:text-6xl font-black text-white tracking-tighter leading-[1.1] py-2">
+                            <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter leading-[1] py-2">
                                 Secure Access To <br className="block" />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-brand-500 whitespace-nowrap">Academic Documents</span>
                             </h1>
 
                             <div className="space-y-6">
-                                <p className="text-slate-400 text-lg max-w-lg leading-relaxed font-medium block">
+                                <p className="text-slate-400 text-lg max-w-xl leading-relaxed font-medium block">
                                     Official SLISR documents, securely accessed through a centralized institutional portal.
                                 </p>
 
                                 <p className="text-slate-500 text-base max-w-md leading-relaxed">
-                                    The SLISR Docs Portal enables authorized students, staff, and administrators to access verified academic records with institutional-grade security.
+                                    The SLISR Docs Portal enables authorized students, staff, and administrators to access verified academic records with institutional-grade security and compliance.
                                 </p>
+                            </div>
+
+                            {/* Features Section - To Balance Height */}
+                            <div className="grid grid-cols-2 gap-8 pt-8 border-t border-slate-800/40">
+                                <FeatureItem
+                                    icon={ShieldCheck}
+                                    title="Encrypted Vault"
+                                    desc="End-to-end encryption for all academic records."
+                                />
+                                <FeatureItem
+                                    icon={Layers}
+                                    title="Identity Verified"
+                                    desc="Multi-factor institutional authentication."
+                                />
                             </div>
                         </div>
                     </div>
 
                     {/* Right Column: Expanded Login Card */}
-                    <div className="flex justify-center lg:justify-end w-full">
-                        <div className="w-full max-w-md bg-[#0A0A0C]/80 backdrop-blur-3xl p-8 lg:p-12 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] border border-white/5 relative overflow-hidden group">
+                    <div className="flex items-center justify-center lg:justify-end w-full">
+                        <div className="w-full max-w-md bg-[#0A0A0C]/90 backdrop-blur-3xl p-8 lg:p-10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] border border-white/5 relative overflow-hidden group">
 
                             {/* Mobile Logo Only */}
                             <div className="lg:hidden flex justify-center mb-8">
@@ -248,7 +262,7 @@ const Login: React.FC = () => {
                             <div className="absolute -top-32 -right-32 w-64 h-64 bg-brand-600/10 rounded-full blur-[100px] group-hover:bg-brand-600/20 transition-colors duration-500"></div>
 
                             {view === 'login' ? (
-                                <div className="space-y-8 animate-fade-in relative z-10">
+                                <div className="space-y-6 animate-fade-in relative z-10">
                                     <div className="space-y-2">
                                         <h2 className="text-4xl font-black text-white tracking-tighter">Sign In</h2>
                                         <p className="text-slate-500 text-sm font-semibold tracking-wide">Authenticate to access your dashboard.</p>
@@ -260,7 +274,7 @@ const Login: React.FC = () => {
                                         </div>
                                     )}
 
-                                    <form onSubmit={handleLoginSubmit} className="space-y-6">
+                                    <form onSubmit={handleLoginSubmit} className="space-y-5">
                                         <InputField
                                             label="Your Access Role"
                                             options={[UserRole.STUDENT, UserRole.STAFF, UserRole.ADMIN]}
@@ -295,17 +309,17 @@ const Login: React.FC = () => {
                                         </button>
                                     </form>
 
-                                    <div className="space-y-6 pt-4">
-                                        <div className="text-center space-y-3">
+                                    <div className="space-y-5 pt-2">
+                                        <div className="text-center space-y-2">
                                             <button onClick={() => setView('forgot')} className="text-sm text-brand-500 hover:text-brand-400 transition-colors font-semibold">
                                                 Forgot your password?
                                             </button>
-                                            <p className="text-xs text-slate-600">
-                                                Need access? Contact SLISR Administration
+                                            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-tight">
+                                                Contact SLISR Administration for support
                                             </p>
                                         </div>
-                                        <div className="pt-8 border-t border-slate-800/80 flex flex-col items-center gap-2.5 text-center">
-                                            <span className="text-slate-600 text-[11px] font-bold uppercase tracking-widest">Unauthorized access is monitored.</span>
+                                        <div className="pt-6 border-t border-slate-800/80 flex flex-col items-center gap-2 text-center">
+                                            <span className="text-slate-600 text-[9px] font-bold uppercase tracking-widest opacity-60">Unauthorized access is monitored.</span>
                                             <Link to="/register" className="text-brand-500 font-black text-xs uppercase tracking-[0.2em] hover:text-brand-400 transition-colors group">
                                                 Request New Access <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
                                             </Link>
@@ -317,44 +331,44 @@ const Login: React.FC = () => {
                                     <div className="flex items-center gap-5">
                                         <button
                                             onClick={() => { setView('login'); setResetSuccess(false); }}
-                                            className="w-12 h-12 rounded-2xl bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-all border border-slate-700/50 shadow-lg"
+                                            className="w-10 h-10 rounded-xl bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-all border border-slate-700/50 shadow-lg"
                                         >
-                                            <ArrowLeft size={20} />
+                                            <ArrowLeft size={18} />
                                         </button>
                                         <div className="space-y-0.5">
-                                            <h2 className="text-3xl font-black text-white tracking-tight">Reset Access</h2>
-                                            <p className="text-slate-500 text-xs font-bold tracking-wide uppercase">System Administrator Approval Required</p>
+                                            <h2 className="text-2xl font-black text-white tracking-tight">Reset Access</h2>
+                                            <p className="text-slate-500 text-[10px] font-bold tracking-wide uppercase">Admin Approval Required</p>
                                         </div>
                                     </div>
 
                                     {resetSuccess ? (
-                                        <div className="text-center py-8 space-y-8">
-                                            <div className="w-24 h-24 bg-emerald-500/10 text-emerald-500 rounded-3xl flex items-center justify-center mx-auto border border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.15)]">
-                                                <Send size={40} />
+                                        <div className="text-center py-6 space-y-6">
+                                            <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-3xl flex items-center justify-center mx-auto border border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.15)]">
+                                                <Send size={32} />
                                             </div>
-                                            <div className="space-y-3">
-                                                <h3 className="text-2xl font-black text-white">Request Dispatched</h3>
-                                                <p className="text-slate-400 text-sm leading-relaxed max-w-sm mx-auto font-medium">
-                                                    Your request has been queued for verification. <br />
-                                                    Administrative confirmation required for restoration.
+                                            <div className="space-y-2">
+                                                <h3 className="text-xl font-black text-white">Request Dispatched</h3>
+                                                <p className="text-slate-400 text-xs leading-relaxed max-w-[240px] mx-auto font-medium">
+                                                    Verification queued. <br />
+                                                    Admin confirmation required.
                                                 </p>
                                             </div>
-                                            <Button onClick={() => setView('login')} className="w-full h-16 bg-slate-800 hover:bg-slate-700 text-sm font-bold rounded-2xl border-slate-700">Return to Authentication Hub</Button>
+                                            <Button onClick={() => setView('login')} className="w-full h-14 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border-slate-700">Return to Authentication Hub</Button>
                                         </div>
                                     ) : (
-                                        <form onSubmit={handleResetSubmit} className="space-y-4">
-                                            <div className="bg-brand-900/20 border border-brand-500/20 p-4 rounded-xl text-[10px] text-brand-400 leading-relaxed font-bold uppercase tracking-widest mb-4 text-center">
-                                                Submit institutional records for verification.
+                                        <form onSubmit={handleResetSubmit} className="space-y-3.5">
+                                            <div className="bg-brand-900/20 border border-brand-500/20 p-3 rounded-lg text-[9px] text-brand-400 leading-relaxed font-bold uppercase tracking-widest mb-2 text-center">
+                                                Submit records for verification.
                                             </div>
 
                                             <InputField
-                                                label="Designated Access Role"
+                                                label="Access Role"
                                                 options={[UserRole.STUDENT, UserRole.STAFF, UserRole.ADMIN]}
                                                 value={resetRole}
                                                 onChange={(e: any) => setResetRole(e.target.value as UserRole)}
                                             />
 
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-2 gap-3">
                                                 <InputField
                                                     label="Given Name"
                                                     value={resetData.firstName}
@@ -368,21 +382,21 @@ const Login: React.FC = () => {
                                             </div>
 
                                             <InputField
-                                                label="Primary Access Email"
+                                                label="Access Email"
                                                 type="email"
                                                 value={resetData.email}
                                                 onChange={(e: any) => setResetData({ ...resetData, email: e.target.value })}
                                             />
 
                                             {resetRole === UserRole.STUDENT && (
-                                                <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid grid-cols-2 gap-3">
                                                     <InputField
-                                                        label="Admission Identification"
+                                                        label="Admission ID"
                                                         value={resetData.admissionNumber}
                                                         onChange={(e: any) => setResetData({ ...resetData, admissionNumber: e.target.value })}
                                                     />
                                                     <InputField
-                                                        label="Verification Gender"
+                                                        label="Gender"
                                                         options={['Male', 'Female']}
                                                         value={resetData.gender}
                                                         onChange={(e: any) => setResetData({ ...resetData, gender: e.target.value })}
@@ -409,9 +423,9 @@ const Login: React.FC = () => {
                                             <button
                                                 type="submit"
                                                 disabled={loading}
-                                                className="w-full h-16 bg-brand-700 hover:bg-brand-600 text-white text-sm font-black rounded-2xl transition-all shadow-xl active:scale-[0.98] mt-4 uppercase tracking-[0.2em]"
+                                                className="w-full h-14 bg-brand-700 hover:bg-brand-600 text-white text-xs font-black rounded-xl transition-all shadow-xl active:scale-[0.98] mt-2 uppercase tracking-[0.2em]"
                                             >
-                                                {loading ? 'Submitting Records...' : 'Request Access Reset'}
+                                                {loading ? 'Submitting...' : 'Request Access Reset'}
                                             </button>
                                         </form>
                                     )}
