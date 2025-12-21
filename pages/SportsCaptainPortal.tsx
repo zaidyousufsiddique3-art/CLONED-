@@ -384,7 +384,7 @@ const SportsCaptainPortal: React.FC = () => {
                                             </td>
                                             <td className="px-8 py-6 font-mono text-sm text-slate-500 dark:text-slate-400">{app.studentAdmissionNo}</td>
                                             <td className="px-8 py-6">
-                                                <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${app.status === 'Accepted' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${app.status === 'Accepted' ? 'bg-emerald-500/10 text-emerald-500' :
                                                     app.status === 'Rejected' ? 'bg-red-500/10 text-red-500' :
                                                         app.status === 'In-review' ? 'bg-amber-500/10 text-amber-500' :
                                                             'bg-brand-500/10 text-brand-500'
@@ -469,9 +469,9 @@ const SportsCaptainPortal: React.FC = () => {
                         </div>
 
                         {/* Status Management Bar */}
-                        <div className="bg-slate-900 dark:bg-white/5 p-8 rounded-[2.5rem] border border-white/5 flex flex-col lg:flex-row items-center gap-8">
+                        <div className="bg-white dark:bg-white/5 p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/5 flex flex-col lg:flex-row items-center gap-8 shadow-xl">
                             <div className="flex-1 space-y-2 w-full">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Update Application Status</label>
+                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest ml-1">Update Application Status</label>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {['Accepted', 'In-review', 'Rejected'].map((s) => (
                                         <button
@@ -481,7 +481,7 @@ const SportsCaptainPortal: React.FC = () => {
                                                 ? s === 'Accepted' ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
                                                     s === 'Rejected' ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20' :
                                                         'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20'
-                                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'
+                                                : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/10 text-slate-400 hover:border-brand-500/20'
                                                 }`}
                                         >
                                             {s}
@@ -498,7 +498,7 @@ const SportsCaptainPortal: React.FC = () => {
                                         value={rejectionReason}
                                         onChange={(e) => setRejectionReason(e.target.value)}
                                         placeholder="e.g. Insufficient sporting portfolio for Grade 12 level..."
-                                        className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none text-white font-bold transition-all text-sm"
+                                        className="w-full px-6 py-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none text-slate-900 dark:text-white font-bold transition-all text-sm"
                                     />
                                 </div>
                             )}
