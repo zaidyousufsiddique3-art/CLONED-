@@ -181,14 +181,14 @@ const Login: React.FC = () => {
                     <div className="hidden lg:flex flex-col h-full justify-between py-12 animate-fade-in">
                         <div className="space-y-10">
                             {/* Branding Badge-style Header */}
-                            <div className="flex items-center gap-4">
-                                <img src="/assets/logo.png" alt="SLISR Logo" className="h-12 w-auto object-contain" />
-                                <div className="h-8 w-[1px] bg-slate-800"></div>
+                            <div className="flex items-center gap-6">
+                                <img src="/assets/logo.png" alt="SLISR Logo" className="h-16 w-auto object-contain" />
+                                <div className="h-10 w-[1px] bg-slate-800"></div>
                                 <div className="flex flex-col">
-                                    <span className="text-white font-black tracking-[0.3em] text-[10px] uppercase">SLISR Portal</span>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse"></div>
-                                        <span className="text-brand-500 font-bold tracking-[0.1em] text-[9px] uppercase">Institutional Hub</span>
+                                    <span className="text-white font-black tracking-[0.3em] text-xs uppercase">SLISR Portal</span>
+                                    <div className="flex items-center gap-2.5 mt-1">
+                                        <div className="w-2 h-2 rounded-full bg-brand-600 animate-pulse"></div>
+                                        <span className="text-brand-500 font-bold tracking-[0.15em] text-[10px] uppercase">Institutional Hub</span>
                                     </div>
                                 </div>
                             </div>
