@@ -81,14 +81,20 @@ const SportsCaptainPortal: React.FC = () => {
     const loadSentInvitations = async () => {
         setLoading(true);
         try {
+            // Remove orderBy to avoid requiring a composite index which might be missing
             const q = query(
                 collection(db, 'requests'),
-                where('type', '==', DocumentType.SPORTS_CAPTAIN),
-                orderBy('createdAt', 'desc')
+                where('type', '==', DocumentType.SPORTS_CAPTAIN)
             );
             const snapshot = await getDocs(q);
             const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setSentInvitations(docs);
+
+            // Sort in-memory instead
+            const sortedDocs = docs.sort((a: any, b: any) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+
+            setSentInvitations(sortedDocs);
         } catch (error) {
             console.error(error);
         } finally {
@@ -158,6 +164,8 @@ const SportsCaptainPortal: React.FC = () => {
             setSuccessMessage(`Invitation dispatched to ${student.firstName}.`);
             setDeadline('');
             loadInvitationsCount();
+            // Refresh sent list if we're on it
+            if (activeTab === 'sent-list') loadSentInvitations();
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
             console.error(error);
@@ -232,11 +240,11 @@ const SportsCaptainPortal: React.FC = () => {
     return (
         <div className="space-y-8 animate-fade-in">
             {/* Header with Pill Tabs */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="bg-slate-200 dark:bg-[#070708] p-1.5 rounded-2xl flex shrink-0 border border-slate-300 dark:border-white/5 shadow-inner">
+            <div className="flex flex-col xl:flex-row justify-between items-center gap-6">
+                <div className="bg-slate-200 dark:bg-[#070708] p-1.5 rounded-2xl flex flex-wrap justify-center md:flex-nowrap shrink-0 border border-slate-300 dark:border-white/5 shadow-inner w-full md:w-auto">
                     <button
                         onClick={() => setActiveTab('send-request')}
-                        className={`flex items-center px-6 py-3 rounded-xl text-sm font-black transition-all duration-300 ${activeTab === 'send-request'
+                        className={`flex items-center px-6 py-3 rounded-xl text-sm font-black transition-all duration-300 w-full md:w-auto justify-center ${activeTab === 'send-request'
                             ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20 translate-y-[-1px]'
                             : 'text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white'
                             }`}
@@ -246,7 +254,7 @@ const SportsCaptainPortal: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('sent-list')}
-                        className={`flex items-center px-6 py-3 rounded-xl text-sm font-black transition-all duration-300 ${activeTab === 'sent-list'
+                        className={`flex items-center px-6 py-3 rounded-xl text-sm font-black transition-all duration-300 w-full md:w-auto justify-center ${activeTab === 'sent-list'
                             ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20 translate-y-[-1px]'
                             : 'text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white'
                             }`}
@@ -256,7 +264,7 @@ const SportsCaptainPortal: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('received')}
-                        className={`flex items-center px-6 py-3 rounded-xl text-sm font-black transition-all duration-300 ${activeTab === 'received'
+                        className={`flex items-center px-6 py-3 rounded-xl text-sm font-black transition-all duration-300 w-full md:w-auto justify-center ${activeTab === 'received'
                             ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20 translate-y-[-1px]'
                             : 'text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white'
                             }`}
@@ -265,31 +273,30 @@ const SportsCaptainPortal: React.FC = () => {
                         Applications Received
                     </button>
                 </div>
+            </div>
 
-                {activeTab === 'received' && (
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full xl:w-auto">
-                        <div className="bg-white dark:bg-white/5 p-4 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Applications Sent</p>
-                            <p className="text-xl font-black text-slate-900 dark:text-white">{invitationsCount}</p>
-                        </div>
-                        <div className="bg-white dark:bg-white/5 p-4 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Applications Received</p>
-                            <p className="text-xl font-black text-brand-600">{applications.length}</p>
-                        </div>
-                        <div className="bg-amber-500/5 p-4 rounded-2xl border border-amber-500/10 shadow-sm">
-                            <p className="text-[10px] font-black text-amber-600/60 uppercase tracking-widest mb-1">In-Review</p>
-                            <p className="text-xl font-black text-amber-600">{applications.filter(a => a.status === 'In-review' || a.status === 'Pending').length}</p>
-                        </div>
-                        <div className="bg-red-500/5 p-4 rounded-2xl border border-red-500/10 shadow-sm">
-                            <p className="text-[10px] font-black text-red-600/60 uppercase tracking-widest mb-1">Rejected</p>
-                            <p className="text-xl font-black text-red-600">{applications.filter(a => a.status === 'Rejected').length}</p>
-                        </div>
-                        <div className="bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10 shadow-sm">
-                            <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Successful</p>
-                            <p className="text-xl font-black text-emerald-600">{applications.filter(a => a.status === 'Accepted').length}</p>
-                        </div>
-                    </div>
-                )}
+            {/* Global Analytics Section */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="bg-white dark:bg-white/5 p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm transition-all hover:border-brand-500/30 group">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 group-hover:text-brand-500 transition-colors">Invitations Sent</p>
+                    <p className="text-3xl font-black text-slate-900 dark:text-white leading-none">{invitationsCount}</p>
+                </div>
+                <div className="bg-white dark:bg-white/5 p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm transition-all hover:border-brand-500/30 group">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 group-hover:text-brand-500 transition-colors">Applications Received</p>
+                    <p className="text-3xl font-black text-brand-600 leading-none">{applications.length}</p>
+                </div>
+                <div className="bg-amber-500/5 p-6 rounded-3xl border border-amber-500/10 shadow-sm transition-all hover:border-amber-500/30 group">
+                    <p className="text-[10px] font-black text-amber-600/60 uppercase tracking-[0.2em] mb-2 group-hover:text-amber-600 transition-colors">In-Review</p>
+                    <p className="text-3xl font-black text-amber-600 leading-none">{applications.filter(a => a.status === 'In-review' || a.status === 'Pending').length}</p>
+                </div>
+                <div className="bg-red-500/5 p-6 rounded-3xl border border-red-500/10 shadow-sm transition-all hover:border-red-500/30 group">
+                    <p className="text-[10px] font-black text-red-600/60 uppercase tracking-[0.2em] mb-2 group-hover:text-red-600 transition-colors">Rejected</p>
+                    <p className="text-3xl font-black text-red-600 leading-none">{applications.filter(a => a.status === 'Rejected').length}</p>
+                </div>
+                <div className="bg-emerald-500/5 p-6 rounded-3xl border border-emerald-500/10 shadow-sm transition-all hover:border-emerald-500/30 group">
+                    <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-[0.2em] mb-2 group-hover:text-emerald-600 transition-colors">Successful</p>
+                    <p className="text-3xl font-black text-emerald-600 leading-none">{applications.filter(a => a.status === 'Accepted').length}</p>
+                </div>
             </div>
 
             {activeTab === 'send-request' ? (

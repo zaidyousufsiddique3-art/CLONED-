@@ -30,8 +30,8 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'
       );
       
-      // Only Coordinator or Admins can update status
-      allow update: if isAuthenticated() && (
+      // Coordinator or Admins can update status and delete
+      allow update, delete: if isAuthenticated() && (
         isSportsCoordinator() || 
         isSuperAdmin() ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'
