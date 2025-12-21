@@ -12,6 +12,8 @@ export enum RequestStatus {
   IN_PROGRESS = 'In-Progress',
   ACTION_NEEDED = 'Action Needed', // For rejected docs needing staff attention
   COMPLETED = 'Completed',
+  PENDING_ACTION = 'Pending Action',
+  APPLICATION_RECEIVED = 'Application Received',
 }
 
 export enum DocumentType {
@@ -22,6 +24,7 @@ export enum DocumentType {
   REFERENCE_LETTER = 'Reference Letter',
   LEAVING_CERTIFICATE = 'School Leaving Certificate',
   AWARDS_CERTIFICATE = 'Awards Ceremony Certificate',
+  SPORTS_CAPTAIN = 'Sports Captain Application',
   OTHER = 'Other',
 }
 

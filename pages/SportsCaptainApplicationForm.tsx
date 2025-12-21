@@ -5,7 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import { uploadFile } from '../firebase/storage';
 import { createSportsCaptainApplication } from '../firebase/sportsCaptainService';
 import { sendNotification } from '../firebase/notificationService';
-import { Attachment, UserRole } from '../types';
+import { Attachment, UserRole, DocumentType, RequestStatus } from '../types';
+import { collection, query, where, getDocs, updateDoc, doc } from '@firebase/firestore';
+import { db } from '../firebase/firebaseConfig';
 import Button from '../components/Button';
 import {
     Upload,
@@ -86,6 +88,10 @@ const SportsCaptainApplicationForm: React.FC = () => {
         certificates: 'idle'
     });
 
+    const [fullName, setFullName] = useState(user ? `${user.firstName} ${user.lastName}` : '');
+    const [grade, setGrade] = useState('');
+    const [gender, setGender] = useState(user?.gender || 'Male');
+
     const [cvFile, setCvFile] = useState<File | null>(null);
     const [intentFile, setIntentFile] = useState<File | null>(null);
     const [actionPlanFile, setActionPlanFile] = useState<File | null>(null);
@@ -163,8 +169,8 @@ const SportsCaptainApplicationForm: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || !cvUrl || !intentUrl || !actionPlanUrl) {
-            alert("Please upload all required primary documents (CV, Intent Statement, Action Plan).");
+        if (!user || !cvUrl || !intentUrl || !actionPlanUrl || !grade || !fullName) {
+            alert("Please complete all profile details and upload required documents.");
             return;
         }
 
@@ -172,9 +178,10 @@ const SportsCaptainApplicationForm: React.FC = () => {
         try {
             const applicationData = {
                 studentId: user.id,
-                studentName: `${user.firstName} ${user.lastName}`,
+                studentName: fullName,
                 studentAdmissionNo: user.admissionNumber || 'N/A',
-                studentGender: user.gender || 'N/A',
+                studentGender: gender,
+                grade,
                 cvUrl,
                 cvName: cvFile?.name,
                 intentUrl,
@@ -187,8 +194,33 @@ const SportsCaptainApplicationForm: React.FC = () => {
                 updatedAt: new Date().toISOString()
             };
 
-            await createSportsCaptainApplication(applicationData);
-            await sendNotification("COORDINATOR", `New Sports Captain application from ${user.firstName} ${user.lastName}`, "/sports-captain");
+            const appId = await createSportsCaptainApplication(applicationData);
+
+            // 1. Notify Coordinator
+            await sendNotification("COORDINATOR", `Application Submitted by ${fullName}`, `/sports-captain?studentId=${user.id}`);
+
+            // 2. Update Document Request Status
+            try {
+                const q = query(
+                    collection(db, 'requests'),
+                    where('studentId', '==', user.id),
+                    where('type', '==', DocumentType.SPORTS_CAPTAIN)
+                );
+                const snapshot = await getDocs(q);
+                if (!snapshot.empty) {
+                    // Update all matching requests to "Application Received"
+                    for (const requestDoc of snapshot.docs) {
+                        if (requestDoc.data().status === RequestStatus.ASSIGNED) {
+                            await updateDoc(doc(db, 'requests', requestDoc.id), {
+                                status: RequestStatus.APPLICATION_RECEIVED,
+                                updatedAt: new Date().toISOString()
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("Status update failed:", err);
+            }
 
             alert("Application Submitted Successfully.");
             navigate('/dashboard');
@@ -227,6 +259,41 @@ const SportsCaptainApplicationForm: React.FC = () => {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-12">
+                        {/* Student Details Section */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8 bg-slate-50 dark:bg-white/5 rounded-[2rem] border border-slate-200 dark:border-white/5">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    placeholder="Enter your full name"
+                                    className="w-full px-5 py-3.5 bg-white dark:bg-[#0A0A0C] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white font-bold transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grade / Year</label>
+                                <input
+                                    type="text"
+                                    value={grade}
+                                    onChange={(e) => setGrade(e.target.value)}
+                                    placeholder="e.g. Grade 11"
+                                    className="w-full px-5 py-3.5 bg-white dark:bg-[#0A0A0C] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white font-bold transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gender</label>
+                                <select
+                                    value={gender}
+                                    onChange={(e) => setGender(e.target.value)}
+                                    className="w-full px-5 py-3.5 bg-white dark:bg-[#0A0A0C] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white font-bold transition-all appearance-none"
+                                >
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div className="space-y-6">
                             <FileUploadBox
                                 title="Upload CV"

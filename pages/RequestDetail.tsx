@@ -8,6 +8,7 @@ import { getPotentialAssignees, getSuperAdmins } from '../firebase/userService';
 import { sendNotification } from '../firebase/notificationService';
 import { uploadFile } from '../firebase/storage';
 import { generateId } from '../services/mockDb';
+import { DocumentType } from '../types';
 import Button from '../components/Button';
 import {
     ArrowLeft, Send, Paperclip, Download, File, CheckCircle,
@@ -39,6 +40,17 @@ const RequestDetail: React.FC = () => {
         if (!id || !user) return;
         const unsubscribe = subscribeToRequest(id, (data) => {
             if (!data) { navigate('/dashboard'); return; }
+
+            // Sports Captain Handling
+            if (data.type === DocumentType.SPORTS_CAPTAIN) {
+                if (user.role === UserRole.STUDENT) {
+                    navigate('/sports-captain/apply');
+                } else {
+                    navigate(`/sports-captain?studentId=${data.studentId}`);
+                }
+                return;
+            }
+
             setRequest(data);
             setSelectedAssignee(data.assignedToId || '');
             setExpectedDate(data.expectedCompletionDate || '');

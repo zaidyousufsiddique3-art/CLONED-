@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { User, UserRole, SportsCaptainApplication } from '../types';
+import { useSearchParams } from 'react-router-dom';
 import { getStudents } from '../firebase/userService';
 import { sendNotification } from '../firebase/notificationService';
 import { getSportsCaptainApplications } from '../firebase/sportsCaptainService';
@@ -11,20 +12,21 @@ import {
     Users,
     FileText,
     CheckCircle2,
-    Clock,
     Download,
     Eye,
     Trophy,
-    Filter,
-    Search,
     ExternalLink,
     ChevronRight,
-    ArrowLeft
+    ArrowLeft,
+    Calendar
 } from 'lucide-react';
+import { createRequest } from '../firebase/requestService';
+import { DocumentType, RequestStatus } from '../types';
 import { APP_URL } from '../constants';
 
 const SportsCaptainPortal: React.FC = () => {
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState<'sent' | 'received'>('sent');
 
     // Sent Tab State
@@ -32,6 +34,7 @@ const SportsCaptainPortal: React.FC = () => {
     const [students, setStudents] = useState<User[]>([]);
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
     const [inviting, setInviting] = useState(false);
+    const [deadline, setDeadline] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
 
     // Received Tab State
@@ -44,10 +47,21 @@ const SportsCaptainPortal: React.FC = () => {
     }, [gender]);
 
     useEffect(() => {
-        if (activeTab === 'received') {
+        if (activeTab === 'received' || searchParams.get('studentId')) {
             loadApplications();
         }
-    }, [activeTab]);
+    }, [activeTab, searchParams]);
+
+    useEffect(() => {
+        const studentId = searchParams.get('studentId');
+        if (studentId && applications.length > 0) {
+            const app = applications.find(a => a.studentId === studentId);
+            if (app) {
+                setViewingApplication(app);
+                setActiveTab('received');
+            }
+        }
+    }, [applications, searchParams]);
 
     const loadStudents = async () => {
         const data = await getStudents(gender);
@@ -64,19 +78,39 @@ const SportsCaptainPortal: React.FC = () => {
     };
 
     const handleSendInvitation = async () => {
-        if (!selectedStudentId) return;
+        if (!selectedStudentId || !deadline) return;
         setInviting(true);
         try {
             const student = students.find(s => s.id === selectedStudentId);
             if (!student) return;
 
+            // 1. Send Notification
             await sendNotification(
                 selectedStudentId,
                 "You are invited to apply for the position of Sports Captain.",
                 "/sports-captain/apply"
             );
 
+            // 2. Create Document Request for Tracking
+            const requestData: any = {
+                studentId: selectedStudentId,
+                studentName: `${student.firstName} ${student.lastName}`,
+                studentAdmissionNo: student.admissionNumber || '',
+                type: DocumentType.SPORTS_CAPTAIN,
+                details: "Invitation for Sports Captain Application",
+                status: RequestStatus.ASSIGNED,
+                expectedCompletionDate: new Date(deadline).toISOString(),
+                assignedToId: user.id,
+                assignedToName: `${user.firstName} ${user.lastName}`,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                comments: [],
+                attachments: []
+            };
+            await createRequest(requestData);
+
             setSuccessMessage(`Invitation dispatched to ${student.firstName}.`);
+            setDeadline('');
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
             console.error(error);
@@ -166,6 +200,20 @@ const SportsCaptainPortal: React.FC = () => {
                                     </select>
                                 </div>
 
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Submission Deadline</label>
+                                    <div className="relative">
+                                        <input
+                                            type="date"
+                                            value={deadline}
+                                            onChange={(e) => setDeadline(e.target.value)}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            className="w-full px-6 py-4 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white font-bold transition-all"
+                                        />
+                                        <Calendar className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+                                    </div>
+                                </div>
+
                                 {successMessage && (
                                     <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 p-4 rounded-2xl text-xs font-bold flex items-center animate-scale-in">
                                         <CheckCircle2 className="w-4 h-4 mr-3" />
@@ -176,11 +224,11 @@ const SportsCaptainPortal: React.FC = () => {
                                 <Button
                                     onClick={handleSendInvitation}
                                     isLoading={inviting}
-                                    disabled={!selectedStudentId}
+                                    disabled={!selectedStudentId || !deadline}
                                     className="w-full py-5 rounded-[1.25rem] text-sm tracking-wider"
                                 >
                                     <Send className="w-4 h-4 mr-2" />
-                                    Send Sports Captain Application
+                                    Dispatch Invitation & Create Record
                                 </Button>
                             </div>
                         </div>
@@ -248,8 +296,8 @@ const SportsCaptainPortal: React.FC = () => {
                                             </td>
                                             <td className="px-8 py-6 font-mono text-sm text-slate-500 dark:text-slate-400">{app.studentAdmissionNo}</td>
                                             <td className="px-8 py-6">
-                                                <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${app.studentGender === 'Male' ? 'bg-blue-500/10 text-blue-500' : 'bg-pink-500/10 text-pink-500'}`}>
-                                                    {app.studentGender}
+                                                <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${app.status === 'Accepted' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-brand-500/10 text-brand-500'}`}>
+                                                    Application Received
                                                 </span>
                                             </td>
                                             <td className="px-8 py-6 text-slate-500 text-sm font-medium">{new Date(app.createdAt).toLocaleDateString()}</td>

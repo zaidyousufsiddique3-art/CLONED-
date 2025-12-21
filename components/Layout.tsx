@@ -132,7 +132,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </>
             )}
 
-            {(user.role === UserRole.ADMIN || user.role === UserRole.STAFF) && (
+            {(user.role === UserRole.ADMIN || (user.role === UserRole.STAFF && user.email.toLowerCase() !== SPORTS_COORDINATOR_EMAIL.toLowerCase())) && (
               <NavItem to="/requests" icon={FileText} label="Institutional Records" />
             )}
 

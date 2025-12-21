@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { UserRole, RequestStatus, DocRequest, User } from '../types';
+import { UserRole, RequestStatus, DocRequest, User, DocumentType } from '../types';
 import { subscribeToAllRequests, subscribeToAssignedRequests, subscribeToStudentRequests } from '../firebase/requestService';
 import { getPotentialAssignees } from '../firebase/userService';
 import { Link } from 'react-router-dom';
@@ -189,6 +189,8 @@ const RequestsList: React.FC = () => {
             case RequestStatus.ACTION_NEEDED: return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200';
             case RequestStatus.COMPLETED:
             case 'Completed': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200';
+            case RequestStatus.PENDING_ACTION: return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200';
+            case RequestStatus.APPLICATION_RECEIVED: return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 border-cyan-200';
             default: return 'bg-slate-100 text-slate-600 border-slate-200';
         }
     };
@@ -326,14 +328,26 @@ const RequestsList: React.FC = () => {
                                         ) : <span className="text-slate-400 text-xs italic">Not set</span>}
                                     </td>
                                     <td className="px-8 py-5">
-                                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusStyle(req.status)}`}>{req.status}</span>
+                                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusStyle(req.status)}`}>
+                                            {req.type === DocumentType.SPORTS_CAPTAIN && req.status === RequestStatus.ASSIGNED && user?.role === UserRole.STUDENT
+                                                ? 'Pending Action'
+                                                : req.status}
+                                        </span>
                                     </td>
                                     {user?.role !== UserRole.STUDENT && <td className="px-8 py-5 text-sm text-slate-800 dark:text-white">{req.assignedToName || 'Unassigned'}</td>}
                                     <td className="px-8 py-5 flex items-center gap-3">
                                         {req.isPasswordReset ? (
                                             <button onClick={(e) => openPwdModal(req, e)} className="text-brand-600 hover:text-brand-700 font-bold text-sm">Manage</button>
                                         ) : (
-                                            <Link to={`/requests/${req.id}`} className="text-brand-600 hover:text-brand-700 font-bold text-sm">View</Link>
+                                            <Link
+                                                to={req.type === DocumentType.SPORTS_CAPTAIN
+                                                    ? (user?.role === UserRole.STUDENT ? "/sports-captain/apply" : `/sports-captain?studentId=${req.studentId}`)
+                                                    : `/requests/${req.id}`
+                                                }
+                                                className="text-brand-600 hover:text-brand-700 font-bold text-sm"
+                                            >
+                                                View
+                                            </Link>
                                         )}
 
                                         <button onClick={(e) => handleDelete(req.id, !!req.isPasswordReset, e)} className="text-slate-400 hover:text-red-500 transition-colors" title="Delete">
