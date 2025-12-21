@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserRole } from '../types';
-import { Shield, Users, GraduationCap, ChevronDown, ArrowLeft, Send, ShieldCheck, Layers, Zap, CheckCircle2 } from 'lucide-react';
+import { Shield, Users, GraduationCap, ChevronDown, ArrowLeft, Send, ShieldCheck, Layers, Lock, Zap, CheckCircle2 } from 'lucide-react';
 import { APP_NAME } from '../constants';
 import { collection, addDoc } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
