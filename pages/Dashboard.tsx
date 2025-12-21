@@ -10,6 +10,9 @@ import { FileText, Clock, CheckCircle, User as UserIcon, AlertTriangle, Plus, Ar
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, writeBatch } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import Button from '../components/Button';
+import { SPORTS_COORDINATOR_EMAIL } from '../constants';
+import { getSportsCaptainApplications } from '../firebase/sportsCaptainService';
+import { SportsCaptainApplication } from '../types';
 
 const StatCard = ({ title, value, icon: Icon, colorClass, iconColor, className }: any) => (
   <div className={`bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-white/10 flex items-center justify-between hover:border-brand-500/30 dark:hover:border-brand-500/30 transition-all duration-300 group ${className}`}>
@@ -29,7 +32,10 @@ const Dashboard: React.FC = () => {
   const [requests, setRequests] = useState<DocRequest[]>([]);
   const [passwordRequests, setPasswordRequests] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({ total: 0, pending: 0, assigned: 0, completed: 0, actionNeeded: 0 });
+  const [sportsApps, setSportsApps] = useState<SportsCaptainApplication[]>([]);
   const [activeTab, setActiveTab] = useState<'documents' | 'password'>('documents');
+
+  const isSportsCoordinator = user?.email?.toLowerCase() === SPORTS_COORDINATOR_EMAIL.toLowerCase();
 
   // Password Modal State
   const [selectedPwdReq, setSelectedPwdReq] = useState<any>(null);
@@ -90,6 +96,12 @@ const Dashboard: React.FC = () => {
       unsubscribePwd();
     };
   }, [user]);
+
+  useEffect(() => {
+    if (isSportsCoordinator) {
+      getSportsCaptainApplications().then(setSportsApps);
+    }
+  }, [isSportsCoordinator]);
 
   // Update Stats
   useEffect(() => {
@@ -222,15 +234,57 @@ const Dashboard: React.FC = () => {
     <div className="space-y-8">
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Requests" value={stats.total} icon={FileText} colorClass="bg-brand-500" iconColor="text-brand-500" className="" />
-        {user?.role !== UserRole.STUDENT && stats.actionNeeded > 0 ? (
-          <StatCard title="Action Needed" value={stats.actionNeeded} icon={AlertTriangle} colorClass="bg-red-500" iconColor="text-red-500" className="" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        {isSportsCoordinator ? (
+          <>
+            <StatCard
+              title="Applications Sent"
+              value={requests.filter(r => r.type === DocumentType.SPORTS_CAPTAIN).length}
+              icon={FileText}
+              colorClass="bg-brand-500"
+              iconColor="text-brand-500"
+            />
+            <StatCard
+              title="Applications Received"
+              value={sportsApps.length}
+              icon={Clock}
+              colorClass="bg-pink-500"
+              iconColor="text-pink-500"
+            />
+            <StatCard
+              title="In-Review"
+              value={sportsApps.filter(a => a.status === 'In-review' || a.status === 'Pending').length}
+              icon={AlertTriangle}
+              colorClass="bg-amber-500"
+              iconColor="text-amber-500"
+            />
+            <StatCard
+              title="Rejected"
+              value={sportsApps.filter(a => a.status === 'Rejected').length}
+              icon={X}
+              colorClass="bg-red-500"
+              iconColor="text-red-500"
+            />
+            <StatCard
+              title="Successful"
+              value={sportsApps.filter(a => a.status === 'Accepted').length}
+              icon={CheckCircle}
+              colorClass="bg-emerald-500"
+              iconColor="text-emerald-500"
+            />
+          </>
         ) : (
-          <StatCard title="Pending" value={stats.pending} icon={Clock} colorClass="bg-amber-500" iconColor="text-amber-500" className="" />
+          <>
+            <StatCard title="Total Requests" value={stats.total} icon={FileText} colorClass="bg-brand-500" iconColor="text-brand-500" className="" />
+            {user?.role !== UserRole.STUDENT && stats.actionNeeded > 0 ? (
+              <StatCard title="Action Needed" value={stats.actionNeeded} icon={AlertTriangle} colorClass="bg-red-500" iconColor="text-red-500" className="" />
+            ) : (
+              <StatCard title="Pending" value={stats.pending} icon={Clock} colorClass="bg-amber-500" iconColor="text-amber-500" className="" />
+            )}
+            <StatCard title="Assigned" value={stats.assigned} icon={UserIcon} colorClass="bg-blue-500" iconColor="text-blue-500" className="" />
+            <StatCard title="Completed" value={stats.completed} icon={CheckCircle} colorClass="bg-emerald-500" iconColor="text-emerald-500" className="" />
+          </>
         )}
-        <StatCard title="Assigned" value={stats.assigned} icon={UserIcon} colorClass="bg-blue-500" iconColor="text-blue-500" className="" />
-        <StatCard title="Completed" value={stats.completed} icon={CheckCircle} colorClass="bg-emerald-500" iconColor="text-emerald-500" className="" />
       </div>
 
       {user?.role === UserRole.STUDENT && (
