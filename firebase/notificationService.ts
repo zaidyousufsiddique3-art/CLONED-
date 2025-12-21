@@ -9,9 +9,17 @@ export const sendNotification = async (userId: string, message: string, link?: s
   let targetId = userId;
 
   if (userId === "COORDINATOR") {
-    const q = query(collection(db, 'users'), where('email', '==', 'Chandana.kulathunga@slisr.org'));
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) targetId = snapshot.docs[0].id;
+    // Try lowercase first (standard) then formal case
+    const q1 = query(collection(db, 'users'), where('email', '==', 'chandana.kulathunga@slisr.org'));
+    const snap1 = await getDocs(q1);
+
+    if (!snap1.empty) {
+      targetId = snap1.docs[0].id;
+    } else {
+      const q2 = query(collection(db, 'users'), where('email', '==', 'Chandana.kulathunga@slisr.org'));
+      const snap2 = await getDocs(q2);
+      if (!snap2.empty) targetId = snap2.docs[0].id;
+    }
   }
 
   const notif: Omit<Notification, 'id'> = {

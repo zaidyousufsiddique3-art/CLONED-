@@ -391,7 +391,7 @@ const SportsCaptainPortal: React.FC = () => {
                                                         app.status === 'In-review' ? 'bg-amber-500/10 text-amber-500' :
                                                             'bg-brand-500/10 text-brand-500'
                                                     }`}>
-                                                    {app.status || 'Application Received'}
+                                                    {(app.status === 'Pending' || !app.status) ? 'Assigned' : app.status}
                                                 </span>
                                             </td>
                                             <td className="px-8 py-6 text-slate-500 text-sm font-medium">{new Date(app.createdAt).toLocaleDateString()}</td>

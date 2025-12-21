@@ -333,7 +333,7 @@ const RequestsList: React.FC = () => {
                                         <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusStyle(req.status)}`}>
                                             {req.type === DocumentType.SPORTS_CAPTAIN && req.status === RequestStatus.ASSIGNED && user?.role === UserRole.STUDENT
                                                 ? 'Pending Action'
-                                                : req.status}
+                                                : (req.status === RequestStatus.APPLICATION_RECEIVED ? 'Assigned' : req.status)}
                                         </span>
                                     </td>
                                     {user?.role !== UserRole.STUDENT && <td className="px-8 py-5 text-sm text-slate-800 dark:text-white">{req.assignedToName || 'Unassigned'}</td>}
