@@ -51,19 +51,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Notification Listener
   useEffect(() => {
     if (!user) {
-        setUnreadNotifications(0);
-        return;
+      setUnreadNotifications(0);
+      return;
     }
     const unsubscribe = subscribeToNotifications(user.id, (notifs) => {
-        setUnreadNotifications(notifs.filter(n => !n.isRead).length);
+      setUnreadNotifications(notifs.filter(n => !n.isRead).length);
     });
     return () => unsubscribe();
   }, [user]);
 
-  // Theme Logic
+  // Theme Logic: Force Midnight Mode as default
   useEffect(() => {
     const savedTheme = localStorage.getItem('edudocs_theme') as Theme;
-    if (savedTheme) setTheme(savedTheme);
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else {
+      setTheme('dark');
+    }
   }, []);
 
   useEffect(() => {
@@ -110,16 +114,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-        user, 
-        login: handleLogin, 
-        logout: handleLogout, 
-        registerUser: handleRegister, 
-        updateUser: handleUpdateUser, 
-        theme, 
-        toggleTheme, 
-        unreadNotifications,
-        refreshNotifications
+    <AuthContext.Provider value={{
+      user,
+      login: handleLogin,
+      logout: handleLogout,
+      registerUser: handleRegister,
+      updateUser: handleUpdateUser,
+      theme,
+      toggleTheme,
+      unreadNotifications,
+      refreshNotifications
     }}>
       {children}
     </AuthContext.Provider>

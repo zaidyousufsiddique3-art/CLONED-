@@ -406,7 +406,7 @@ const PredictedGradesPortal: React.FC = () => {
 
                     {/* Step 3: View Predicted Results (Super Admin Only) */}
                     {user?.role === UserRole.SUPER_ADMIN && (
-                        <div className={`p-8 bg-[#070708] rounded-[2rem] shadow-2xl border border-white/10 transition-all duration-300 ${!selectedStudentId ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
+                        <div className={`p-8 bg-white dark:bg-[#070708] rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/10 transition-all duration-300 ${!selectedStudentId ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
                             <div className="flex flex-col items-center text-center space-y-4">
                                 <div className="w-16 h-16 bg-brand-500/10 rounded-2xl flex items-center justify-center mb-2">
                                     <TrendingUp className="w-8 h-8 text-brand-500" />

@@ -60,13 +60,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#070708] flex font-sans selection:bg-brand-500 selection:text-white transition-colors duration-300">
-      {/* Background decoration - visible only in dark mode */}
-      <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 hidden dark:block">
-        <div className="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-brand-900/10 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-[-10%] left-[-5%] w-[800px] h-[800px] bg-slate-800/5 rounded-full blur-[120px]"></div>
-
-        {/* Subtle texture overlay for premium feel */}
+    <div className="min-h-screen bg-slate-50 dark:bg-[#070708] flex font-sans selection:bg-brand-500/30 selection:text-white transition-colors duration-300">
+      {/* Premium Background Effects - Synchronized with Login */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 hidden dark:block">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] bg-brand-600/5 rounded-full blur-[140px]"></div>
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.02] mix-blend-overlay"></div>
       </div>
 

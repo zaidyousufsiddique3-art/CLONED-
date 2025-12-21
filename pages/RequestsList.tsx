@@ -256,8 +256,8 @@ const RequestsList: React.FC = () => {
 
                     {/* New/History Tabs */}
                     <div className="flex space-x-2 shrink-0">
-                        <button onClick={() => setActiveTab('new')} className={`flex items-center px-4 py-2 rounded-xl font-bold text-sm transition-all border ${activeTab === 'new' ? 'bg-[#070708] text-brand-600 border-white/10 shadow-sm' : 'border-transparent text-slate-500 hover:bg-white/5'}`}><Clock className="w-4 h-4 mr-2" /> New</button>
-                        <button onClick={() => setActiveTab('history')} className={`flex items-center px-4 py-2 rounded-xl font-bold text-sm transition-all border ${activeTab === 'history' ? 'bg-[#070708] text-brand-600 border-white/10 shadow-sm' : 'border-transparent text-slate-500 hover:bg-white/5'}`}><Archive className="w-4 h-4 mr-2" /> History</button>
+                        <button onClick={() => setActiveTab('new')} className={`flex items-center px-4 py-2 rounded-xl font-bold text-sm transition-all border ${activeTab === 'new' ? 'bg-white dark:bg-[#070708] text-brand-600 border-slate-200 dark:border-white/10 shadow-sm' : 'border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}><Clock className="w-4 h-4 mr-2" /> New</button>
+                        <button onClick={() => setActiveTab('history')} className={`flex items-center px-4 py-2 rounded-xl font-bold text-sm transition-all border ${activeTab === 'history' ? 'bg-white dark:bg-[#070708] text-brand-600 border-slate-200 dark:border-white/10 shadow-sm' : 'border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}><Archive className="w-4 h-4 mr-2" /> History</button>
                     </div>
                 </div>
 
