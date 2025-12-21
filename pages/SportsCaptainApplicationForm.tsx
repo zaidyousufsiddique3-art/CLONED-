@@ -15,13 +15,65 @@ import {
     Trophy,
     ChevronLeft,
     X,
-    File,
+    File as FileIcon,
     Layout,
     PlusCircle,
     Plus
 } from 'lucide-react';
 import { SPORTS_COORDINATOR_EMAIL } from '../constants';
-import { getAuth } from '@firebase/auth'; // To get uid if needed
+
+interface FileUploadBoxProps {
+    title: string;
+    desc: string;
+    type: 'cv' | 'intent' | 'actionPlan';
+    file: File | null;
+    state: 'idle' | 'uploading' | 'success';
+    onUpload: (file: File, type: 'cv' | 'intent' | 'actionPlan') => void;
+}
+
+const FileUploadBox: React.FC<FileUploadBoxProps> = ({ title, desc, type, file, state, onUpload }) => (
+    <div className={`p-8 rounded-[2rem] border-2 border-dashed transition-all duration-300 ${state === 'success'
+        ? 'bg-emerald-500/5 border-emerald-500/30'
+        : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-brand-600/50'}`}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+                <h4 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{title}</h4>
+                <p className="text-slate-500 dark:text-slate-500 text-xs font-medium max-w-sm">{desc}</p>
+            </div>
+
+            <div className="shrink-0">
+                {state === 'uploading' ? (
+                    <div className="flex items-center gap-3 px-6 py-4 bg-brand-600 text-white rounded-2xl animate-pulse font-bold text-sm">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Uploading...
+                    </div>
+                ) : state === 'success' ? (
+                    <div className="flex items-center gap-3 px-6 py-4 bg-emerald-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-emerald-500/20">
+                        <CheckCircle2 className="w-4 h-4" />
+                        {file?.name.substring(0, 15)}...
+                    </div>
+                ) : (
+                    <label className="flex items-center gap-3 px-6 py-4 bg-white dark:bg-[#0A0A0C] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-white/10 transition-all group">
+                        <Upload className="w-4 h-4 text-brand-600 transition-transform group-hover:-translate-y-1" />
+                        Choose File
+                        <input
+                            type="file"
+                            className="hidden"
+                            accept=".pdf,.doc,.docx,.png"
+                            onChange={(e) => {
+                                const selectedFile = e.target.files?.[0];
+                                if (selectedFile) {
+                                    onUpload(selectedFile, type);
+                                    e.target.value = ''; // Reset to allow re-selection
+                                }
+                            }}
+                        />
+                    </label>
+                )}
+            </div>
+        </div>
+    </div>
+);
 
 const SportsCaptainApplicationForm: React.FC = () => {
     const { user } = useAuth();
@@ -45,9 +97,14 @@ const SportsCaptainApplicationForm: React.FC = () => {
     const [certificateAttachments, setCertificateAttachments] = useState<Attachment[]>([]);
 
     const handleFileUpload = async (file: File, type: 'cv' | 'intent' | 'actionPlan') => {
+        if (!user) {
+            alert("User session not found. Please log in again.");
+            return;
+        }
+
         setUploadStates(prev => ({ ...prev, [type]: 'uploading' }));
         try {
-            const path = `sports_captain/${user?.id}/${type}_${Date.now()}_${file.name}`;
+            const path = `sports_captain/${user.id}/${type}_${Date.now()}_${file.name}`;
             const url = await uploadFile(file, path);
 
             if (type === 'cv') {
@@ -62,25 +119,24 @@ const SportsCaptainApplicationForm: React.FC = () => {
             }
 
             setUploadStates(prev => ({ ...prev, [type]: 'success' }));
-            // Success message as requested
             alert("Document uploaded successfully.");
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            console.error("Upload error:", error);
+            alert(`Upload failed: ${error.message || 'Unknown error'}`);
             setUploadStates(prev => ({ ...prev, [type]: 'idle' }));
         }
     };
 
     const handleCertificatesUpload = async (files: FileList | null) => {
-        if (!files) return;
+        if (!files || !user) return;
         setUploadStates(prev => ({ ...prev, certificates: 'uploading' }));
 
-        const newFiles = Array.from(files);
-        setSupportingFiles(prev => [...prev, ...newFiles]);
-
         try {
+            const newFiles = Array.from(files);
             const newAttachments: Attachment[] = [];
+
             for (const file of newFiles) {
-                const path = `sports_captain/${user?.id}/certs/${Date.now()}_${file.name}`;
+                const path = `sports_captain/${user.id}/certs/${Date.now()}_${file.name}`;
                 const url = await uploadFile(file, path);
                 newAttachments.push({
                     id: Math.random().toString(36).substr(2, 9),
@@ -88,16 +144,19 @@ const SportsCaptainApplicationForm: React.FC = () => {
                     type: file.type,
                     size: file.size,
                     dataUrl: url,
-                    uploadedBy: `${user?.firstName} ${user?.lastName}`,
+                    uploadedBy: `${user.firstName} ${user.lastName}`,
                     status: 'Pending',
                     createdAt: new Date().toISOString()
                 });
             }
+
+            setSupportingFiles(prev => [...prev, ...newFiles]);
             setCertificateAttachments(prev => [...prev, ...newAttachments]);
             setUploadStates(prev => ({ ...prev, certificates: 'success' }));
             alert("Document uploaded successfully.");
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
+            alert(`Certificate upload failed: ${error.message}`);
             setUploadStates(prev => ({ ...prev, certificates: 'idle' }));
         }
     };
@@ -105,7 +164,7 @@ const SportsCaptainApplicationForm: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || !cvUrl || !intentUrl || !actionPlanUrl) {
-            alert("Please upload all required primary documents.");
+            alert("Please upload all required primary documents (CV, Intent Statement, Action Plan).");
             return;
         }
 
@@ -129,25 +188,13 @@ const SportsCaptainApplicationForm: React.FC = () => {
             };
 
             await createSportsCaptainApplication(applicationData);
-
-            // Notify Sports Coordinator
-            // We need the coordinator's UID. Since it's hardcoded email, 
-            // the system will have mapped it if they ever logged in. 
-            // To be safe, we'll send a general notification or look up the UID by email if we can.
-            // For now, notification service sends by userId. 
-            // In a real scenario, we'd query the 'users' collection for the coordinator's ID.
-
-            // Placeholder: Assume notifications can be routed or just send to all Staff?
-            // The request says "The Sports Coordinator should receive a notification".
-            // I'll add a helper to send by email.
-
             await sendNotification("COORDINATOR", `New Sports Captain application from ${user.firstName} ${user.lastName}`, "/sports-captain");
 
             alert("Application Submitted Successfully.");
             navigate('/dashboard');
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("Failed to submit application.");
+            alert("Failed to submit application: " + error.message);
         } finally {
             setLoading(false);
         }
@@ -157,44 +204,6 @@ const SportsCaptainApplicationForm: React.FC = () => {
         setSupportingFiles(prev => prev.filter((_, i) => i !== index));
         setCertificateAttachments(prev => prev.filter((_, i) => i !== index));
     };
-
-    const FileUploadBox = ({ title, desc, type, file, state }: { title: string, desc: string, type: 'cv' | 'intent' | 'actionPlan', file: File | null, state: string }) => (
-        <div className={`p-8 rounded-[2rem] border-2 border-dashed transition-all duration-300 ${state === 'success'
-            ? 'bg-emerald-500/5 border-emerald-500/30'
-            : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-brand-600/50'}`}>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-2">
-                    <h4 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{title}</h4>
-                    <p className="text-slate-500 dark:text-slate-500 text-xs font-medium max-w-sm">{desc}</p>
-                </div>
-
-                <div className="shrink-0">
-                    {state === 'uploading' ? (
-                        <div className="flex items-center gap-3 px-6 py-4 bg-brand-600 text-white rounded-2xl animate-pulse font-bold text-sm">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Uploading...
-                        </div>
-                    ) : state === 'success' ? (
-                        <div className="flex items-center gap-3 px-6 py-4 bg-emerald-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-emerald-500/20">
-                            <CheckCircle2 className="w-4 h-4" />
-                            {file?.name.substring(0, 15)}...
-                        </div>
-                    ) : (
-                        <label className="flex items-center gap-3 px-6 py-4 bg-white dark:bg-[#0A0A0C] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-white/10 transition-all group">
-                            <Upload className="w-4 h-4 text-brand-600 transition-transform group-hover:-translate-y-1" />
-                            Choose File
-                            <input
-                                type="file"
-                                className="hidden"
-                                accept=".pdf,.doc,.docx,.png"
-                                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], type)}
-                            />
-                        </label>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
 
     return (
         <div className="max-w-4xl mx-auto space-y-10">
@@ -218,7 +227,6 @@ const SportsCaptainApplicationForm: React.FC = () => {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-12">
-                        {/* Primary Documents */}
                         <div className="space-y-6">
                             <FileUploadBox
                                 title="Upload CV"
@@ -226,6 +234,7 @@ const SportsCaptainApplicationForm: React.FC = () => {
                                 type="cv"
                                 file={cvFile}
                                 state={uploadStates.cv}
+                                onUpload={handleFileUpload}
                             />
 
                             <FileUploadBox
@@ -234,6 +243,7 @@ const SportsCaptainApplicationForm: React.FC = () => {
                                 type="intent"
                                 file={intentFile}
                                 state={uploadStates.intent}
+                                onUpload={handleFileUpload}
                             />
 
                             <FileUploadBox
@@ -242,10 +252,10 @@ const SportsCaptainApplicationForm: React.FC = () => {
                                 type="actionPlan"
                                 file={actionPlanFile}
                                 state={uploadStates.actionPlan}
+                                onUpload={handleFileUpload}
                             />
                         </div>
 
-                        {/* Supporting Certificates */}
                         <div className="space-y-6">
                             <div className="p-8 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 space-y-6">
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -262,17 +272,19 @@ const SportsCaptainApplicationForm: React.FC = () => {
                                             multiple
                                             className="hidden"
                                             accept=".pdf,.doc,.docx,.png"
-                                            onChange={(e) => handleCertificatesUpload(e.target.files)}
+                                            onChange={(e) => {
+                                                handleCertificatesUpload(e.target.files);
+                                                e.target.value = '';
+                                            }}
                                         />
                                     </label>
                                 </div>
 
-                                {/* Certificate List */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {supportingFiles.map((file, idx) => (
                                         <div key={idx} className="flex items-center justify-between p-4 bg-white dark:bg-[#0A0A0C] border border-slate-100 dark:border-white/5 rounded-2xl animate-scale-in">
                                             <div className="flex items-center gap-3 overflow-hidden">
-                                                <File size={16} className="text-brand-500 shrink-0" />
+                                                <FileIcon size={16} className="text-brand-500 shrink-0" />
                                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
                                             </div>
                                             <button type="button" onClick={() => removeCertificate(idx)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
