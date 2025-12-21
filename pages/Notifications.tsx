@@ -95,19 +95,19 @@ const Notifications: React.FC = () => {
             <div className="flex space-x-4 mb-6">
                 <button
                     onClick={() => setFilter('all')}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${filter === 'all' ? 'bg-brand-600 text-white shadow' : 'bg-white dark:bg-[#1e293b] text-slate-500 dark:text-slate-400'}`}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${filter === 'all' ? 'bg-brand-600 text-white shadow' : 'bg-white dark:bg-[#070708] text-slate-500 dark:text-slate-400 border border-white/5'}`}
                 >
                     All
                 </button>
                 <button
                     onClick={() => setFilter('unread')}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${filter === 'unread' ? 'bg-brand-600 text-white shadow' : 'bg-white dark:bg-[#1e293b] text-slate-500 dark:text-slate-400'}`}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${filter === 'unread' ? 'bg-brand-600 text-white shadow' : 'bg-white dark:bg-[#070708] text-slate-500 dark:text-slate-400 border border-white/5'}`}
                 >
                     Unread
                 </button>
             </div>
 
-            <div className="bg-white dark:bg-[#1e293b] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden transition-colors">
+            <div className="bg-white dark:bg-[#070708] rounded-3xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden transition-colors">
                 {filteredNotifications.length === 0 ? (
                     <div className="p-12 text-center text-slate-500 dark:text-slate-400">
                         {filter === 'unread' ? "You're all caught up!" : "You have no notifications."}

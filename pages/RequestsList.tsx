@@ -230,7 +230,7 @@ const RequestsList: React.FC = () => {
 
                     {/* Category Switcher - Pill Style */}
                     {user?.role !== UserRole.STUDENT && (
-                        <div className="bg-slate-200 dark:bg-slate-800 p-1 rounded-xl flex shrink-0">
+                        <div className="bg-slate-200 dark:bg-[#070708] p-1 rounded-xl flex shrink-0 border border-white/5">
                             <button
                                 onClick={() => setCategory('documents')}
                                 className={`flex items-center px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${category === 'documents'
@@ -256,8 +256,8 @@ const RequestsList: React.FC = () => {
 
                     {/* New/History Tabs */}
                     <div className="flex space-x-2 shrink-0">
-                        <button onClick={() => setActiveTab('new')} className={`flex items-center px-4 py-2 rounded-xl font-bold text-sm transition-all border ${activeTab === 'new' ? 'bg-white dark:bg-[#1e293b] text-brand-600 border-brand-200 dark:border-brand-900 shadow-sm' : 'border-transparent text-slate-500 hover:bg-white/50'}`}><Clock className="w-4 h-4 mr-2" /> New</button>
-                        <button onClick={() => setActiveTab('history')} className={`flex items-center px-4 py-2 rounded-xl font-bold text-sm transition-all border ${activeTab === 'history' ? 'bg-white dark:bg-[#1e293b] text-brand-600 border-brand-200 dark:border-brand-900 shadow-sm' : 'border-transparent text-slate-500 hover:bg-white/50'}`}><Archive className="w-4 h-4 mr-2" /> History</button>
+                        <button onClick={() => setActiveTab('new')} className={`flex items-center px-4 py-2 rounded-xl font-bold text-sm transition-all border ${activeTab === 'new' ? 'bg-[#070708] text-brand-600 border-white/10 shadow-sm' : 'border-transparent text-slate-500 hover:bg-white/5'}`}><Clock className="w-4 h-4 mr-2" /> New</button>
+                        <button onClick={() => setActiveTab('history')} className={`flex items-center px-4 py-2 rounded-xl font-bold text-sm transition-all border ${activeTab === 'history' ? 'bg-[#070708] text-brand-600 border-white/10 shadow-sm' : 'border-transparent text-slate-500 hover:bg-white/5'}`}><Archive className="w-4 h-4 mr-2" /> History</button>
                     </div>
                 </div>
 
@@ -269,7 +269,7 @@ const RequestsList: React.FC = () => {
                 )}
             </div>
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#0a0a0c]/80 backdrop-blur-3xl p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#070708] backdrop-blur-3xl p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-white/10">
                 <div className="relative flex-1 max-w-lg">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
                     <input type="text" placeholder="Search requests..." className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white placeholder-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -285,7 +285,7 @@ const RequestsList: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 overflow-hidden">
+            <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
@@ -307,7 +307,7 @@ const RequestsList: React.FC = () => {
                                     </td>
                                 </tr>
                             ) : filteredRequests.map((req: any) => (
-                                <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                     <td className="px-8 py-5 text-sm font-medium text-slate-900 dark:text-white">
                                         {req.isPasswordReset ? <Key className="w-4 h-4 inline mr-2 text-brand-500" /> : null}
                                         #{req.id.substring(0, 8).toUpperCase()}
@@ -350,7 +350,7 @@ const RequestsList: React.FC = () => {
             {/* Password Management Modal */}
             {isPwdModalOpen && selectedPwdReq && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-                    <div className="bg-white dark:bg-[#0a0a0c] rounded-[2.5rem] shadow-2xl max-w-lg w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10">
+                    <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl max-w-lg w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white">Manage Password Request</h3>
                             <button onClick={() => setIsPwdModalOpen(false)}><X className="w-5 h-5 text-slate-400" /></button>

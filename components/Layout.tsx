@@ -45,7 +45,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       to={to}
       className={`flex items-center justify-between px-5 py-3.5 text-sm font-medium rounded-2xl transition-all duration-300 mb-1 group relative overflow-hidden ${isActive(to)
         ? 'text-white bg-brand-600 shadow-lg shadow-brand-500/20'
-        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#1e293b] hover:text-brand-600 dark:hover:text-white'
+        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/5 hover:text-brand-600 dark:hover:text-white'
         }`}
       onClick={() => setMobileMenuOpen(false)}
     >
@@ -71,7 +71,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </div>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 w-full z-40 bg-white/90 dark:bg-[#0a0a0c]/90 backdrop-blur-md border-b border-slate-200 dark:border-white/5 px-4 py-3 flex items-center justify-between">
+      <div className="md:hidden fixed top-0 w-full z-40 bg-white/90 dark:bg-[#070708]/90 backdrop-blur-md border-b border-slate-200 dark:border-white/5 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <span className="font-bold text-slate-900 dark:text-white tracking-tight">{APP_NAME}</span>
         </div>
@@ -79,7 +79,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <Link to="/notifications" className="relative p-1">
             <Bell className="w-6 h-6 text-slate-500 dark:text-slate-400" />
             {unreadNotifications > 0 && (
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-[#0a0a0c]"></span>
+              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-[#070708]"></span>
             )}
           </Link>
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-slate-500 dark:text-slate-400">
@@ -89,7 +89,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </div>
 
       {/* Sidebar */}
-      <aside className={`w-72 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-2xl border-r border-slate-200 dark:border-white/5 fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:flex flex-col`}>
+      <aside className={`w-72 bg-white/80 dark:bg-[#070708] backdrop-blur-2xl border-r border-slate-200 dark:border-white/10 fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:flex flex-col`}>
         <div className="p-8 flex flex-col items-center text-center">
           <img src="/assets/logo.png" alt="Logo" className="h-28 w-auto mb-4 object-contain contrast-125 brightness-110 drop-shadow-[0_0_15px_rgba(225,29,72,0.1)]" />
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter leading-tight">{APP_NAME}</h1>

@@ -11,8 +11,8 @@ import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, writeBatch } 
 import { db } from '../firebase/firebaseConfig';
 import Button from '../components/Button';
 
-const StatCard = ({ title, value, icon: Icon, colorClass, iconColor }: any) => (
-  <div className="bg-white dark:bg-white/5 backdrop-blur-3xl rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-white/5 flex items-center justify-between hover:border-brand-500/30 dark:hover:border-brand-500/30 transition-all duration-300 group">
+const StatCard = ({ title, value, icon: Icon, colorClass, iconColor, className }: any) => (
+  <div className={`bg-[#070708] backdrop-blur-3xl rounded-3xl p-6 shadow-sm border border-white/10 flex items-center justify-between hover:border-brand-500/30 dark:hover:border-brand-500/30 transition-all duration-300 group ${className}`}>
     <div>
       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">{title}</p>
       <h3 className="text-4xl font-bold text-slate-900 dark:text-white">{value}</h3>
@@ -219,14 +219,14 @@ const Dashboard: React.FC = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Requests" value={stats.total} icon={FileText} colorClass="bg-brand-500" iconColor="text-brand-500" />
+        <StatCard title="Total Requests" value={stats.total} icon={FileText} colorClass="bg-brand-500" iconColor="text-brand-500" className="bg-[#070708] border-white/10" />
         {user?.role !== UserRole.STUDENT && stats.actionNeeded > 0 ? (
-          <StatCard title="Action Needed" value={stats.actionNeeded} icon={AlertTriangle} colorClass="bg-red-500" iconColor="text-red-500" />
+          <StatCard title="Action Needed" value={stats.actionNeeded} icon={AlertTriangle} colorClass="bg-red-500" iconColor="text-red-500" className="bg-[#070708] border-white/10" />
         ) : (
-          <StatCard title="Pending" value={stats.pending} icon={Clock} colorClass="bg-amber-500" iconColor="text-amber-500" />
+          <StatCard title="Pending" value={stats.pending} icon={Clock} colorClass="bg-amber-500" iconColor="text-amber-500" className="bg-[#070708] border-white/10" />
         )}
-        <StatCard title="Assigned" value={stats.assigned} icon={UserIcon} colorClass="bg-blue-500" iconColor="text-blue-500" />
-        <StatCard title="Completed" value={stats.completed} icon={CheckCircle} colorClass="bg-emerald-500" iconColor="text-emerald-500" />
+        <StatCard title="Assigned" value={stats.assigned} icon={UserIcon} colorClass="bg-blue-500" iconColor="text-blue-500" className="bg-[#070708] border-white/10" />
+        <StatCard title="Completed" value={stats.completed} icon={CheckCircle} colorClass="bg-emerald-500" iconColor="text-emerald-500" className="bg-[#070708] border-white/10" />
       </div>
 
       {user?.role === UserRole.STUDENT && (
@@ -245,7 +245,7 @@ const Dashboard: React.FC = () => {
 
       {/* Tabs for Recent Sections */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4 mt-8">
-        <div className="bg-slate-200 dark:bg-slate-800 p-1 rounded-xl flex shrink-0">
+        <div className="bg-slate-200 dark:bg-[#070708] p-1 rounded-xl flex shrink-0 border border-white/5">
           <button
             onClick={() => setActiveTab('documents')}
             className={`flex items-center px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'documents'
@@ -285,7 +285,7 @@ const Dashboard: React.FC = () => {
 
       {/* Recent Document Requests Table */}
       {activeTab === 'documents' && (
-        <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 overflow-hidden transition-colors">
+        <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden transition-colors">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>

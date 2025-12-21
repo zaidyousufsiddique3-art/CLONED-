@@ -200,7 +200,7 @@ const UserManagement: React.FC = () => {
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">User Management</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm">Manage system access and roles</p>
         </div>
-        <div className="flex space-x-2 bg-white dark:bg-white/5 p-1 rounded-xl border border-slate-200 dark:border-white/5 backdrop-blur-md">
+        <div className="flex space-x-2 bg-white dark:bg-[#070708] p-1 rounded-xl border border-slate-200 dark:border-white/10 backdrop-blur-md">
           {(['STUDENT', 'STAFF', 'ADMIN'] as const).map(tab => (
             <button
               key={tab}
@@ -220,7 +220,7 @@ const UserManagement: React.FC = () => {
         </Button>
       </div>
 
-      <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 overflow-hidden transition-colors">
+      <div className="bg-white dark:bg-[#070708] rounded-3xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden transition-colors">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -237,7 +237,7 @@ const UserManagement: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
               {filteredUsers.map(u => (
-                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                   <td className="px-6 py-5">
                     <div className="text-sm font-bold text-slate-900 dark:text-white">{u.firstName} {u.lastName}</div>
                   </td>
@@ -277,14 +277,14 @@ const UserManagement: React.FC = () => {
       {/* Create User Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="bg-white dark:bg-[#0a0a0c] rounded-[2.5rem] shadow-2xl max-w-2xl w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl max-w-2xl w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto">
             <h3 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">Create New {activeTab}</h3>
             <form onSubmit={handleCreateSubmit} className="space-y-5">
 
               <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">First Name</label>
-                  <input required value={createData.firstName} onChange={e => setCreateData({ ...createData, firstName: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                  <input required value={createData.firstName} onChange={e => setCreateData({ ...createData, firstName: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Last Name</label>
@@ -343,7 +343,7 @@ const UserManagement: React.FC = () => {
       {/* Edit User Modal */}
       {isEditModalOpen && editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="bg-white dark:bg-[#0a0a0c] rounded-[2.5rem] shadow-2xl max-w-2xl w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl max-w-2xl w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Edit User Profile</h3>
               <button onClick={() => setIsEditModalOpen(false)}><X className="w-5 h-5 text-slate-400" /></button>

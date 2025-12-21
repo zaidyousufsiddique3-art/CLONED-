@@ -352,7 +352,7 @@ const NewRequest: React.FC = () => {
                   <select
                     value={sr.subject}
                     onChange={(e) => updateIASSubject(idx, 'subject', e.target.value)}
-                    className="flex-1 px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
+                    className="flex-1 px-4 py-3 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
                   >
                     <option value="">Select Subject</option>
                     {IAS_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -360,7 +360,7 @@ const NewRequest: React.FC = () => {
                   <select
                     value={sr.grade}
                     onChange={(e) => updateIASSubject(idx, 'grade', e.target.value)}
-                    className="w-24 px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
+                    className="w-24 px-4 py-3 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
                   >
                     {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
@@ -462,7 +462,7 @@ const NewRequest: React.FC = () => {
         Back to Dashboard
       </button>
 
-      <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/5 p-12 transition-colors">
+      <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 p-12 transition-colors">
         <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tighter">Draft Request</h2>
         <p className="text-slate-500 dark:text-slate-500 mb-10 text-xs font-bold uppercase tracking-widest leading-relaxed">Specify the official documentation required for archival processing.</p>
 
@@ -473,7 +473,7 @@ const NewRequest: React.FC = () => {
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as DocumentType)}
-                className="w-full px-6 py-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white appearance-none transition-all"
+                className="w-full px-6 py-4 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white appearance-none transition-all"
               >
                 {Object.values(DocumentType).map(t => (
                   <option key={t} value={t}>{t}</option>
@@ -516,7 +516,7 @@ const FormInput: React.FC<{
       onChange={(e) => onChange(e.target.value)}
       required={required}
       placeholder={placeholder}
-      className="w-full px-6 py-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white placeholder-slate-400 transition-all font-medium"
+      className="w-full px-6 py-4 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white placeholder-slate-400 transition-all font-medium"
     />
   </div>
 );
@@ -537,7 +537,7 @@ const FormSelect: React.FC<{
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="w-full px-6 py-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white appearance-none transition-all font-medium"
+        className="w-full px-6 py-4 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white appearance-none transition-all font-medium"
       >
         {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
       </select>
@@ -563,7 +563,7 @@ const FormDate: React.FC<{
       value={value}
       onChange={(e) => onChange(e.target.value)}
       required={required}
-      className="w-full px-6 py-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white transition-all font-medium"
+      className="w-full px-6 py-4 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white transition-all font-medium"
     />
   </div>
 );
@@ -597,9 +597,9 @@ const FormFileUpload: React.FC<{
           />
         </label>
       ) : (
-        <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl backdrop-blur-md">
+        <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-2xl backdrop-blur-md">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-white dark:bg-[#1e293b] rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="p-2 bg-white dark:bg-[#070708] rounded-lg border border-slate-200 dark:border-white/10">
               <File className="w-5 h-5 text-brand-500" />
             </div>
             <div>

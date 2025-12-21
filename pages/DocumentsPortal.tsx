@@ -231,7 +231,7 @@ const DocumentsPortal: React.FC = () => {
                 <div className="flex gap-2">
                     <button
                         onClick={() => setIsCreateFolderOpen(true)}
-                        className="flex items-center px-5 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-all font-bold text-sm"
+                        className="flex items-center px-5 py-2.5 bg-white dark:bg-[#070708] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-all font-bold text-sm"
                     >
                         <FolderPlus className="w-4 h-4 mr-2 text-brand-500" />
                         New Vault Folder
@@ -256,14 +256,14 @@ const DocumentsPortal: React.FC = () => {
 
             {/* Create Folder Modal/Inline */}
             {isCreateFolderOpen && (
-                <div className="bg-white dark:bg-[#0a0a0c] p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 flex items-center gap-4 animate-in fade-in slide-in-from-top-2">
+                <div className="bg-white dark:bg-[#070708] p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 flex items-center gap-4 animate-in fade-in slide-in-from-top-2">
                     <Folder className="w-6 h-6 text-brand-500 fill-brand-500/10" />
                     <input
                         type="text"
                         value={newFolderName}
                         onChange={(e) => setNewFolderName(e.target.value)}
                         placeholder="Folder Identity (e.g., 2024 Records)"
-                        className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white font-bold"
+                        className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white font-bold"
                         autoFocus
                     />
                     <div className="flex gap-2">
@@ -285,7 +285,7 @@ const DocumentsPortal: React.FC = () => {
             )}
 
             {/* Breadcrumbs */}
-            <div className="flex items-center overflow-x-auto whitespace-nowrap bg-white dark:bg-white/5 backdrop-blur-md px-5 py-4 rounded-2xl border border-slate-200 dark:border-white/5 text-sm font-bold">
+            <div className="flex items-center overflow-x-auto whitespace-nowrap bg-white dark:bg-[#070708] backdrop-blur-md px-5 py-4 rounded-2xl border border-slate-200 dark:border-white/10 text-sm font-bold">
                 <button
                     onClick={() => handleNavigate(BASE_PATH)}
                     className={`flex items-center hover:text-brand-500 transition-colors ${currentPath === BASE_PATH ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-500'}`}
@@ -313,7 +313,7 @@ const DocumentsPortal: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/5 overflow-hidden min-h-[500px]">
+            <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden min-h-[500px]">
                 {loading ? (
                     <div className="flex items-center justify-center h-64">
                         < Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
@@ -336,7 +336,7 @@ const DocumentsPortal: React.FC = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                                 {items.map((item) => (
-                                    <tr key={item.fullPath} className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+                                    <tr key={item.fullPath} className="bg-white dark:bg-[#070708] hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
                                         <td className="px-6 py-4">
                                             <button
                                                 onClick={() => item.isFolder ? handleNavigate(item.fullPath) : handleDownload(item)}

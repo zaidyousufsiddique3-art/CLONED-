@@ -220,9 +220,8 @@ const Login: React.FC = () => {
 
                             <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter leading-[0.95]">
                                 Secure Access <br />
-                                To Academic <br />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-100 to-brand-600">
-                                    Documents
+                                To <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-100 to-brand-600">
+                                    Academic Documents
                                 </span>
                             </h1>
 
@@ -274,7 +273,7 @@ const Login: React.FC = () => {
                                     </div>
 
                                     {error && (
-                                        <div className="bg-red-500/5 text-red-500 p-4 rounded-xl text-xs border border-red-500/20 font-bold flex items-center gap-3">
+                                        <div className="bg-red-500/10 text-red-500 p-4 rounded-xl text-xs border border-red-500/20 font-bold flex items-center gap-3">
                                             <span className="text-lg">⚠️</span> {error}
                                         </div>
                                     )}
