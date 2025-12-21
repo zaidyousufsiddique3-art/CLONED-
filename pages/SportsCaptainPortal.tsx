@@ -359,6 +359,7 @@ const SportsCaptainPortal: React.FC = () => {
                                         <th className="px-8 py-6">Student Name</th>
                                         <th className="px-8 py-6">Admission No</th>
                                         <th className="px-8 py-6">Gender</th>
+                                        <th className="px-8 py-6">Status</th>
                                         <th className="px-8 py-6">Submitted Date</th>
                                         <th className="px-8 py-6 text-right">Action</th>
                                     </tr>
@@ -383,8 +384,9 @@ const SportsCaptainPortal: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 font-mono text-sm text-slate-500 dark:text-slate-400">{app.studentAdmissionNo}</td>
+                                            <td className="px-8 py-6 font-bold text-slate-500 dark:text-slate-400 capitalize">{app.studentGender}</td>
                                             <td className="px-8 py-6">
-                                                <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${app.status === 'Accepted' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${app.status === 'Accepted' ? 'bg-emerald-500/10 text-emerald-500' :
                                                     app.status === 'Rejected' ? 'bg-red-500/10 text-red-500' :
                                                         app.status === 'In-review' ? 'bg-amber-500/10 text-amber-500' :
                                                             'bg-brand-500/10 text-brand-500'
