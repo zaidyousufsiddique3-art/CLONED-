@@ -60,15 +60,18 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] flex font-sans selection:bg-brand-500 selection:text-white transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#070708] flex font-sans selection:bg-brand-500 selection:text-white transition-colors duration-300">
       {/* Background decoration - visible only in dark mode */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 hidden dark:block">
-        <div className="absolute top-[10%] right-[10%] w-[500px] h-[500px] bg-brand-900/10 rounded-full blur-[100px]"></div>
-        <div className="absolute bottom-[10%] left-[10%] w-[500px] h-[500px] bg-indigo-900/10 rounded-full blur-[100px]"></div>
+        <div className="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-brand-900/10 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] left-[-5%] w-[800px] h-[800px] bg-slate-800/5 rounded-full blur-[120px]"></div>
+
+        {/* Subtle texture overlay for premium feel */}
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.02] mix-blend-overlay"></div>
       </div>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 w-full z-40 bg-white/90 dark:bg-[#1e293b]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between">
+      <div className="md:hidden fixed top-0 w-full z-40 bg-white/90 dark:bg-[#0a0a0c]/90 backdrop-blur-md border-b border-slate-200 dark:border-white/5 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <span className="font-bold text-slate-900 dark:text-white tracking-tight">{APP_NAME}</span>
         </div>
@@ -76,7 +79,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <Link to="/notifications" className="relative p-1">
             <Bell className="w-6 h-6 text-slate-500 dark:text-slate-400" />
             {unreadNotifications > 0 && (
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-[#1e293b]"></span>
+              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-[#0a0a0c]"></span>
             )}
           </Link>
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-slate-500 dark:text-slate-400">
@@ -86,17 +89,17 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </div>
 
       {/* Sidebar */}
-      <aside className={`w-72 bg-white/80 dark:bg-[#1e293b]/50 backdrop-blur-xl border-r border-slate-200 dark:border-slate-700/50 fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:flex flex-col`}>
+      <aside className={`w-72 bg-white/80 dark:bg-[#0a0a0c]/80 backdrop-blur-2xl border-r border-slate-200 dark:border-white/5 fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:flex flex-col`}>
         <div className="p-8 flex flex-col items-center text-center">
-          <img src="/assets/logo.png" alt="Logo" className="h-28 w-auto mb-4 object-contain" />
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">{APP_NAME}</h1>
-          <p className="text-xs text-brand-600 dark:text-brand-400 font-bold tracking-widest uppercase mt-1">Portal Access</p>
+          <img src="/assets/logo.png" alt="Logo" className="h-28 w-auto mb-4 object-contain contrast-125 brightness-110 drop-shadow-[0_0_15px_rgba(225,29,72,0.1)]" />
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter leading-tight">{APP_NAME}</h1>
+          <p className="text-[10px] text-brand-600 dark:text-brand-500 font-black tracking-[0.3em] uppercase mt-1">Unified Security Hub</p>
         </div>
 
         <nav className="flex-1 px-6 py-4 overflow-y-auto space-y-8">
           <div>
-            <p className="px-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">
-              Main Menu
+            <p className="px-4 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.3em] mb-4">
+              Operational Access
             </p>
             <NavItem to="/dashboard" icon={Home} label="Dashboard" />
 
@@ -124,38 +127,38 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
 
           <div>
-            <p className="px-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">
-              Account
+            <p className="px-4 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.3em] mb-4">
+              Personal Security
             </p>
             <NavItem to="/profile" icon={Settings} label="Manage Profile" />
           </div>
         </nav>
 
-        <div className="p-6 border-t border-slate-200 dark:border-slate-700/50 space-y-3">
+        <div className="p-6 border-t border-slate-200 dark:border-white/5 space-y-3">
           {/* Theme Switcher */}
           <button
             onClick={toggleTheme}
-            className="flex items-center w-full px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="flex items-center w-full px-4 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
           >
             {theme === 'dark' ? (
               <>
                 <Sun className="w-5 h-5 mr-3" />
-                Light Mode
+                Surface Mode
               </>
             ) : (
               <>
                 <Moon className="w-5 h-5 mr-3" />
-                Dark Mode
+                Midnight Mode
               </>
             )}
           </button>
 
           <button
             onClick={handleLogout}
-            className="flex items-center w-full px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 transition-colors group"
+            className="flex items-center w-full px-4 py-3 text-sm font-bold text-slate-500 dark:text-slate-400 rounded-xl hover:bg-red-500/5 hover:text-red-500 transition-all group"
           >
-            <LogOut className="w-5 h-5 mr-3 text-slate-400 dark:text-slate-500 group-hover:text-red-500 dark:group-hover:text-red-400" />
-            Sign Out
+            <LogOut className="w-5 h-5 mr-3 text-slate-400 dark:text-slate-600 group-hover:text-red-500" />
+            Logout Hub
           </button>
         </div>
       </aside>
@@ -164,25 +167,27 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <main className="flex-1 md:ml-72 p-6 md:p-10 overflow-y-auto h-screen scroll-smooth relative z-10">
         <div className="mt-14 md:mt-0">
           {/* Header - Desktop */}
-          <div className="hidden md:flex justify-between items-end mb-10 animate-fade-in">
+          <div className="hidden md:flex justify-between items-end mb-10 animate-fade-in pl-2">
             <div>
-              <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
                 {location.pathname === '/dashboard' ? 'Overview' :
-                  location.pathname === '/new-request' ? 'New Request' :
-                    location.pathname === '/my-requests' ? 'My Requests' :
-                      location.pathname === '/requests' ? 'Request Management' :
-                        location.pathname === '/users' ? 'User Management' :
-                          location.pathname === '/notifications' ? 'Notifications' :
-                            location.pathname === '/profile' ? 'Manage Profile' : ''}
+                  location.pathname === '/new-request' ? 'Document Request' :
+                    location.pathname === '/my-requests' ? 'My Records' :
+                      location.pathname === '/requests' ? 'Institutional Records' :
+                        location.pathname === '/users' ? 'System Users' :
+                          location.pathname === '/notifications' ? 'System Alerts' :
+                            location.pathname === '/profile' ? 'Security Profile' :
+                              location.pathname === '/documents' ? 'Vault' :
+                                location.pathname === '/predicted-grades' ? 'Analytics' : ''}
               </h2>
-              <p className="text-slate-500 dark:text-slate-400 mt-1">
-                {location.pathname === '/dashboard' ? `Welcome back, ${user.firstName}` :
-                  'Manage and track your documents efficiently.'}
+              <p className="text-slate-500 dark:text-slate-500 mt-1 font-bold text-xs uppercase tracking-widest">
+                {location.pathname === '/dashboard' ? `Welcome, ${user.firstName}` :
+                  'Secure document management and verification gateway.'}
               </p>
             </div>
 
-            <div className="flex items-center space-x-4 bg-white dark:bg-[#1e293b] px-2 py-2 rounded-full shadow-sm border border-slate-200 dark:border-slate-700">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-500 to-brand-700 text-white flex items-center justify-center font-bold shadow-lg shadow-brand-500/30 overflow-hidden">
+            <div className="flex items-center space-x-4 bg-white dark:bg-white/5 px-3 py-2.5 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 backdrop-blur-md">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-brand-700 to-brand-500 text-white flex items-center justify-center font-black shadow-lg shadow-brand-500/20 overflow-hidden text-lg">
                 {user.profileImage ? (
                   <img src={user.profileImage} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
@@ -190,13 +195,13 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 )}
               </div>
               <div className="pr-4">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-none">{user.firstName} {user.lastName}</p>
-                <p className="text-xs text-brand-600 dark:text-brand-400 font-medium capitalize mt-1">{user.role.replace('_', ' ').toLowerCase()}</p>
+                <p className="text-sm font-black text-slate-800 dark:text-slate-200 leading-none tracking-tight">{user.firstName} {user.lastName}</p>
+                <p className="text-[10px] text-brand-600 dark:text-brand-500 font-bold capitalize mt-1.5 tracking-widest">{user.role.replace('_', ' ').toLowerCase()}</p>
               </div>
             </div>
           </div>
 
-          <div className="animate-fade-in">
+          <div className="animate-fade-in pb-12">
             {children}
           </div>
         </div>

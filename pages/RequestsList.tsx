@@ -234,8 +234,8 @@ const RequestsList: React.FC = () => {
                             <button
                                 onClick={() => setCategory('documents')}
                                 className={`flex items-center px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${category === 'documents'
-                                        ? 'bg-brand-600 text-white shadow-md'
-                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                    ? 'bg-brand-600 text-white shadow-md'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                     }`}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
@@ -244,8 +244,8 @@ const RequestsList: React.FC = () => {
                             <button
                                 onClick={() => setCategory('password')}
                                 className={`flex items-center px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${category === 'password'
-                                        ? 'bg-brand-600 text-white shadow-md'
-                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                    ? 'bg-brand-600 text-white shadow-md'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                     }`}
                             >
                                 <Key className="w-4 h-4 mr-2" />
@@ -262,20 +262,20 @@ const RequestsList: React.FC = () => {
                 </div>
 
                 {filteredRequests.length > 0 && (
-                    <button onClick={handleClearAll} className="flex items-center text-xs font-bold text-slate-400 hover:text-red-500 transition-colors shrink-0 ml-auto bg-white dark:bg-[#1e293b] px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <button onClick={handleClearAll} className="flex items-center text-xs font-bold text-slate-400 hover:text-red-500 transition-colors shrink-0 ml-auto bg-white dark:bg-white/5 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-200 dark:border-white/5">
                         <CheckSquare className="w-4 h-4 mr-2" />
                         {user?.role === UserRole.SUPER_ADMIN ? 'Delete All Displayed' : 'Clear All Displayed'}
                     </button>
                 )}
             </div>
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#1e293b] p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700/50">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#0a0a0c]/80 backdrop-blur-3xl p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-white/5">
                 <div className="relative flex-1 max-w-lg">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <input type="text" placeholder="Search requests..." className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white placeholder-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <input type="text" placeholder="Search requests..." className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white placeholder-slate-400" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
                 <div className="flex items-center space-x-3">
-                    <div className="flex items-center bg-slate-50 dark:bg-[#0f172a] px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-600">
+                    <div className="flex items-center bg-slate-50 dark:bg-white/5 px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/5">
                         <Filter className="text-slate-400 w-5 h-5 mr-2" />
                         <select className="bg-transparent border-none focus:outline-none text-slate-700 dark:text-slate-300 font-medium text-sm" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                             <option value="All">All Statuses</option>
@@ -285,7 +285,7 @@ const RequestsList: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-[#1e293b] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden">
+            <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
@@ -349,8 +349,8 @@ const RequestsList: React.FC = () => {
 
             {/* Password Management Modal */}
             {isPwdModalOpen && selectedPwdReq && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-[#1e293b] rounded-3xl shadow-2xl max-w-lg w-full p-8 animate-fade-in border border-slate-200 dark:border-slate-600">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                    <div className="bg-white dark:bg-[#0a0a0c] rounded-[2.5rem] shadow-2xl max-w-lg w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white">Manage Password Request</h3>
                             <button onClick={() => setIsPwdModalOpen(false)}><X className="w-5 h-5 text-slate-400" /></button>

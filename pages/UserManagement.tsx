@@ -200,12 +200,12 @@ const UserManagement: React.FC = () => {
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">User Management</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm">Manage system access and roles</p>
         </div>
-        <div className="flex space-x-2 bg-white dark:bg-[#1e293b] p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+        <div className="flex space-x-2 bg-white dark:bg-white/5 p-1 rounded-xl border border-slate-200 dark:border-white/5 backdrop-blur-md">
           {(['STUDENT', 'STAFF', 'ADMIN'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab ? 'bg-brand-600 text-white shadow' : 'text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-slate-500 dark:text-slate-500 hover:text-brand-600 dark:hover:text-white'}`}
             >
               {tab.charAt(0) + tab.slice(1).toLowerCase()}s
             </button>
@@ -220,7 +220,7 @@ const UserManagement: React.FC = () => {
         </Button>
       </div>
 
-      <div className="bg-white dark:bg-[#1e293b] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden transition-colors">
+      <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 overflow-hidden transition-colors">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -250,9 +250,9 @@ const UserManagement: React.FC = () => {
                   {activeTab === 'STAFF' && <td className="px-6 py-5 text-sm text-slate-500">{u.designation}</td>}
                   <td className="px-6 py-5">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold ${u.role === UserRole.SUPER_ADMIN ? 'bg-purple-100 text-purple-600' :
-                        u.role === UserRole.ADMIN ? 'bg-indigo-100 text-indigo-600' :
-                          u.role === UserRole.STAFF ? 'bg-brand-100 text-brand-600' :
-                            'bg-slate-100 text-slate-600'
+                      u.role === UserRole.ADMIN ? 'bg-indigo-100 text-indigo-600' :
+                        u.role === UserRole.STAFF ? 'bg-brand-100 text-brand-600' :
+                          'bg-slate-100 text-slate-600'
                       }`}>
                       {u.role}
                     </span>
@@ -276,8 +276,8 @@ const UserManagement: React.FC = () => {
 
       {/* Create User Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-[#1e293b] rounded-3xl shadow-2xl max-w-2xl w-full p-8 animate-fade-in border border-slate-200 dark:border-slate-600 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="bg-white dark:bg-[#0a0a0c] rounded-[2.5rem] shadow-2xl max-w-2xl w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto">
             <h3 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">Create New {activeTab}</h3>
             <form onSubmit={handleCreateSubmit} className="space-y-5">
 
@@ -342,8 +342,8 @@ const UserManagement: React.FC = () => {
 
       {/* Edit User Modal */}
       {isEditModalOpen && editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-[#1e293b] rounded-3xl shadow-2xl max-w-2xl w-full p-8 animate-fade-in border border-slate-200 dark:border-slate-600 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="bg-white dark:bg-[#0a0a0c] rounded-[2.5rem] shadow-2xl max-w-2xl w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Edit User Profile</h3>
               <button onClick={() => setIsEditModalOpen(false)}><X className="w-5 h-5 text-slate-400" /></button>

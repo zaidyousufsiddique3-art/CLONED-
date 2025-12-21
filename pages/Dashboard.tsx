@@ -12,7 +12,7 @@ import { db } from '../firebase/firebaseConfig';
 import Button from '../components/Button';
 
 const StatCard = ({ title, value, icon: Icon, colorClass, iconColor }: any) => (
-  <div className="bg-white dark:bg-[#1e293b] rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-700/50 flex items-center justify-between hover:border-brand-200 dark:hover:border-slate-600 transition-all duration-300 group">
+  <div className="bg-white dark:bg-white/5 backdrop-blur-3xl rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-white/5 flex items-center justify-between hover:border-brand-500/30 dark:hover:border-brand-500/30 transition-all duration-300 group">
     <div>
       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">{title}</p>
       <h3 className="text-4xl font-bold text-slate-900 dark:text-white">{value}</h3>
@@ -285,7 +285,7 @@ const Dashboard: React.FC = () => {
 
       {/* Recent Document Requests Table */}
       {activeTab === 'documents' && (
-        <div className="bg-white dark:bg-[#1e293b] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden transition-colors">
+        <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 overflow-hidden transition-colors">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
@@ -342,7 +342,7 @@ const Dashboard: React.FC = () => {
 
       {/* Recent Password Requests Table */}
       {activeTab === 'password' && (
-        <div className="bg-white dark:bg-[#1e293b] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700/50 overflow-hidden transition-colors">
+        <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 overflow-hidden transition-colors">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
@@ -386,8 +386,8 @@ const Dashboard: React.FC = () => {
 
       {/* Password Management Modal (Reused) */}
       {isPwdModalOpen && selectedPwdReq && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-[#1e293b] rounded-3xl shadow-2xl max-w-lg w-full p-8 animate-fade-in border border-slate-200 dark:border-slate-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="bg-white dark:bg-[#0a0a0c] rounded-[2.5rem] shadow-2xl max-w-lg w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">Manage Password Request</h3>
               <button onClick={() => setIsPwdModalOpen(false)}><X className="w-5 h-5 text-slate-400" /></button>

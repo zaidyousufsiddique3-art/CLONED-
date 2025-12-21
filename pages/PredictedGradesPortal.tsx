@@ -320,8 +320,8 @@ const PredictedGradesPortal: React.FC = () => {
     return (
         <div className="space-y-6 animate-fade-in">
             <div>
-                <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Predicted Grades Analysis</h1>
-                <p className="text-slate-500 dark:text-slate-400">Analyze historical result data for student predictions.</p>
+                <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Analysis Hub</h1>
+                <p className="text-slate-500 dark:text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">Predictive performance mapping and archival intelligence.</p>
                 <div className="mt-2 flex items-center space-x-2">
                     <input
                         type="checkbox"
@@ -345,7 +345,7 @@ const PredictedGradesPortal: React.FC = () => {
                 {/* Selection Sidebar */}
                 <div className="lg:col-span-1 space-y-6">
                     {/* Step 1: Folder Selection */}
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                    <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl p-6 rounded-[2rem] shadow-xl border border-slate-200 dark:border-white/5">
                         <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
                             1. Select Exam Session
                         </h3>
@@ -358,7 +358,7 @@ const PredictedGradesPortal: React.FC = () => {
                                 <select
                                     value={selectedFolder}
                                     onChange={(e) => handleFolderChange(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl appearance-none focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white transition-shadow"
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl appearance-none focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white transition-all font-bold"
                                 >
                                     <option value="">Select Folder...</option>
                                     {folders.map(f => (
@@ -371,7 +371,7 @@ const PredictedGradesPortal: React.FC = () => {
                     </div>
 
                     {/* Step 2: Student Selection */}
-                    <div className={`bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 transition-opacity duration-300 ${!selectedFolder ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                    <div className={`bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl p-6 rounded-[2rem] shadow-xl border border-slate-200 dark:border-white/5 transition-opacity duration-300 ${!selectedFolder ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                         <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
                             2. Select Student
                         </h3>
@@ -390,7 +390,7 @@ const PredictedGradesPortal: React.FC = () => {
                                 <select
                                     value={selectedStudentId}
                                     onChange={(e) => handleStudentChange(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl appearance-none focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white transition-shadow"
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl appearance-none focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white transition-all font-bold"
                                 >
                                     <option value="">Select Student...</option>
                                     {students.map(s => (
@@ -410,26 +410,28 @@ const PredictedGradesPortal: React.FC = () => {
 
                     {/* Step 3: View Predicted Results (Super Admin Only) */}
                     {user?.role === UserRole.SUPER_ADMIN && (
-                        <div className={`p-6 bg-slate-900 rounded-2xl shadow-lg border border-slate-700 transition-all duration-300 ${!selectedStudentId ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
-                            <div className="flex flex-col items-center text-center space-y-3">
-                                <TrendingUp className="w-8 h-8 text-brand-400" />
+                        <div className={`p-8 bg-[#0a0a0c] rounded-[2rem] shadow-2xl border border-white/10 transition-all duration-300 ${!selectedStudentId ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
+                            <div className="flex flex-col items-center text-center space-y-4">
+                                <div className="w-16 h-16 bg-brand-500/10 rounded-2xl flex items-center justify-center mb-2">
+                                    <TrendingUp className="w-8 h-8 text-brand-500" />
+                                </div>
                                 <div>
-                                    <h3 className="text-white font-bold text-lg">Predict Grades</h3>
-                                    <p className="text-slate-400 text-xs mt-1">Generate forecast based on historical data</p>
+                                    <h3 className="text-white font-black text-xl tracking-tight">Intelligence Engine</h3>
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Forecast archival document projection</p>
                                 </div>
                                 <button
                                     onClick={() => setShowPredicted(true)}
-                                    className="w-full py-2.5 px-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-medium transition-colors shadow-lg shadow-brand-900/50 flex items-center justify-center"
+                                    className="w-full py-4 px-4 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center border border-white/10"
                                 >
-                                    View Predicted Results
+                                    Activate Prediction
                                 </button>
                                 <button
                                     onClick={() => setShowPdfModal(true)}
                                     disabled={!showPredicted}
-                                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors shadow-lg shadow-emerald-900/50 flex items-center justify-center gap-2"
+                                    className="w-full py-4 px-4 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all border border-white/5 flex items-center justify-center gap-2"
                                 >
                                     <Download className="w-4 h-4" />
-                                    Generate PDF
+                                    Generate Output
                                 </button>
                             </div>
                         </div>
@@ -440,7 +442,7 @@ const PredictedGradesPortal: React.FC = () => {
                 <div className="lg:col-span-2 space-y-6">
                     {selectedStudent ? (
                         <>
-                            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden animate-scale-in">
+                            <div className="bg-white dark:bg-[#0a0a0c]/80 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/5 overflow-hidden animate-scale-in">
                                 {/* Header */}
                                 <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-8 py-6 text-white">
                                     <div className="flex justify-between items-start">
@@ -500,7 +502,7 @@ const PredictedGradesPortal: React.FC = () => {
 
                             {/* Predicted Results Table */}
                             {showPredicted && user?.role === UserRole.SUPER_ADMIN && (
-                                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-bottom-4">
+                                <div className="bg-white dark:bg-[#0a0a0c]/80 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/5 overflow-hidden animate-in slide-in-from-bottom-4">
                                     <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-8 py-6 text-white">
                                         <h3 className="text-lg font-bold flex items-center">
                                             <TrendingUp className="w-5 h-5 mr-2 text-white" />
@@ -552,8 +554,8 @@ const PredictedGradesPortal: React.FC = () => {
 
             {/* PDF Generation Modal */}
             {showPdfModal && user?.role === UserRole.SUPER_ADMIN && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-[#0a0a0c] rounded-[2.5rem] shadow-2xl w-full max-w-md animate-in zoom-in-95 border border-white/10">
                         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
                                 <Download className="w-5 h-5 text-brand-600" />

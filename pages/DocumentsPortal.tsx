@@ -225,24 +225,24 @@ const DocumentsPortal: React.FC = () => {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Documents Portal</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Manage and organize result sheets and other documents.</p>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Vault</h1>
+                    <p className="text-slate-500 dark:text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">Institutional records and document repository.</p>
                 </div>
                 <div className="flex gap-2">
                     <button
                         onClick={() => setIsCreateFolderOpen(true)}
-                        className="flex items-center px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        className="flex items-center px-5 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-all font-bold text-sm"
                     >
-                        <FolderPlus className="w-4 h-4 mr-2" />
-                        Create Folder
+                        <FolderPlus className="w-4 h-4 mr-2 text-brand-500" />
+                        New Vault Folder
                     </button>
                     <button
                         onClick={handleUploadClick}
                         disabled={uploading}
-                        className="flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+                        className="flex items-center px-5 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/20 disabled:opacity-50 font-bold text-sm"
                     >
                         {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                        Upload Files
+                        Deposit Files
                     </button>
                     <input
                         type="file"
@@ -256,40 +256,42 @@ const DocumentsPortal: React.FC = () => {
 
             {/* Create Folder Modal/Inline */}
             {isCreateFolderOpen && (
-                <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-                    <Folder className="w-5 h-5 text-brand-500" />
+                <div className="bg-white dark:bg-[#0a0a0c] p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 flex items-center gap-4 animate-in fade-in slide-in-from-top-2">
+                    <Folder className="w-6 h-6 text-brand-500 fill-brand-500/10" />
                     <input
                         type="text"
                         value={newFolderName}
                         onChange={(e) => setNewFolderName(e.target.value)}
-                        placeholder="Folder Name (e.g., 2024 Results)"
-                        className="flex-1 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
+                        placeholder="Folder Identity (e.g., 2024 Records)"
+                        className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white font-bold"
                         autoFocus
                     />
-                    <button
-                        onClick={handleCreateFolder}
-                        disabled={!newFolderName.trim() || uploading}
-                        className="px-3 py-1.5 bg-brand-600 text-white text-sm rounded-md hover:bg-brand-700 disabled:opacity-50"
-                    >
-                        Create
-                    </button>
-                    <button
-                        onClick={() => { setIsCreateFolderOpen(false); setNewFolderName(''); }}
-                        className="px-3 py-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-sm"
-                    >
-                        Cancel
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleCreateFolder}
+                            disabled={!newFolderName.trim() || uploading}
+                            className="px-6 py-2.5 bg-brand-600 text-white text-sm font-black rounded-xl hover:bg-brand-700 disabled:opacity-50 transition-all"
+                        >
+                            Establish
+                        </button>
+                        <button
+                            onClick={() => { setIsCreateFolderOpen(false); setNewFolderName(''); }}
+                            className="px-4 py-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white text-sm font-bold"
+                        >
+                            Abort
+                        </button>
+                    </div>
                 </div>
             )}
 
             {/* Breadcrumbs */}
-            <div className="flex items-center overflow-x-auto whitespace-nowrap bg-white dark:bg-slate-800 px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 text-sm">
+            <div className="flex items-center overflow-x-auto whitespace-nowrap bg-white dark:bg-white/5 backdrop-blur-md px-5 py-4 rounded-2xl border border-slate-200 dark:border-white/5 text-sm font-bold">
                 <button
                     onClick={() => handleNavigate(BASE_PATH)}
-                    className={`flex items-center hover:text-brand-600 transition-colors ${currentPath === BASE_PATH ? 'text-slate-800 dark:text-white font-semibold' : 'text-slate-500 dark:text-slate-400'}`}
+                    className={`flex items-center hover:text-brand-500 transition-colors ${currentPath === BASE_PATH ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-500'}`}
                 >
-                    <Home className="w-4 h-4 mr-1" />
-                    Root
+                    <Home className="w-4 h-4 mr-2" />
+                    Archive Root
                 </button>
                 {pathSegments.map((segment, index) => {
                     // Construct path up to this segment
@@ -297,10 +299,10 @@ const DocumentsPortal: React.FC = () => {
                     const isLast = index === pathSegments.length - 1;
                     return (
                         <React.Fragment key={path}>
-                            <ChevronRight className="w-4 h-4 mx-2 text-slate-300" />
+                            <ChevronRight className="w-4 h-4 mx-3 text-slate-300 dark:text-slate-700" />
                             <button
                                 onClick={() => handleNavigate(path)}
-                                className={`hover:text-brand-600 transition-colors ${isLast ? 'text-slate-800 dark:text-white font-semibold' : 'text-slate-500 dark:text-slate-400'}`}
+                                className={`hover:text-brand-500 transition-colors ${isLast ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-500'}`}
                                 disabled={isLast}
                             >
                                 {segment}
@@ -311,7 +313,7 @@ const DocumentsPortal: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden min-h-[400px]">
+            <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/5 overflow-hidden min-h-[500px]">
                 {loading ? (
                     <div className="flex items-center justify-center h-64">
                         < Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
