@@ -178,14 +178,14 @@ const Login: React.FC = () => {
     return (
         <div className="h-screen bg-[#070708] flex flex-col font-sans selection:bg-brand-500/30 selection:text-white relative overflow-hidden">
 
-            {/* Premium Background Effects: Brand-Rose Gradients */}
+            {/* Premium Background Effects: Subtle Gradients */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {/* Primary Rose Glow */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] bg-brand-600/10 rounded-full blur-[140px]"></div>
+                {/* Primary Subtle Glow */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] bg-brand-600/5 rounded-full blur-[140px]"></div>
 
-                {/* Secondary Depth Accents */}
-                <div className="absolute top-[-10%] right-[-5%] w-[700px] h-[700px] bg-brand-500/10 rounded-full blur-[120px]"></div>
-                <div className="absolute bottom-[-10%] left-[-5%] w-[700px] h-[700px] bg-brand-800/10 rounded-full blur-[120px]"></div>
+                {/* Secondary Depth Accents - More Subtle */}
+                <div className="absolute top-[-10%] right-[-5%] w-[700px] h-[700px] bg-brand-500/5 rounded-full blur-[120px]"></div>
+                <div className="absolute bottom-[-10%] left-[-5%] w-[700px] h-[700px] bg-brand-800/5 rounded-full blur-[120px]"></div>
 
                 {/* Subtle Textural Contrast */}
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.02] mix-blend-overlay"></div>
@@ -218,8 +218,8 @@ const Login: React.FC = () => {
                                 Verified Institutional Hub
                             </div>
 
-                            <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter leading-[0.95]">
-                                Secure Access To <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-100 to-brand-600">Academic Documents</span>
+                            <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tighter leading-[1.1]">
+                                Secure Access To <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-brand-500">Academic Documents</span>
                             </h1>
 
                             <p className="text-slate-400 text-base max-w-lg leading-relaxed font-medium">
@@ -450,20 +450,20 @@ const Login: React.FC = () => {
             </main>
 
             {/* Footer */}
-            <footer className="relative z-20 px-12 py-8 border-t border-white/5 bg-black/60 backdrop-blur-3xl">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <footer className="relative z-20 px-12 py-6 border-t border-white/5 bg-[#070708]">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="text-center md:text-left">
                         <p className="text-white text-sm font-bold tracking-wide">
-                            Sri Lanka Islamic Student Registry (SLISR)
+                            Sri Lankan International School (SLISR) Student Registry
                         </p>
                         <p className="text-slate-600 text-xs font-medium tracking-wider mt-1">
                             Official academic records management system
                         </p>
                     </div>
-                    <div className="flex gap-10">
-                        <span className="text-slate-700 text-[10px] font-black uppercase tracking-[0.3em] cursor-default hover:text-slate-500 transition-colors">Digital Privacy</span>
-                        <span className="text-slate-700 text-[10px] font-black uppercase tracking-[0.3em] cursor-default hover:text-slate-500 transition-colors">Institutional Compliance</span>
-                        <span className="text-slate-700 text-[10px] font-black uppercase tracking-[0.3em] cursor-default hover:text-slate-500 transition-colors">Network Status</span>
+                    <div className="flex gap-8">
+                        <span className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-slate-500 transition-colors">Digital Privacy</span>
+                        <span className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-slate-500 transition-colors">Institutional Compliance</span>
+                        <span className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-slate-500 transition-colors">Network Status</span>
                     </div>
                 </div>
             </footer>

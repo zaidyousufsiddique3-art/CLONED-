@@ -319,27 +319,23 @@ const PredictedGradesPortal: React.FC = () => {
 
     return (
         <div className="space-y-6 animate-fade-in">
-            <div>
-                <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Analysis Hub</h1>
-                <p className="text-slate-500 dark:text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">Predictive performance mapping and archival intelligence.</p>
-                <div className="mt-2 flex items-center space-x-2">
-                    <input
-                        type="checkbox"
-                        id="debugMode"
-                        checked={debugMode}
-                        onChange={e => setDebugMode(e.target.checked)}
-                        className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-                    />
-                    <label htmlFor="debugMode" className="text-xs text-slate-400 cursor-pointer">Enable Debug Mode (Show raw extracted data)</label>
-                </div>
-                {debugMode && (
-                    <div className="mt-2 p-2 bg-slate-100 dark:bg-slate-900 rounded text-xs font-mono text-slate-600 dark:text-slate-400">
-                        <p>Scanned Files: {stats.scanned}</p>
-                        <p>Candidates Extracted: {stats.extracted}</p>
-                        <p>Last File: {stats.lastFile}</p>
-                    </div>
-                )}
+            <div className="flex items-center space-x-2">
+                <input
+                    type="checkbox"
+                    id="debugMode"
+                    checked={debugMode}
+                    onChange={e => setDebugMode(e.target.checked)}
+                    className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                />
+                <label htmlFor="debugMode" className="text-xs text-slate-400 cursor-pointer">Enable Debug Mode (Show raw extracted data)</label>
             </div>
+            {debugMode && (
+                <div className="p-2 bg-slate-100 dark:bg-slate-900 rounded text-xs font-mono text-slate-600 dark:text-slate-400">
+                    <p>Scanned Files: {stats.scanned}</p>
+                    <p>Candidates Extracted: {stats.extracted}</p>
+                    <p>Last File: {stats.lastFile}</p>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Selection Sidebar */}
@@ -543,7 +539,7 @@ const PredictedGradesPortal: React.FC = () => {
                             )}
                         </>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 min-h-[400px]">
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white dark:bg-[#070708] rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 min-h-[400px]">
                             <Search className="w-12 h-12 mb-4 opacity-20" />
                             <p className="text-lg font-medium">Select a student to view analysis</p>
                             <p className="text-sm opacity-60">Result preview will appear here</p>
