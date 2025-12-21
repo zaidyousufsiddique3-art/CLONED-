@@ -306,12 +306,12 @@ const RequestDetail: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-8">
                         <div className="bg-white dark:bg-[#070708] rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <div className="flex justify-between items-start mb-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
                                 <div>
-                                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Request #{request.id}</h1>
+                                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Request #{request.id}</h1>
                                     <span className="text-slate-500 dark:text-slate-400 text-sm">{new Date(request.createdAt).toLocaleDateString()} at {new Date(request.createdAt).toLocaleTimeString()}</span>
                                 </div>
-                                <span className={`px-4 py-2 rounded-full text-sm font-bold border ${request.status === RequestStatus.COMPLETED ? 'bg-emerald-100 text-emerald-600 border-emerald-200' :
+                                <span className={`px-4 py-2 rounded-full text-sm font-bold border whitespace-nowrap ${request.status === RequestStatus.COMPLETED ? 'bg-emerald-100 text-emerald-600 border-emerald-200' :
                                     request.status === RequestStatus.ACTION_NEEDED ? 'bg-red-100 text-red-600 border-red-200' :
                                         'bg-blue-50 text-blue-600 border-blue-200'
                                     }`}>
@@ -377,7 +377,7 @@ const RequestDetail: React.FC = () => {
                                 {visibleAttachments.length === 0 ? (
                                     <p className="text-slate-500 text-center py-4 italic">No documents available.</p>
                                 ) : visibleAttachments.map(att => (
-                                    <div key={att.id} className="flex justify-between items-center p-4 border border-slate-100 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <div key={att.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-slate-100 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors gap-4">
                                         <div className="flex items-center">
                                             <div className={`p-3 rounded-xl mr-4 ${att.status === 'Approved' ? 'bg-emerald-100 text-emerald-600' : att.status === 'Rejected' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>
                                                 <File className="w-5 h-5" />

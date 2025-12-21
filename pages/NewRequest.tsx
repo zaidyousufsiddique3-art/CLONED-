@@ -348,23 +348,25 @@ const NewRequest: React.FC = () => {
             <div className="space-y-3">
               <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">IAS Results</label>
               {formData.iasResults.map((sr, idx) => (
-                <div key={idx} className="flex items-center gap-3">
-                  <select
-                    value={sr.subject}
-                    onChange={(e) => updateIASSubject(idx, 'subject', e.target.value)}
-                    className="flex-1 px-4 py-3 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
-                  >
-                    <option value="">Select Subject</option>
-                    {IAS_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <select
-                    value={sr.grade}
-                    onChange={(e) => updateIASSubject(idx, 'grade', e.target.value)}
-                    className="w-24 px-4 py-3 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
-                  >
-                    {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
-                  <button type="button" onClick={() => removeIASSubject(idx)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
+                  <div className="flex-1 flex gap-3">
+                    <select
+                      value={sr.subject}
+                      onChange={(e) => updateIASSubject(idx, 'subject', e.target.value)}
+                      className="flex-grow px-4 py-3 bg-white dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
+                    >
+                      <option value="">Select Subject</option>
+                      {IAS_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <select
+                      value={sr.grade}
+                      onChange={(e) => updateIASSubject(idx, 'grade', e.target.value)}
+                      className="w-24 px-4 py-3 bg-white dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
+                    >
+                      {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <button type="button" onClick={() => removeIASSubject(idx)} className="self-end sm:self-auto p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -462,7 +464,7 @@ const NewRequest: React.FC = () => {
         Back to Dashboard
       </button>
 
-      <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 p-12 transition-colors">
+      <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 p-6 md:p-12 transition-colors">
         <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tighter">Draft Request</h2>
         <p className="text-slate-500 dark:text-slate-500 mb-10 text-xs font-bold uppercase tracking-widest leading-relaxed">Specify the official documentation required for archival processing.</p>
 

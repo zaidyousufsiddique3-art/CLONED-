@@ -195,17 +195,17 @@ const UserManagement: React.FC = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">User Management</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm">Manage system access and roles</p>
         </div>
-        <div className="flex space-x-2 bg-white dark:bg-[#070708] p-1 rounded-xl border border-slate-200 dark:border-white/10 backdrop-blur-md">
+        <div className="flex space-x-1 bg-white dark:bg-[#070708] p-1 rounded-xl border border-slate-200 dark:border-white/10 backdrop-blur-md w-full sm:w-auto overflow-x-auto">
           {(['STUDENT', 'STAFF', 'ADMIN'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-slate-500 dark:text-slate-500 hover:text-brand-600 dark:hover:text-white'}`}
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === tab ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-slate-500 dark:text-slate-500 hover:text-brand-600 dark:hover:text-white'}`}
             >
               {tab.charAt(0) + tab.slice(1).toLowerCase()}s
             </button>
@@ -220,7 +220,7 @@ const UserManagement: React.FC = () => {
         </Button>
       </div>
 
-      <div className="bg-white dark:bg-[#070708] rounded-3xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden transition-colors">
+      <div className="bg-white dark:bg-[#070708] rounded-3xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden transition-colors scroll-x-mobile">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>

@@ -337,8 +337,8 @@ const Login: React.FC = () => {
             </main>
 
             {/* Global Footer */}
-            <footer className="relative z-20 px-8 py-4 border-t border-white/5 text-[9px] text-slate-600 font-bold uppercase tracking-widest bg-[#070708]">
-                <div className="max-w-7xl mx-auto flex justify-between">
+            <footer className="relative z-20 px-8 py-6 border-t border-white/5 text-[9px] text-slate-600 font-bold uppercase tracking-widest bg-[#070708]">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-center">
                     <span>© {new Date().getFullYear()} SLISR Student Registry</span>
                     <div className="flex gap-6">
                         <span>Digital Privacy</span>

@@ -285,7 +285,7 @@ const Dashboard: React.FC = () => {
 
       {/* Recent Document Requests Table */}
       {activeTab === 'documents' && (
-        <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden transition-colors">
+        <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden transition-colors scroll-x-mobile">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
@@ -342,7 +342,7 @@ const Dashboard: React.FC = () => {
 
       {/* Recent Password Requests Table */}
       {activeTab === 'password' && (
-        <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 overflow-hidden transition-colors">
+        <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 overflow-hidden transition-colors scroll-x-mobile">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>

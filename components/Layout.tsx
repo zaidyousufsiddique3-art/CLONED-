@@ -68,15 +68,28 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </div>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 w-full z-40 bg-white/90 dark:bg-[#070708]/90 backdrop-blur-md border-b border-slate-200 dark:border-white/5 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <span className="font-bold text-slate-900 dark:text-white tracking-tight">{APP_NAME}</span>
+      <div className="md:hidden fixed top-0 w-full z-40 bg-white dark:bg-[#070708] border-b border-slate-200 dark:border-white/5 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+            <span className="text-white font-black text-xs">S</span>
+          </div>
+          <span className="font-bold text-slate-900 dark:text-white tracking-tight text-sm">
+            {location.pathname === '/dashboard' ? 'Overview' :
+              location.pathname === '/new-request' ? 'Request' :
+                location.pathname === '/my-requests' ? 'Records' :
+                  location.pathname === '/requests' ? 'Records' :
+                    location.pathname === '/users' ? 'Users' :
+                      location.pathname === '/notifications' ? 'Alerts' :
+                        location.pathname === '/profile' ? 'Profile' :
+                          location.pathname === '/documents' ? 'Vault' :
+                            location.pathname === '/predicted-grades' ? 'Analytics' : APP_NAME}
+          </span>
         </div>
-        <div className="flex items-center space-x-4">
-          <Link to="/notifications" className="relative p-1">
-            <Bell className="w-6 h-6 text-slate-500 dark:text-slate-400" />
+        <div className="flex items-center space-x-3">
+          <Link to="/notifications" className="relative p-2 text-slate-500 dark:text-slate-400">
+            <Bell className="w-5 h-5" />
             {unreadNotifications > 0 && (
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-[#070708]"></span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-[#070708]"></span>
             )}
           </Link>
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-slate-500 dark:text-slate-400">
@@ -85,12 +98,20 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </div>
 
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-opacity duration-300"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`w-72 bg-white/80 dark:bg-[#070708] backdrop-blur-2xl border-r border-slate-200 dark:border-white/10 fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:flex flex-col`}>
-        <div className="p-8 flex flex-col items-center text-center">
-          <img src="/assets/logo.png" alt="Logo" className="h-28 w-auto mb-4 object-contain contrast-125 brightness-110 drop-shadow-[0_0_15px_rgba(225,29,72,0.1)]" />
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter leading-tight">{APP_NAME}</h1>
-          <p className="text-[10px] text-brand-600 dark:text-brand-500 font-black tracking-[0.3em] uppercase mt-1">Unified Security Hub</p>
+      <aside className={`w-72 bg-white/80 dark:bg-[#070708] backdrop-blur-2xl border-r border-slate-200 dark:border-white/10 fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:flex flex-col shadow-2xl md:shadow-none`}>
+        <div className="p-8 pb-4 flex flex-col items-center text-center">
+          <img src="/assets/logo.png" alt="Logo" className="h-20 md:h-28 w-auto mb-4 object-contain contrast-125 brightness-110 drop-shadow-[0_0_15px_rgba(225,29,72,0.1)]" />
+          <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tighter leading-tight">{APP_NAME}</h1>
+          <p className="text-[9px] md:text-[10px] text-brand-600 dark:text-brand-500 font-black tracking-[0.3em] uppercase mt-1">Unified Security Hub</p>
         </div>
 
         <nav className="flex-1 px-6 py-4 overflow-y-auto space-y-8">

@@ -441,14 +441,14 @@ const PredictedGradesPortal: React.FC = () => {
                             <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden animate-scale-in">
                                 {/* Header */}
                                 <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-8 py-6 text-white">
-                                    <div className="flex justify-between items-start">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                                         <div>
-                                            <h2 className="text-2xl font-bold">{selectedStudent.candidateName}</h2>
+                                            <h2 className="text-xl md:text-2xl font-bold">{selectedStudent.candidateName}</h2>
                                             <p className="text-brand-100 font-medium mt-1">UCI: {selectedStudent.uci}</p>
                                         </div>
-                                        <div className="text-right bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
-                                            <p className="text-xs text-brand-100 uppercase tracking-widest mb-1">Date of Birth</p>
-                                            <p className="font-mono font-bold text-lg">{selectedStudent.dob}</p>
+                                        <div className="text-left sm:text-right bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm w-full sm:w-auto">
+                                            <p className="text-[10px] text-brand-100 uppercase tracking-widest mb-1">Date of Birth</p>
+                                            <p className="font-mono font-bold text-base md:text-lg">{selectedStudent.dob}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -460,7 +460,7 @@ const PredictedGradesPortal: React.FC = () => {
                                         Examination Results
                                     </h4>
 
-                                    <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 scroll-x-mobile">
                                         <table className="w-full text-left border-collapse">
                                             <thead className="bg-slate-50 dark:bg-slate-900/50">
                                                 <tr>
@@ -507,7 +507,7 @@ const PredictedGradesPortal: React.FC = () => {
                                         <p className="text-sm text-brand-100 mt-1">Generated based on Pearson grade progression logic.</p>
                                     </div>
                                     <div className="p-8">
-                                        <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 scroll-x-mobile">
                                             <table className="w-full text-left border-collapse">
                                                 <thead className="bg-slate-50 dark:bg-slate-900/50">
                                                     <tr>

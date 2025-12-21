@@ -21,3 +21,31 @@
     filter: none !important;
     opacity: 1;
 }
+
+/* Mobile-specific Utilities */
+@media (max-width: 768px) {
+    .hide-on-mobile {
+        display: none !important;
+    }
+
+    .scroll-x-mobile {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Custom scrollbar for mobile tables */
+    .scroll-x-mobile::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .scroll-x-mobile::-webkit-scrollbar-thumb {
+        background: rgba(225, 29, 72, 0.2);
+        border-radius: 10px;
+    }
+}
+
+@media (min-width: 769px) {
+    .hide-on-desktop {
+        display: none !important;
+    }
+}

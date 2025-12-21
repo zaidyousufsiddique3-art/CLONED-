@@ -252,27 +252,29 @@ const DocumentsPortal: React.FC = () => {
 
             {/* Create Folder Modal/Inline */}
             {isCreateFolderOpen && (
-                <div className="bg-white dark:bg-[#070708] p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 flex items-center gap-4 animate-in fade-in slide-in-from-top-2">
-                    <Folder className="w-6 h-6 text-brand-500 fill-brand-500/10" />
-                    <input
-                        type="text"
-                        value={newFolderName}
-                        onChange={(e) => setNewFolderName(e.target.value)}
-                        placeholder="Folder Identity (e.g., 2024 Records)"
-                        className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white font-bold"
-                        autoFocus
-                    />
+                <div className="bg-white dark:bg-[#070708] p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-4 flex-1">
+                        <Folder className="w-6 h-6 text-brand-500 fill-brand-500/10 shrink-0" />
+                        <input
+                            type="text"
+                            value={newFolderName}
+                            onChange={(e) => setNewFolderName(e.target.value)}
+                            placeholder="Folder Identity (e.g., 2024 Records)"
+                            className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white font-bold"
+                            autoFocus
+                        />
+                    </div>
                     <div className="flex gap-2">
                         <button
                             onClick={handleCreateFolder}
                             disabled={!newFolderName.trim() || uploading}
-                            className="px-6 py-2.5 bg-brand-600 text-white text-sm font-black rounded-xl hover:bg-brand-700 disabled:opacity-50 transition-all"
+                            className="flex-1 sm:flex-none px-6 py-2.5 bg-brand-600 text-white text-sm font-black rounded-xl hover:bg-brand-700 disabled:opacity-50 transition-all"
                         >
                             Establish
                         </button>
                         <button
                             onClick={() => { setIsCreateFolderOpen(false); setNewFolderName(''); }}
-                            className="px-4 py-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white text-sm font-bold"
+                            className="flex-1 sm:flex-none px-4 py-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white text-sm font-bold"
                         >
                             Abort
                         </button>
@@ -281,7 +283,7 @@ const DocumentsPortal: React.FC = () => {
             )}
 
             {/* Breadcrumbs */}
-            <div className="flex items-center overflow-x-auto whitespace-nowrap bg-white dark:bg-[#070708] backdrop-blur-md px-5 py-4 rounded-2xl border border-slate-200 dark:border-white/10 text-sm font-bold">
+            <div className="flex items-center overflow-x-auto whitespace-nowrap bg-white dark:bg-[#070708] backdrop-blur-md px-5 py-4 rounded-2xl border border-slate-200 dark:border-white/10 text-sm font-bold scrollbar-hide scroll-x-mobile">
                 <button
                     onClick={() => handleNavigate(BASE_PATH)}
                     className={`flex items-center hover:text-brand-500 transition-colors ${currentPath === BASE_PATH ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-500'}`}
@@ -309,7 +311,7 @@ const DocumentsPortal: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden min-h-[500px]">
+            <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden min-h-[500px] scroll-x-mobile">
                 {loading ? (
                     <div className="flex items-center justify-center h-64">
                         < Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
