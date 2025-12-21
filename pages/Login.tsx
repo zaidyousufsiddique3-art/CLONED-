@@ -182,19 +182,19 @@ const Login: React.FC = () => {
                         <div className="space-y-10">
                             {/* Branding Badge-style Header */}
                             <div className="flex items-center gap-6">
-                                <img src="/assets/logo.png" alt="SLISR Logo" className="h-16 w-auto object-contain" />
-                                <div className="h-10 w-[1px] bg-slate-800"></div>
+                                <img src="/assets/logo.png" alt="SLISR Logo" className="h-20 w-auto object-contain" />
+                                <div className="h-12 w-[1px] bg-slate-800"></div>
                                 <div className="flex flex-col">
-                                    <span className="text-white font-black tracking-[0.3em] text-xs uppercase">SLISR Portal</span>
-                                    <div className="flex items-center gap-2.5 mt-1">
+                                    <span className="text-white font-black tracking-[0.3em] text-sm uppercase">SLISR Portal</span>
+                                    <div className="flex items-center gap-2.5 mt-1.5">
                                         <div className="w-2 h-2 rounded-full bg-brand-600 animate-pulse"></div>
-                                        <span className="text-brand-500 font-bold tracking-[0.15em] text-[10px] uppercase">Institutional Hub</span>
+                                        <span className="text-brand-500 font-bold tracking-[0.15em] text-[11px] uppercase">Institutional Hub</span>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-6">
-                                <h1 className="text-7xl font-black text-white tracking-tighter leading-[1.05]">
+                                <h1 className="text-[76px] font-black text-white tracking-tighter leading-[1.05]">
                                     Secure Access To <br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-brand-500">Academic Docs</span>
                                 </h1>
