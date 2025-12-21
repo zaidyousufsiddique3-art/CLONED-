@@ -230,36 +230,6 @@ const Login: React.FC = () => {
                                 The SLISR Docs Portal enables authorized students, staff, and administrators to access verified academic records with institutional-grade security and compliance.
                             </p>
                         </div>
-
-                        <div className="grid grid-cols-1 gap-6 pt-4">
-                            <div className="flex items-start gap-4 group">
-                                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-500 border border-brand-500/20 group-hover:bg-brand-500/20 transition-all duration-300">
-                                    <ShieldCheck size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-white font-bold text-base">Verified Documents</h3>
-                                    <p className="text-slate-500 text-xs">Official academic records issued by SLISR</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-4 group">
-                                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-500 border border-brand-500/20 group-hover:bg-brand-500/20 transition-all duration-300">
-                                    <Layers size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-white font-bold text-base">Role-Based Access</h3>
-                                    <p className="text-slate-500 text-xs">Controlled permissions for Students, Staff, and Administrators</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-4 group">
-                                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-500 border border-brand-500/20 group-hover:bg-brand-500/20 transition-all duration-300">
-                                    <Lock size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-white font-bold text-base">Institutional Security</h3>
-                                    <p className="text-slate-500 text-xs">Encrypted access for sensitive academic data</p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Right Column: Expanded Login Card */}
@@ -450,20 +420,15 @@ const Login: React.FC = () => {
             </main>
 
             {/* Footer */}
-            <footer className="relative z-20 px-12 py-6 border-t border-white/5 bg-[#070708]">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="text-center md:text-left">
-                        <p className="text-white text-sm font-bold tracking-wide">
-                            Sri Lankan International School (SLISR) Student Registry
-                        </p>
-                        <p className="text-slate-600 text-xs font-medium tracking-wider mt-1">
-                            Official academic records management system
-                        </p>
-                    </div>
-                    <div className="flex gap-8">
-                        <span className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-slate-500 transition-colors">Digital Privacy</span>
-                        <span className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-slate-500 transition-colors">Institutional Compliance</span>
-                        <span className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-slate-500 transition-colors">Network Status</span>
+            <footer className="relative z-20 px-8 py-3 border-t border-white/5 bg-[#070708]">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
+                    <p className="text-slate-500 text-xs font-medium tracking-wide">
+                        Sri Lankan International School (SLISR) Student Registry
+                    </p>
+                    <div className="flex gap-6">
+                        <span className="text-slate-600 text-[9px] font-medium uppercase tracking-wider cursor-default">Digital Privacy</span>
+                        <span className="text-slate-600 text-[9px] font-medium uppercase tracking-wider cursor-default">Compliance</span>
+                        <span className="text-slate-600 text-[9px] font-medium uppercase tracking-wider cursor-default">Status</span>
                     </div>
                 </div>
             </footer>
