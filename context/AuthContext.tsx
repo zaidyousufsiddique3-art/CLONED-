@@ -60,14 +60,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, [user]);
 
-  // Theme Logic: Force Midnight Mode as default
+  // Theme Logic: Enforce Midnight Mode as default on load
   useEffect(() => {
-    const savedTheme = localStorage.getItem('edudocs_theme') as Theme;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else {
-      setTheme('dark');
-    }
+    // We intentionally ignore light mode preference from previous sessions 
+    // to ensure the app always starts in the premium Midnight Mode.
+    setTheme('dark');
   }, []);
 
   useEffect(() => {
@@ -88,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const loggedInUser = await loginUser(identifier, pass, role);
       setUser(loggedInUser);
+      setTheme('dark'); // Global Requirement: Default to Midnight Mode after login
       return true;
     } catch (e) {
       console.error("Login Failed", e);
