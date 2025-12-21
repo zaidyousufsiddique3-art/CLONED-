@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SUPER_ADMIN';
+    }
+
+    function isSportsCoordinator() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'Chandana.kulathunga@slisr.org';
+    }
+
+    // 1. Sports Captain Applications
+    match /sports_captain_applications/{appId} {
+      // Students can create their own application
+      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+      
+      // Access allowed for student, Coordinator, or Admins
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid || 
+        isSportsCoordinator() || 
+        isSuperAdmin() ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'
+      );
+      
+      // Only Coordinator or Admins can update status
+      allow update: if isAuthenticated() && (
+        isSportsCoordinator() || 
+        isSuperAdmin() ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'
+      );
+    }
+
+    // 2. Password Resets
+    match /password_resets/{document} {
+      allow create: if true;
+      allow read, update: if isAuthenticated();
+      allow delete: if isSuperAdmin();
+    }
+
+    // 3. Document Requests
+    match /requests/{document} {
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isSuperAdmin();
+    }
+
+    // 4. Notifications
+    match /notifications/{document} {
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isSuperAdmin());
+    }
+
+    // 5. Users Collection
+    match /users/{document} {
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isSuperAdmin();
+    }
+
+    // 6. Generic Access Block
+    match /{document=**} {
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isSuperAdmin();
+    }
+  }
+}

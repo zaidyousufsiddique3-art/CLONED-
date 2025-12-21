@@ -1,8 +1,29 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    
+    // 1. SPORTS CAPTAIN PORTFOLIOS
+    match /sports_captain/{userId}/{allPaths=**} {
+      // Students can upload to their own folder
+      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // Student, Coordinator (by email), and Admin/SuperAdmin can read
+      allow read: if request.auth != null && (
+        request.auth.uid == userId ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.email == 'Chandana.kulathunga@slisr.org' ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['ADMIN', 'SUPER_ADMIN']
+      );
+    }
+
+    // 2. DOCUMENTS PORTAL (SUPERADMIN ONLY)
+    match /superadmin_documents/{allPaths=**} {
+      allow read, write: if request.auth != null && 
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'SUPER_ADMIN';
+    }
+
+    // 3. DEFAULT (OTHER ATTACHMENTS)
     match /{allPaths=**} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
   }
 }
