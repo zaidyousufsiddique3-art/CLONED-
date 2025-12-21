@@ -342,7 +342,7 @@ const Dashboard: React.FC = () => {
 
       {/* Recent Password Requests Table */}
       {activeTab === 'password' && (
-        <div className="bg-white dark:bg-[#0a0a0c]/60 backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 overflow-hidden transition-colors">
+        <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 overflow-hidden transition-colors">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
@@ -387,7 +387,7 @@ const Dashboard: React.FC = () => {
       {/* Password Management Modal (Reused) */}
       {isPwdModalOpen && selectedPwdReq && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="bg-white dark:bg-[#0a0a0c] rounded-[2.5rem] shadow-2xl max-w-lg w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10">
+          <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl max-w-lg w-full p-8 animate-fade-in border border-slate-200 dark:border-white/10">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">Manage Password Request</h3>
               <button onClick={() => setIsPwdModalOpen(false)}><X className="w-5 h-5 text-slate-400" /></button>

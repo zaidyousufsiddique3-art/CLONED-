@@ -6,20 +6,20 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
 }
 
-const Button: React.FC<ButtonProps> = ({ 
-  children, 
-  variant = 'primary', 
-  size = 'md', 
-  isLoading, 
-  className = '', 
-  ...props 
+const Button: React.FC<ButtonProps> = ({
+  children,
+  variant = 'primary',
+  size = 'md',
+  isLoading,
+  className = '',
+  ...props
 }) => {
-  
+
   const baseStyles = "inline-flex items-center justify-center font-medium transition-all duration-300 focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl tracking-wide";
-  
+
   const variants = {
     primary: "bg-gradient-to-r from-brand-600 to-brand-500 text-white hover:to-brand-400 focus:ring-brand-900 shadow-lg shadow-brand-500/20 border border-transparent",
-    secondary: "bg-[#1e293b] text-slate-200 border border-slate-600 hover:bg-slate-700 focus:ring-slate-700 shadow-sm",
+    secondary: "bg-[#070708] text-slate-200 border border-slate-600 hover:bg-white/5 focus:ring-slate-700 shadow-sm",
     outline: "border-2 border-brand-500 text-brand-400 hover:bg-brand-500/10 focus:ring-brand-900",
     danger: "bg-red-500 text-white hover:bg-red-600 focus:ring-red-900 shadow-lg shadow-red-500/30",
     ghost: "text-slate-400 hover:bg-slate-800 hover:text-brand-400",
@@ -32,7 +32,7 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   return (
-    <button 
+    <button
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={isLoading || props.disabled}
       {...props}

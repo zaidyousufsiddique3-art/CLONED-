@@ -270,7 +270,7 @@ const RequestDetail: React.FC = () => {
             {/* Assignment Popup Notification */}
             {showAssignmentPopup && assignmentPopupData && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowAssignmentPopup(false)}>
-                    <div className="bg-white dark:bg-[#1e293b] rounded-3xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full mx-4 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white dark:bg-[#070708] rounded-3xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full mx-4 animate-scale-in" onClick={(e) => e.stopPropagation()}>
                         <div className="text-center">
                             <div className="mb-6">
                                 <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
@@ -305,15 +305,15 @@ const RequestDetail: React.FC = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-8">
-                        <div className="bg-white dark:bg-[#1e293b] rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div className="bg-white dark:bg-[#070708] rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Request #{request.id}</h1>
                                     <span className="text-slate-500 dark:text-slate-400 text-sm">{new Date(request.createdAt).toLocaleDateString()} at {new Date(request.createdAt).toLocaleTimeString()}</span>
                                 </div>
                                 <span className={`px-4 py-2 rounded-full text-sm font-bold border ${request.status === RequestStatus.COMPLETED ? 'bg-emerald-100 text-emerald-600 border-emerald-200' :
-                                        request.status === RequestStatus.ACTION_NEEDED ? 'bg-red-100 text-red-600 border-red-200' :
-                                            'bg-blue-50 text-blue-600 border-blue-200'
+                                    request.status === RequestStatus.ACTION_NEEDED ? 'bg-red-100 text-red-600 border-red-200' :
+                                        'bg-blue-50 text-blue-600 border-blue-200'
                                     }`}>
                                     {request.status}
                                 </span>
@@ -333,13 +333,13 @@ const RequestDetail: React.FC = () => {
 
                             <div className="mt-6">
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Instructions / Details</p>
-                                <p className="text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#0f172a] p-4 rounded-xl border border-slate-100 dark:border-slate-700/50">
+                                <p className="text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#070708] p-4 rounded-xl border border-slate-100 dark:border-slate-700/50">
                                     {request.details}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="bg-white dark:bg-[#1e293b] rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div className="bg-white dark:bg-[#070708] rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="font-bold text-xl text-slate-900 dark:text-white flex items-center">
                                     <Paperclip className="w-5 h-5 mr-2" /> Attachments
@@ -347,7 +347,7 @@ const RequestDetail: React.FC = () => {
                             </div>
 
                             {canManage && (
-                                <div className="mb-6 bg-slate-50 dark:bg-[#0f172a] p-6 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
+                                <div className="mb-6 bg-slate-50 dark:bg-[#070708] p-6 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
                                     {!selectedFile ? (
                                         <label className="cursor-pointer flex flex-col items-center justify-center p-4 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-colors">
                                             <Upload className="w-8 h-8 text-slate-400 mb-2" />
@@ -356,7 +356,7 @@ const RequestDetail: React.FC = () => {
                                             <input type="file" className="hidden" onChange={(e) => e.target.files && setSelectedFile(e.target.files[0])} />
                                         </label>
                                     ) : (
-                                        <div className="flex items-center justify-between bg-white dark:bg-[#1e293b] p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                                        <div className="flex items-center justify-between bg-white dark:bg-[#070708] p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                                             <div className="flex items-center">
                                                 <File className="w-8 h-8 text-brand-500 mr-3" />
                                                 <div>
@@ -386,8 +386,8 @@ const RequestDetail: React.FC = () => {
                                                 <p className="font-bold text-sm text-slate-900 dark:text-white mb-0.5">{att.name}</p>
                                                 <div className="flex items-center space-x-2 text-xs">
                                                     <span className={`font-bold px-2 py-0.5 rounded ${att.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                                                            att.status === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                                'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                                        att.status === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                                                         }`}>
                                                         {att.status}
                                                     </span>
@@ -432,7 +432,7 @@ const RequestDetail: React.FC = () => {
                                             value={rejectionReason}
                                             onChange={e => setRejectionReason(e.target.value)}
                                             placeholder="E.g. Incorrect format, missing signature..."
-                                            className="flex-1 px-4 py-2 border border-red-200 dark:border-red-800 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-slate-900 dark:text-white bg-white dark:bg-[#0f172a]"
+                                            className="flex-1 px-4 py-2 border border-red-200 dark:border-red-800 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-slate-900 dark:text-white bg-white dark:bg-[#070708]"
                                         />
                                         <Button variant="danger" size="sm" onClick={handleRejectDoc}>Confirm Reject</Button>
                                         <Button variant="ghost" size="sm" onClick={() => setRejectingDocId(null)}>Cancel</Button>
@@ -441,7 +441,7 @@ const RequestDetail: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="bg-white dark:bg-[#1e293b] rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div className="bg-white dark:bg-[#070708] rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
                             <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-6 flex items-center">
                                 <MessageSquare className="w-5 h-5 mr-2" /> Comments & Activity
                             </h3>
@@ -453,17 +453,17 @@ const RequestDetail: React.FC = () => {
                                 {visibleComments.map(comment => (
                                     <div key={comment.id} className={`flex flex-col ${comment.authorId === user.id ? 'items-end' : 'items-start'}`}>
                                         <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${comment.isInternal
-                                                ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30'
-                                                : comment.isDirectMessage
-                                                    ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30'
-                                                    : comment.authorId === user.id
-                                                        ? 'bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-900/30'
-                                                        : 'bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700'
+                                            ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30'
+                                            : comment.isDirectMessage
+                                                ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30'
+                                                : comment.authorId === user.id
+                                                    ? 'bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-900/30'
+                                                    : 'bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700'
                                             }`}>
                                             <div className="flex items-center justify-between mb-1 space-x-4">
                                                 <span className={`text-xs font-bold ${comment.isInternal ? 'text-amber-700 dark:text-amber-500' :
-                                                        comment.isDirectMessage ? 'text-blue-700 dark:text-blue-400' :
-                                                            'text-slate-700 dark:text-brand-400'
+                                                    comment.isDirectMessage ? 'text-blue-700 dark:text-blue-400' :
+                                                        'text-slate-700 dark:text-brand-400'
                                                     }`}>
                                                     {comment.authorName}
                                                     {comment.isInternal && ' (Internal)'}
@@ -490,21 +490,21 @@ const RequestDetail: React.FC = () => {
                                                 : "Type message..."
                                         }
                                         className={`w-full p-4 rounded-2xl border focus:ring-2 outline-none transition-all resize-none ${commentType === 'internal'
-                                                ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 focus:ring-amber-500 placeholder-amber-400/70 text-amber-900 dark:text-amber-100'
-                                                : commentType === 'direct' && canManage
-                                                    ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800 focus:ring-blue-500 placeholder-blue-400/70 text-blue-900 dark:text-blue-100'
-                                                    : 'bg-slate-50 dark:bg-[#0f172a] border-slate-200 dark:border-slate-700 focus:ring-brand-500 text-slate-900 dark:text-white'
+                                            ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 focus:ring-amber-500 placeholder-amber-400/70 text-amber-900 dark:text-amber-100'
+                                            : commentType === 'direct' && canManage
+                                                ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800 focus:ring-blue-500 placeholder-blue-400/70 text-blue-900 dark:text-blue-100'
+                                                : 'bg-slate-50 dark:bg-[#070708] border-slate-200 dark:border-slate-700 focus:ring-brand-500 text-slate-900 dark:text-white'
                                             }`}
                                         rows={3}
                                     />
                                     {canManage && (
-                                        <div className="flex items-center space-x-2 mt-3 p-1 bg-slate-50 dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-700 inline-flex">
+                                        <div className="flex items-center space-x-2 mt-3 p-1 bg-slate-50 dark:bg-[#070708] rounded-xl border border-slate-200 dark:border-slate-700 inline-flex">
                                             <button
                                                 type="button"
                                                 onClick={() => setCommentType('direct')}
                                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center ${commentType === 'direct'
-                                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 shadow-sm'
-                                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 shadow-sm'
+                                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
                                                     }`}
                                             >
                                                 <Mail className="w-3 h-3 mr-1.5" />
@@ -514,8 +514,8 @@ const RequestDetail: React.FC = () => {
                                                 type="button"
                                                 onClick={() => setCommentType('internal')}
                                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center ${commentType === 'internal'
-                                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 shadow-sm'
-                                                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 shadow-sm'
+                                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
                                                     }`}
                                             >
                                                 <ShieldAlert className="w-3 h-3 mr-1.5" />
@@ -533,7 +533,7 @@ const RequestDetail: React.FC = () => {
 
                     <div className="space-y-6">
                         {isSuperAdmin && (
-                            <div className="bg-white dark:bg-[#1e293b] rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div className="bg-white dark:bg-[#070708] rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <h3 className="font-bold mb-4 text-slate-900 dark:text-white flex items-center">
                                     <Lock className="w-5 h-5 mr-2 text-slate-400" /> Admin Actions
                                 </h3>
@@ -543,7 +543,7 @@ const RequestDetail: React.FC = () => {
                                         <select
                                             value={selectedAssignee}
                                             onChange={e => setSelectedAssignee(e.target.value)}
-                                            className="w-full p-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl outline-none text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500"
+                                            className="w-full p-3 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-slate-600 rounded-xl outline-none text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500"
                                         >
                                             <option value="">Select Staff Member...</option>
                                             {potentialAssignees.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} - {u.role}</option>)}
@@ -559,7 +559,7 @@ const RequestDetail: React.FC = () => {
                                             type="date"
                                             value={expectedDate}
                                             onChange={e => setExpectedDate(e.target.value)}
-                                            className="w-full p-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl outline-none text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500"
+                                            className="w-full p-3 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-slate-600 rounded-xl outline-none text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500"
                                         />
                                         <Button onClick={handleDateUpdate} variant="secondary" className="w-full mt-3">Set Date</Button>
                                     </div>
@@ -568,13 +568,13 @@ const RequestDetail: React.FC = () => {
                         )}
 
                         {canManage && (
-                            <div className="bg-white dark:bg-[#1e293b] rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div className="bg-white dark:bg-[#070708] rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <h3 className="font-bold mb-4 text-slate-900 dark:text-white">Request Status</h3>
                                 <div className="space-y-4">
                                     <select
                                         value={request.status}
                                         onChange={e => handleStatusChange(e.target.value as RequestStatus)}
-                                        className="w-full p-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl outline-none font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500"
+                                        className="w-full p-3 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-slate-600 rounded-xl outline-none font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500"
                                     >
                                         {Object.values(RequestStatus).filter(s => s !== RequestStatus.COMPLETED).map(s => <option key={s} value={s}>{s}</option>)}
                                         <option value={RequestStatus.COMPLETED} disabled>Completed (System Only)</option>
