@@ -176,7 +176,7 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="h-screen bg-[#070708] flex flex-col font-sans selection:bg-slate-500/30 selection:text-white relative overflow-hidden">
+        <div className="min-h-screen bg-[#070708] flex flex-col font-sans selection:bg-slate-500/30 selection:text-white relative overflow-hidden">
 
             {/* Premium Background Effects: Subtle Gradients */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -191,14 +191,14 @@ const Login: React.FC = () => {
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.02] mix-blend-overlay"></div>
             </div>
 
-            <main className="flex-grow flex items-center justify-center p-6 lg:p-12 relative z-10 w-full h-full overflow-hidden">
+            <main className="flex-grow flex items-center justify-center relative z-10 w-full px-6 lg:px-12 py-12 lg:py-0">
                 {/* Expanded Container for 70-80% Page Consumption */}
-                <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-24 items-center mx-auto h-full max-h-[85vh]">
+                <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center mx-auto">
 
                     {/* Left Column: Hero Section (Prominent) */}
-                    <div className="hidden lg:flex flex-col space-y-12 animate-fade-in pl-8">
-                        <div className="space-y-10">
-                            <div className="flex items-center gap-6 mb-6">
+                    <div className="hidden lg:flex flex-col space-y-8 animate-fade-in pl-8 justify-center h-full">
+                        <div className="space-y-8">
+                            <div className="flex items-center gap-6 mb-2">
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-brand-600/20 blur-2xl rounded-full"></div>
                                     <img src="/assets/logo.png" alt="SLISR Logo" className="relative h-40 w-auto object-contain drop-shadow-[0_0_30px_rgba(225,29,72,0.3)]" />
@@ -218,23 +218,25 @@ const Login: React.FC = () => {
                                 Verified Institutional Hub
                             </div>
 
-                            <h1 className="text-5xl lg:text-6xl font-black text-white tracking-tighter leading-[1.1]">
+                            <h1 className="text-5xl lg:text-6xl font-black text-white tracking-tighter leading-[1.1] py-2">
                                 Secure Access To <br className="block" />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-brand-500 whitespace-nowrap">Academic Documents</span>
                             </h1>
 
-                            <p className="text-slate-400 text-lg max-w-xl leading-relaxed font-medium">
-                                Official SLISR documents, securely accessed through a centralized institutional portal.
-                            </p>
+                            <div className="space-y-6">
+                                <p className="text-slate-400 text-lg max-w-lg leading-relaxed font-medium block">
+                                    Official SLISR documents, securely accessed through a centralized institutional portal.
+                                </p>
 
-                            <p className="text-slate-500 text-base max-w-xl leading-relaxed">
-                                The SLISR Docs Portal enables authorized students, staff, and administrators to access verified academic records with institutional-grade security and compliance.
-                            </p>
+                                <p className="text-slate-500 text-base max-w-md leading-relaxed">
+                                    The SLISR Docs Portal enables authorized students, staff, and administrators to access verified academic records with institutional-grade security.
+                                </p>
+                            </div>
                         </div>
                     </div>
 
                     {/* Right Column: Expanded Login Card */}
-                    <div className="flex justify-center lg:justify-start">
+                    <div className="flex justify-center lg:justify-end w-full">
                         <div className="w-full max-w-md bg-[#0A0A0C]/80 backdrop-blur-3xl p-8 lg:p-12 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] border border-white/5 relative overflow-hidden group">
 
                             {/* Mobile Logo Only */}
