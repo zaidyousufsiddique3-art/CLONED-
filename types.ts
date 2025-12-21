@@ -61,7 +61,7 @@ export interface Attachment {
   size: number;
   dataUrl: string; // Base64 simulation
   uploadedBy: string;
-  status: AttachmentStatus; 
+  status: AttachmentStatus;
   createdAt: string;
 }
 
@@ -117,4 +117,22 @@ export interface Analytics {
   pendingRequests: number;
   completedRequests: number;
   rejectedRequests: number;
+}
+
+export interface SportsCaptainApplication {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentAdmissionNo: string;
+  studentGender: string;
+  cvUrl?: string;
+  cvName?: string;
+  intentUrl?: string;
+  intentName?: string;
+  actionPlanUrl?: string;
+  actionPlanName?: string;
+  supportingCertificates: Attachment[];
+  status: 'Pending' | 'Under Review' | 'Accepted' | 'Declined';
+  createdAt: string;
+  updatedAt: string;
 }

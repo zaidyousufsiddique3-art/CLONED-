@@ -8,6 +8,15 @@ export const getAllUsers = async (): Promise<User[]> => {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
 };
 
+export const getStudents = async (gender?: string): Promise<User[]> => {
+  let q = query(collection(db, 'users'), where('role', '==', UserRole.STUDENT));
+  if (gender) {
+    q = query(q, where('gender', '==', gender));
+  }
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+};
+
 export const updateUserProfile = async (userId: string, data: Partial<User>) => {
   const userRef = doc(db, 'users', userId);
   await updateDoc(userRef, data);
@@ -37,8 +46,15 @@ export const seedSuperAdmin = async () => {
   // but we can check firestore.
   const q = query(collection(db, 'users'), where('email', '==', email));
   const snapshot = await getDocs(q);
-  
+
   if (snapshot.empty) {
     console.log("Super Admin not found in DB. Ensure 'administration@slisr.org' is registered.");
   }
+};
+
+export const getUserByEmail = async (email: string): Promise<User | null> => {
+  const q = query(collection(db, 'users'), where('email', '==', email));
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as User;
 };

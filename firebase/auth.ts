@@ -1,7 +1,7 @@
 
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   User as FirebaseUser,
   getAuth,
@@ -13,11 +13,11 @@ import { User, UserRole } from '../types';
 
 // Re-export SDK members to act as a transparent proxy for other files
 // Explicitly export members that might be shadowed by local imports or needed explicitly
-export { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  getAuth, 
-  sendPasswordResetEmail 
+export {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  getAuth,
+  sendPasswordResetEmail
 };
 
 export * from '@firebase/auth';
@@ -40,7 +40,7 @@ export const registerUser = async (userData: User, password: string): Promise<Us
   const emailToRegister = userData.email;
 
   const userCredential = await createUserWithEmailAndPassword(auth, emailToRegister, password);
-  
+
   // Save extra fields to Firestore
   const userPayload: any = {
     firstName: userData.firstName,
@@ -67,41 +67,73 @@ export const registerUser = async (userData: User, password: string): Promise<Us
 export const loginUser = async (identifier: string, password: string, role: UserRole): Promise<User> => {
   const email = identifier;
   const SUPER_ADMIN_EMAIL = 'administration@slisr.org';
-  
+  const SPORTS_COORDINATOR_EMAIL = 'Chandana.kulathunga@slisr.org';
+
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    let userCredential;
+    try {
+      userCredential = await signInWithEmailAndPassword(auth, email, password);
+    } catch (authError: any) {
+      // If hardcoded Sports Coordinator trying to login but not created in Firebase Auth yet
+      if (email.toLowerCase() === 'chandana.kulathunga@slisr.org' && password === 'Chandana@123') {
+        const newUser = await registerUser({
+          id: '', firstName: 'Chandana', lastName: 'Kulathunga', email, role: UserRole.STAFF, designation: 'Sports Coordinator', isActive: true, createdAt: ''
+        } as any, password);
+        // Retry login
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        throw authError;
+      }
+    }
+
     let appUser = await mapUser(userCredential.user);
-    
+
     // Auto-recover Super Admin profile if missing in Firestore
     if (!appUser && email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) {
-        const adminData: any = {
-           firstName: 'Super',
-           lastName: 'Admin',
-           role: UserRole.SUPER_ADMIN,
-           email: email,
-           isActive: true,
-           createdAt: new Date().toISOString(),
-           phone: ''
-        };
-        await setDoc(doc(db, 'users', userCredential.user.uid), adminData);
-        appUser = { id: userCredential.user.uid, ...adminData } as User;
+      const adminData: any = {
+        firstName: 'Super',
+        lastName: 'Admin',
+        role: UserRole.SUPER_ADMIN,
+        email: email,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        phone: ''
+      };
+      await setDoc(doc(db, 'users', userCredential.user.uid), adminData);
+      appUser = { id: userCredential.user.uid, ...adminData } as User;
+    }
+
+    // Auto-recover Sports Coordinator profile
+    if (!appUser && email.toLowerCase() === SPORTS_COORDINATOR_EMAIL.toLowerCase()) {
+      const sportsCoordData: any = {
+        firstName: 'Chandana',
+        lastName: 'Kulathunga',
+        role: UserRole.STAFF,
+        designation: 'Sports Coordinator',
+        email: email,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        phone: ''
+      };
+      await setDoc(doc(db, 'users', userCredential.user.uid), sportsCoordData);
+      appUser = { id: userCredential.user.uid, ...sportsCoordData } as User;
     }
 
     if (!appUser) {
-        // Handle case where auth exists but DB doc is missing/unreadable
-        await firebaseSignOut(auth);
-        throw new Error('User profile not found in database.');
+      // Handle case where auth exists but DB doc is missing/unreadable
+      await firebaseSignOut(auth);
+      throw new Error('User profile not found in database.');
     }
-    
+
     if (!appUser.isActive) throw new Error('Account deactivated');
-    
+
     // Role mismatch check (Optional strictness)
     if (appUser.role !== role) {
-       // Allow Super Admin to login as Admin
-       if (!(role === UserRole.ADMIN && appUser.role === UserRole.SUPER_ADMIN)) {
-         await firebaseSignOut(auth);
-         throw new Error(`Unauthorized: This account is not registered as a ${role}`);
-       }
+      // Allow Super Admin to login as Admin
+      if (!(role === UserRole.ADMIN && appUser.role === UserRole.SUPER_ADMIN)) {
+        await firebaseSignOut(auth);
+        throw new Error(`Unauthorized: This account is not registered as a ${role}`);
+      }
     }
 
     return appUser;

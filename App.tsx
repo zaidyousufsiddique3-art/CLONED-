@@ -13,6 +13,8 @@ import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
 import DocumentsPortal from './pages/DocumentsPortal';
 import PredictedGradesPortal from './pages/PredictedGradesPortal';
+import SportsCaptainPortal from './pages/SportsCaptainPortal';
+import SportsCaptainApplicationForm from './pages/SportsCaptainApplicationForm';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { user } = useAuth();
@@ -85,6 +87,18 @@ const AppRoutes = () => {
       <Route path="/predicted-grades" element={
         <ProtectedRoute>
           <Layout><PredictedGradesPortal /></Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/sports-captain" element={
+        <ProtectedRoute>
+          <Layout><SportsCaptainPortal /></Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/sports-captain/apply" element={
+        <ProtectedRoute>
+          <Layout><SportsCaptainApplicationForm /></Layout>
         </ProtectedRoute>
       } />
     </Routes>

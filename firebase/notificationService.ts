@@ -6,8 +6,16 @@ import { Notification } from '../types';
 const NOTIFS_COLLECTION = 'notifications';
 
 export const sendNotification = async (userId: string, message: string, link?: string) => {
+  let targetId = userId;
+
+  if (userId === "COORDINATOR") {
+    const q = query(collection(db, 'users'), where('email', '==', 'Chandana.kulathunga@slisr.org'));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) targetId = snapshot.docs[0].id;
+  }
+
   const notif: Omit<Notification, 'id'> = {
-    userId,
+    userId: targetId,
     message,
     link,
     isRead: false,
@@ -24,7 +32,7 @@ export const markAllAsRead = async (userId: string) => {
   try {
     const q = query(collection(db, NOTIFS_COLLECTION), where('userId', '==', userId), where('isRead', '==', false));
     const snapshot = await getDocs(q);
-    
+
     if (snapshot.empty) return;
 
     const chunks = [];
@@ -52,15 +60,15 @@ export const markAllAsRead = async (userId: string) => {
 };
 
 export const deleteNotification = async (id: string) => {
-    // Requires security rule allowing user to delete own notification
-    await deleteDoc(doc(db, NOTIFS_COLLECTION, id));
+  // Requires security rule allowing user to delete own notification
+  await deleteDoc(doc(db, NOTIFS_COLLECTION, id));
 };
 
 export const deleteAllNotifications = async (userId: string) => {
   try {
     const q = query(collection(db, NOTIFS_COLLECTION), where('userId', '==', userId));
     const snapshot = await getDocs(q);
-    
+
     if (snapshot.empty) return;
 
     const chunks = [];
@@ -90,13 +98,13 @@ export const deleteAllNotifications = async (userId: string) => {
 
 export const subscribeToNotifications = (userId: string, callback: (notifs: Notification[]) => void) => {
   const q = query(
-    collection(db, NOTIFS_COLLECTION), 
+    collection(db, NOTIFS_COLLECTION),
     where('userId', '==', userId)
   );
   return onSnapshot(q, (snapshot) => {
     const notifs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
     // Sort by date desc (newest first)
-    notifs.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    notifs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     callback(notifs);
   });
 };

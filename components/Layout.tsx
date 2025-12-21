@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
-import { APP_NAME } from '../constants';
+import { APP_NAME, SPORTS_COORDINATOR_EMAIL } from '../constants';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -16,7 +16,8 @@ import {
   Moon,
   Bell,
   Folder,
-  TrendingUp
+  TrendingUp,
+  Trophy
 } from 'lucide-react';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -82,7 +83,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                       location.pathname === '/notifications' ? 'Alerts' :
                         location.pathname === '/profile' ? 'Profile' :
                           location.pathname === '/documents' ? 'Vault' :
-                            location.pathname === '/predicted-grades' ? 'Analytics' : APP_NAME}
+                            location.pathname === '/predicted-grades' ? 'Analytics' :
+                              location.pathname.startsWith('/sports-captain') ? 'Sports Hub' : APP_NAME}
           </span>
         </div>
         <div className="flex items-center space-x-3">
@@ -131,16 +133,21 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             )}
 
             {(user.role === UserRole.ADMIN || user.role === UserRole.STAFF) && (
-              <NavItem to="/requests" icon={FileText} label="All Requests" />
+              <NavItem to="/requests" icon={FileText} label="Institutional Records" />
             )}
 
             {user.role === UserRole.SUPER_ADMIN && (
               <>
-                <NavItem to="/requests" icon={FileText} label="All Requests" />
+                <NavItem to="/requests" icon={FileText} label="Institutional Records" />
                 <NavItem to="/users" icon={Users} label="User Management" />
                 <NavItem to="/documents" icon={Folder} label="Documents Portal" />
                 <NavItem to="/predicted-grades" icon={TrendingUp} label="Predicted Grades" />
               </>
+            )}
+
+            {/* Sports Coordinator Specific Access */}
+            {user.email.toLowerCase() === SPORTS_COORDINATOR_EMAIL.toLowerCase() && (
+              <NavItem to="/sports-captain" icon={Trophy} label="Sports Captain" />
             )}
           </div>
 
@@ -196,7 +203,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                           location.pathname === '/notifications' ? 'System Alerts' :
                             location.pathname === '/profile' ? 'Security Profile' :
                               location.pathname === '/documents' ? 'Vault' :
-                                location.pathname === '/predicted-grades' ? 'Analytics' : ''}
+                                location.pathname === '/predicted-grades' ? 'Analytics' :
+                                  location.pathname.startsWith('/sports-captain') ? 'Sports Captain Hub' : ''}
               </h2>
               <p className="text-slate-500 dark:text-slate-500 mt-1 font-bold text-xs uppercase tracking-widest">
                 {location.pathname === '/dashboard' ? `Welcome, ${user.firstName}` :
