@@ -219,35 +219,44 @@ const Login: React.FC = () => {
                             </div>
 
                             <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter leading-[0.95]">
-                                Secure Access <br />
-                                To <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-100 to-brand-600">
-                                    Academic Documents
-                                </span>
+                                Secure Access To <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-100 to-brand-600">Academic Documents</span>
                             </h1>
 
                             <p className="text-slate-400 text-base max-w-lg leading-relaxed font-medium">
-                                Advanced document management for the SLISR academic community. <br className="hidden lg:block" />
-                                Secured by verified encryption and institution-grade clearance protocols.
+                                Official SLISR documents, securely accessed through a centralized institutional portal.
+                            </p>
+
+                            <p className="text-slate-500 text-sm max-w-lg leading-relaxed">
+                                The SLISR Docs Portal enables authorized students, staff, and administrators to access verified academic records with institutional-grade security and compliance.
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-10 pt-4">
-                            <div className="flex items-center gap-5 group">
-                                <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-brand-500/10 flex items-center justify-center text-brand-500 border border-brand-500/20 group-hover:bg-brand-500/20 group-hover:scale-110 transition-all duration-300">
-                                    <ShieldCheck size={24} />
+                        <div className="grid grid-cols-1 gap-6 pt-4">
+                            <div className="flex items-start gap-4 group">
+                                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-500 border border-brand-500/20 group-hover:bg-brand-500/20 transition-all duration-300">
+                                    <ShieldCheck size={20} />
                                 </div>
                                 <div>
-                                    <h3 className="text-white font-bold text-lg">Data Integrity</h3>
-                                    <p className="text-slate-500 text-sm">End-to-end encrypted procurement for verified records.</p>
+                                    <h3 className="text-white font-bold text-base">Verified Documents</h3>
+                                    <p className="text-slate-500 text-xs">Official academic records issued by SLISR</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-5 group">
-                                <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-brand-500/10 flex items-center justify-center text-brand-500 border border-brand-500/20 group-hover:bg-brand-500/20 group-hover:scale-110 transition-all duration-300">
-                                    <Layers size={24} />
+                            <div className="flex items-start gap-4 group">
+                                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-500 border border-brand-500/20 group-hover:bg-brand-500/20 transition-all duration-300">
+                                    <Layers size={20} />
                                 </div>
                                 <div>
-                                    <h3 className="text-white font-bold text-lg">Dynamic Roles</h3>
-                                    <p className="text-slate-500 text-sm">Verified access clearance across all institutional levels.</p>
+                                    <h3 className="text-white font-bold text-base">Role-Based Access</h3>
+                                    <p className="text-slate-500 text-xs">Controlled permissions for Students, Staff, and Administrators</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-4 group">
+                                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-500 border border-brand-500/20 group-hover:bg-brand-500/20 transition-all duration-300">
+                                    <Lock size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-white font-bold text-base">Institutional Security</h3>
+                                    <p className="text-slate-500 text-xs">Encrypted access for sensitive academic data</p>
                                 </div>
                             </div>
                         </div>
@@ -269,7 +278,7 @@ const Login: React.FC = () => {
                                 <div className="space-y-8 animate-fade-in relative z-10">
                                     <div className="space-y-2">
                                         <h2 className="text-4xl font-black text-white tracking-tighter">Sign In</h2>
-                                        <p className="text-slate-500 text-sm font-semibold tracking-wide">Authenticate to access institutional services</p>
+                                        <p className="text-slate-500 text-sm font-semibold tracking-wide">Authenticate to access your dashboard.</p>
                                     </div>
 
                                     {error && (
@@ -308,30 +317,20 @@ const Login: React.FC = () => {
                                             onChange={(e: any) => setPassword(e.target.value)}
                                         />
 
-                                        <button
-                                            type="submit"
-                                            disabled={loading}
-                                            className="w-full h-16 bg-gradient-to-r from-brand-700 to-brand-500 hover:from-brand-600 hover:to-brand-400 text-white text-lg font-black rounded-2xl shadow-[0_15px_35px_-5px_rgba(225,29,72,0.5)] transform transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group mt-4 overflow-hidden relative"
-                                        >
-                                            <div className="relative z-10 flex items-center justify-center gap-3">
-                                                {loading ? 'Verifying Access...' : 'Enter Portal'}
-                                                {!loading && <CheckCircle2 size={24} className="opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-2" />}
-                                            </div>
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                        <button type="submit" disabled={loading} className="w-full py-4 px-6 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-800 text-white rounded-2xl font-black text-base tracking-wider shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                                            {loading ? 'Authenticating...' : 'Secure Login'}
                                         </button>
                                     </form>
 
                                     <div className="space-y-6 pt-4">
-                                        <div className="flex justify-center">
-                                            <button
-                                                type="button"
-                                                onClick={() => setView('forgot')}
-                                                className="text-xs text-slate-500 hover:text-brand-500 transition-colors font-bold uppercase tracking-[0.2em]"
-                                            >
-                                                Forgot Credentials?
+                                        <div className="text-center space-y-3">
+                                            <button onClick={() => setView('forgot')} className="text-sm text-brand-500 hover:text-brand-400 transition-colors font-semibold">
+                                                Forgot your password?
                                             </button>
+                                            <p className="text-xs text-slate-600">
+                                                Need access? Contact SLISR Administration
+                                            </p>
                                         </div>
-
                                         <div className="pt-8 border-t border-slate-800/80 flex flex-col items-center gap-2.5 text-center">
                                             <span className="text-slate-600 text-[11px] font-bold uppercase tracking-widest">Unauthorized access is monitored.</span>
                                             <Link to="/register" className="text-brand-500 font-black text-xs uppercase tracking-[0.2em] hover:text-brand-400 transition-colors group">
@@ -453,9 +452,14 @@ const Login: React.FC = () => {
             {/* Footer */}
             <footer className="relative z-20 px-12 py-8 border-t border-white/5 bg-black/60 backdrop-blur-3xl">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-                    <p className="text-slate-700 text-[11px] font-black uppercase tracking-[0.4em]">
-                        © {new Date().getFullYear()} {APP_NAME} Unified Security Hub
-                    </p>
+                    <div className="text-center md:text-left">
+                        <p className="text-white text-sm font-bold tracking-wide">
+                            Sri Lanka Islamic Student Registry (SLISR)
+                        </p>
+                        <p className="text-slate-600 text-xs font-medium tracking-wider mt-1">
+                            Official academic records management system
+                        </p>
+                    </div>
                     <div className="flex gap-10">
                         <span className="text-slate-700 text-[10px] font-black uppercase tracking-[0.3em] cursor-default hover:text-slate-500 transition-colors">Digital Privacy</span>
                         <span className="text-slate-700 text-[10px] font-black uppercase tracking-[0.3em] cursor-default hover:text-slate-500 transition-colors">Institutional Compliance</span>

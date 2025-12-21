@@ -224,10 +224,6 @@ const DocumentsPortal: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Vault</h1>
-                    <p className="text-slate-500 dark:text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">Institutional records and document repository.</p>
-                </div>
                 <div className="flex gap-2">
                     <button
                         onClick={() => setIsCreateFolderOpen(true)}
