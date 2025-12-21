@@ -65,9 +65,9 @@ export const registerUser = async (userData: User, password: string): Promise<Us
 };
 
 export const loginUser = async (identifier: string, password: string, role: UserRole): Promise<User> => {
-  const email = identifier;
-  const SUPER_ADMIN_EMAIL = 'administration@slisr.org';
-  const SPORTS_COORDINATOR_EMAIL = 'Chandana.kulathunga@slisr.org';
+  const email = identifier.trim();
+  const SUPER_ADMIN_EMAIL = 'administration@slisr.org'.toLowerCase();
+  const SPORTS_COORDINATOR_EMAIL = 'Chandana.kulathunga@slisr.org'.toLowerCase();
 
   try {
     let userCredential;
@@ -75,11 +75,26 @@ export const loginUser = async (identifier: string, password: string, role: User
       userCredential = await signInWithEmailAndPassword(auth, email, password);
     } catch (authError: any) {
       // If hardcoded Sports Coordinator trying to login but not created in Firebase Auth yet
-      if (email.toLowerCase() === 'chandana.kulathunga@slisr.org' && password === 'Chandana@123') {
-        const newUser = await registerUser({
-          id: '', firstName: 'Chandana', lastName: 'Kulathunga', email, role: UserRole.STAFF, designation: 'Sports Coordinator', isActive: true, createdAt: ''
-        } as any, password);
-        // Retry login
+      const isSportsCoordinator = email.toLowerCase() === SPORTS_COORDINATOR_EMAIL && password === 'Chandana@123';
+
+      if (isSportsCoordinator) {
+        try {
+          // Attempt to register if not exists
+          await registerUser({
+            firstName: 'Chandana',
+            lastName: 'Kulathunga',
+            email: email.toLowerCase(),
+            role: UserRole.STAFF,
+            designation: 'Sports Coordinator',
+            isActive: true,
+            createdAt: new Date().toISOString()
+          } as any, password);
+        } catch (regError) {
+          // If already registered but different password etc, retry login one last time
+          // or if registration fails for some other reason, we still try to let the authError bubble up
+          console.warn("Sports Coordinator auto-registration skipped or failed:", regError);
+        }
+        // Final attempt to sign in with the provided credentials
         userCredential = await signInWithEmailAndPassword(auth, email, password);
       } else {
         throw authError;
