@@ -176,78 +176,97 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="h-screen bg-[#050505] flex flex-col font-sans selection:bg-brand-700/30 selection:text-white relative overflow-hidden">
+        <div className="h-screen bg-[#020205] flex flex-col font-sans selection:bg-indigo-500/30 selection:text-white relative overflow-hidden">
 
-            {/* Background Effects */}
+            {/* Shared Visual Anchor: Central Gradient */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-800/10 rounded-full blur-[100px]"></div>
-                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-700/10 rounded-full blur-[100px]"></div>
+                {/* Primary Midnight Indigo Glow */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[700px] bg-[#0b0531]/30 rounded-full blur-[120px]"></div>
+
+                {/* Secondary Depth Accents */}
+                <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#0b0531]/20 rounded-full blur-[100px]"></div>
+                <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-brand-900/5 rounded-full blur-[100px]"></div>
+
+                {/* Subtle Grid Pattern for Texture */}
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] mix-blend-overlay"></div>
             </div>
 
             <main className="flex-grow flex items-center justify-center p-4 lg:p-8 relative z-10 w-full overflow-hidden">
-                <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+                {/* Container max-width and tighter gap to pull elements closer */}
+                <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12 items-center mx-auto">
 
                     {/* Left Column: Hero Section */}
-                    <div className="hidden lg:flex flex-col space-y-8 animate-fade-in max-w-xl">
+                    <div className="hidden lg:flex flex-col space-y-8 animate-fade-in pl-4">
                         <div className="space-y-4">
-                            <div className="flex items-center gap-4 mb-4">
-                                <img src="/assets/logo.png" alt="SLISR Logo" className="h-28 w-auto object-contain drop-shadow-[0_0_20px_rgba(225,29,72,0.2)]" />
-                                <div className="h-16 w-[1px] bg-slate-800"></div>
+                            <div className="flex items-center gap-5 mb-2">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-brand-500/20 blur-xl rounded-full"></div>
+                                    <img src="/assets/logo.png" alt="SLISR Logo" className="relative h-28 w-auto object-contain" />
+                                </div>
+                                <div className="h-16 w-[1px] bg-slate-800/50"></div>
                                 <div className="flex flex-col">
-                                    <span className="text-white font-bold tracking-[0.2em] text-sm uppercase">SLISR</span>
-                                    <span className="text-slate-500 font-medium tracking-widest text-[10px] uppercase">Official Records Portal</span>
+                                    <span className="text-white font-bold tracking-[0.3em] text-sm uppercase">SLISR</span>
+                                    <span className="text-indigo-400/60 font-medium tracking-widest text-[10px] uppercase">Official Records Portal</span>
                                 </div>
                             </div>
 
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-700/10 border border-brand-700/20 text-brand-700 text-[9px] font-bold tracking-[0.2em] uppercase">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-bold tracking-[0.2em] uppercase">
                                 <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-600 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-700"></span>
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
                                 </span>
-                                Secure Institutional Access
+                                Verified Institutional Hub
                             </div>
                             <h1 className="text-4xl lg:text-5xl font-extrabold text-white tracking-tighter leading-[1.05]">
                                 Secure Access to <br />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-brand-700">
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-200 to-indigo-500">
                                     Academic Documents
                                 </span>
                             </h1>
                             <p className="text-slate-500 text-sm max-w-md leading-relaxed">
-                                Advanced document management for the SLISR academic community. Secured by verified encryption and institutional clearance protocols.
+                                Advanced document management for the SLISR academic community. Secured by verified encryption and midnight clearance protocols.
                             </p>
                         </div>
 
                         <div className="grid grid-cols-1 gap-6 pt-2">
-                            <FeatureItem
-                                icon={ShieldCheck}
-                                title="Data Integrity"
-                                desc="End-to-end encrypted procurement for all official documentation."
-                            />
-                            <FeatureItem
-                                icon={Layers}
-                                title="Dynamic Roles"
-                                desc="Verified clearance for Students, Staff, and Administrators."
-                            />
+                            <div className="flex items-start gap-4 group">
+                                <div className="mt-1 flex-shrink-0 w-8 h-8 rounded-lg bg-[#0b0531]/40 flex items-center justify-center text-indigo-400 border border-indigo-500/20 group-hover:border-indigo-500/40 transition-colors">
+                                    <ShieldCheck size={16} />
+                                </div>
+                                <div>
+                                    <h3 className="text-white font-semibold text-sm mb-0.5">Data Integrity</h3>
+                                    <p className="text-slate-500 text-xs leading-relaxed">End-to-end encrypted procurement for official records.</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-4 group">
+                                <div className="mt-1 flex-shrink-0 w-8 h-8 rounded-lg bg-[#0b0531]/40 flex items-center justify-center text-indigo-400 border border-indigo-500/20 group-hover:border-indigo-500/40 transition-colors">
+                                    <Layers size={16} />
+                                </div>
+                                <div>
+                                    <h3 className="text-white font-semibold text-sm mb-0.5">Dynamic Roles</h3>
+                                    <p className="text-slate-500 text-xs leading-relaxed">Verified clearance for all institutional levels.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     {/* Right Column: Login Card */}
-                    <div className="flex justify-center lg:justify-end">
-                        <div className="w-full max-w-sm bg-slate-900/40 backdrop-blur-3xl p-6 lg:p-8 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-white/5 relative overflow-hidden group">
+                    <div className="flex justify-center lg:justify-start">
+                        <div className="w-full max-w-sm bg-slate-950/40 backdrop-blur-3xl p-6 lg:p-8 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/5 relative overflow-hidden group">
 
                             {/* Mobile Logo Only */}
                             <div className="lg:hidden flex justify-center mb-6">
                                 <img src="/assets/logo.png" alt="SLISR Logo" className="h-20 w-auto object-contain" />
                             </div>
 
-                            {/* Card Glow Effect */}
-                            <div className="absolute -top-20 -right-20 w-40 h-40 bg-brand-700/10 rounded-full blur-[60px] group-hover:bg-brand-700/20 transition-colors duration-500"></div>
+                            {/* Card Glow Effect - Using Indigo Base */}
+                            <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-900/10 rounded-full blur-[60px] group-hover:bg-indigo-800/20 transition-colors duration-500"></div>
 
                             {view === 'login' ? (
                                 <div className="space-y-6 animate-fade-in relative z-10">
                                     <div className="space-y-1">
                                         <h2 className="text-2xl font-bold text-white tracking-tight">Sign In</h2>
-                                        <p className="text-slate-500 text-xs font-medium">Authenticate to access your dashboard</p>
+                                        <p className="text-indigo-400/60 text-xs font-medium">Authenticate to access your dashboard</p>
                                     </div>
 
                                     {error && (
@@ -289,7 +308,7 @@ const Login: React.FC = () => {
                                         <button
                                             type="submit"
                                             disabled={loading}
-                                            className="w-full h-12 bg-gradient-to-r from-brand-800 to-brand-700 hover:from-brand-700 hover:to-brand-600 text-white text-sm font-bold rounded-xl shadow-[0_8px_15px_-3px_rgba(190,18,60,0.4)] transform transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group mt-2"
+                                            className="w-full h-12 bg-gradient-to-r from-brand-900 to-brand-700 hover:from-brand-800 hover:to-brand-600 text-white text-sm font-bold rounded-xl shadow-[0_8px_20px_-5px_rgba(159,18,57,0.4)] transform transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group mt-2"
                                         >
                                             <div className="flex items-center justify-center gap-2">
                                                 {loading ? 'Processing...' : 'Secure Login'}
@@ -303,14 +322,14 @@ const Login: React.FC = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setView('forgot')}
-                                                className="text-[11px] text-slate-500 hover:text-brand-600 transition-colors font-semibold uppercase tracking-wider"
+                                                className="text-[11px] text-slate-500 hover:text-indigo-400 transition-colors font-semibold uppercase tracking-wider"
                                             >
                                                 Forgot Credentials?
                                             </button>
                                         </div>
 
                                         <div className="pt-4 border-t border-slate-800/50 flex flex-col items-center gap-1.5 text-center">
-                                            <span className="text-slate-600 text-[10px] font-medium">Unauthorized access is monitored.</span>
+                                            <span className="text-slate-600 text-[10px] font-medium">Unauthorized access is strictly monitored.</span>
                                             <Link to="/register" className="text-brand-500 font-bold text-[11px] uppercase tracking-wider hover:text-brand-400 transition-colors">
                                                 Request New Access
                                             </Link>
@@ -328,7 +347,7 @@ const Login: React.FC = () => {
                                         </button>
                                         <div className="space-y-0.5">
                                             <h2 className="text-xl font-bold text-white tracking-tight">Reset Access</h2>
-                                            <p className="text-slate-500 text-[10px]">Verification by System Administrator required</p>
+                                            <p className="text-indigo-400/60 text-[10px]">Verification by System Administrator required</p>
                                         </div>
                                     </div>
 
@@ -353,7 +372,7 @@ const Login: React.FC = () => {
                                         </div>
                                     ) : (
                                         <form onSubmit={handleResetSubmit} className="space-y-3">
-                                            <div className="bg-brand-700/5 border border-brand-700/10 p-3 rounded-lg text-[10px] text-brand-500/80 leading-relaxed font-semibold uppercase tracking-wider mb-2">
+                                            <div className="bg-indigo-900/20 border border-indigo-500/20 p-3 rounded-lg text-[10px] text-indigo-400 leading-relaxed font-semibold uppercase tracking-wider mb-2 text-center">
                                                 Submit official details for verification.
                                             </div>
 
@@ -419,7 +438,7 @@ const Login: React.FC = () => {
                                             <button
                                                 type="submit"
                                                 disabled={loading}
-                                                className="w-full h-12 bg-brand-700 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all shadow-lg active:scale-[0.98] mt-3 uppercase tracking-widest"
+                                                className="w-full h-12 bg-brand-800 hover:bg-brand-700 text-white text-xs font-bold rounded-xl transition-all shadow-lg active:scale-[0.98] mt-3 uppercase tracking-widest"
                                             >
                                                 {loading ? 'Processing...' : 'Submit Request'}
                                             </button>
@@ -433,15 +452,15 @@ const Login: React.FC = () => {
             </main>
 
             {/* Sticky Footer for compliance */}
-            <footer className="relative z-20 px-8 py-6 border-t border-white/5 bg-black/40 backdrop-blur-md">
+            <footer className="relative z-20 px-8 py-6 border-t border-white/5 bg-black/60 backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-slate-700 text-[10px] font-bold uppercase tracking-[0.3em]">
                         © {new Date().getFullYear()} {APP_NAME} Unified Security Protocol
                     </p>
                     <div className="flex gap-6">
-                        <span className="text-slate-700 text-[9px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-slate-500 transition-colors">Privacy</span>
-                        <span className="text-slate-700 text-[9px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-slate-500 transition-colors">Compliance</span>
-                        <span className="text-slate-700 text-[9px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-slate-500 transition-colors">System Status</span>
+                        <span className="text-indigo-400/40 text-[9px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-indigo-400 transition-colors">Institutional Privacy</span>
+                        <span className="text-indigo-400/40 text-[9px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-indigo-400 transition-colors">Global Compliance</span>
+                        <span className="text-indigo-400/40 text-[9px] font-bold uppercase tracking-[0.2em] cursor-default hover:text-indigo-400 transition-colors">Network Status</span>
                     </div>
                 </div>
             </footer>
