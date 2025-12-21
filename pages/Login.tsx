@@ -208,18 +208,18 @@ const Login: React.FC = () => {
                         <div className="grid grid-cols-3 gap-8 pt-12 border-t border-white/5">
                             <FeatureItem
                                 icon={ShieldCheck}
-                                title="Encrypted Vault"
-                                desc="Military-grade AES-256 record encryption."
+                                title="Secure Records"
+                                desc="Official academic documents stored and protected under SLISR institutional policies."
                             />
                             <FeatureItem
                                 icon={Layers}
-                                title="Identity Core"
-                                desc="Verified multi-factor portal authentication."
+                                title="Verified Identity"
+                                desc="Access restricted to authorized students, staff, and administrators only."
                             />
                             <FeatureItem
                                 icon={Zap}
-                                title="Real-time Pull"
-                                desc="Instant access to latest academic status."
+                                title="Up-to-Date Records"
+                                desc="Real-time access to the latest approved academic information and updates."
                             />
                         </div>
                     </div>
