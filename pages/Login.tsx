@@ -51,14 +51,14 @@ const InputField = ({ label, type = "text", value, onChange, placeholder, requir
 );
 
 const FeatureItem = ({ icon: Icon, title, desc }: { icon: any, title: string, desc: string }) => (
-    <div className="flex items-start gap-4">
-        <div className="mt-1 flex-shrink-0 w-8 h-8 rounded-lg bg-brand-700/10 flex items-center justify-center text-brand-700 border border-brand-700/20 shadow-[0_0_15px_rgba(190,18,60,0.1)]">
-            <Icon size={16} />
+    <div className="flex flex-col items-start gap-3">
+        <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded bg-brand-700/10 flex items-center justify-center text-brand-700">
+                <Icon size={12} />
+            </div>
+            <h3 className="text-white font-bold text-[11px] uppercase tracking-wider">{title}</h3>
         </div>
-        <div>
-            <h3 className="text-white font-semibold text-sm mb-0.5">{title}</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">{desc}</p>
-        </div>
+        <p className="text-slate-500 text-[10px] leading-relaxed max-w-[140px] font-medium">{desc}</p>
     </div>
 );
 
@@ -101,9 +101,9 @@ const Login: React.FC = () => {
         } catch (err: any) {
             console.error(err);
             if (err.code === 'permission-denied' || (err.message && err.message.includes('insufficient permissions'))) {
-                setError('Database permission denied. Admin: Please update Firestore Security Rules in Firebase Console.');
+                setError('Database permission denied. Admin: Please update Firestore Security Rules.');
             } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-                setError('Incorrect email or password. Please verify your credentials or register if you are new.');
+                setError('Incorrect email or password.');
             } else {
                 setError(err.message || 'Login failed. Please try again.');
             }
@@ -142,25 +142,15 @@ const Login: React.FC = () => {
             try {
                 const superAdmins = await getSuperAdmins();
                 for (const admin of superAdmins) {
-                    await sendNotification(
-                        admin.id,
-                        `New Password Reset Request from ${payload.firstName} ${payload.lastName}`,
-                        `/users`
-                    );
+                    await sendNotification(admin.id, `New Password Reset Request from ${payload.firstName}`, `/users`);
                 }
             } catch (notifyErr) {
-                console.warn("Could not notify Super Admin (likely permission restricted for unauth users):", notifyErr);
+                console.warn("Notification error:", notifyErr);
             }
 
             setResetSuccess(true);
         } catch (err: any) {
-            console.error("Reset Request Failed", err);
-            if (err.code === 'permission-denied' || (err.message && err.message.includes('Missing or insufficient permissions'))) {
-                setResetSuccess(true);
-                alert("System Alert: Request submitted locally. Note to Admin: Update Firestore Rules to allow public write on 'password_resets'.");
-            } else {
-                setError("Failed to submit request: " + err.message);
-            }
+            setError("Failed: " + err.message);
         } finally {
             setLoading(false);
         }
@@ -176,107 +166,81 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#070708] flex flex-col font-sans selection:bg-slate-500/30 selection:text-white relative overflow-hidden">
+        <div className="h-screen bg-[#070708] flex flex-col font-sans selection:bg-brand-500/30 selection:text-white relative overflow-hidden">
 
-            {/* Premium Background Effects: Subtle Gradients */}
+            {/* Premium Background Effects */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {/* Primary Subtle Glow */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] bg-brand-600/5 rounded-full blur-[140px]"></div>
-
-                {/* Secondary Depth Accents - More Subtle */}
-                <div className="absolute top-[-10%] right-[-5%] w-[700px] h-[700px] bg-brand-500/5 rounded-full blur-[120px]"></div>
-                <div className="absolute bottom-[-10%] left-[-5%] w-[700px] h-[700px] bg-brand-800/5 rounded-full blur-[120px]"></div>
-
-                {/* Subtle Textural Contrast */}
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.02] mix-blend-overlay"></div>
             </div>
 
-            <main className="flex-grow flex items-center justify-center relative z-10 w-full px-6 lg:px-12 py-12 lg:py-0">
-                {/* Expanded Container for 70-80% Page Consumption */}
-                <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-12 lg:gap-32 items-stretch mx-auto">
+            <main className="flex-grow flex items-center justify-center relative z-10 w-full px-6 lg:px-24">
+                <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-32 items-center mx-auto">
 
-                    {/* Left Column: Hero Section (Prominent) */}
-                    <div className="hidden lg:flex flex-col space-y-12 animate-fade-in pl-8 justify-center py-12">
+                    {/* Left Column: Replicated Spacing Hierarchy */}
+                    <div className="hidden lg:flex flex-col h-full justify-between py-12 animate-fade-in">
                         <div className="space-y-10">
-                            <div className="flex items-center gap-6 mb-2">
-                                <div className="relative">
-                                    <div className="absolute inset-0 bg-brand-600/20 blur-2xl rounded-full"></div>
-                                    <img src="/assets/logo.png" alt="SLISR Logo" className="relative h-40 w-auto object-contain drop-shadow-[0_0_30px_rgba(225,29,72,0.3)]" />
-                                </div>
-                                <div className="h-24 w-[1px] bg-slate-800/60"></div>
-                                <div className="flex flex-col space-y-1">
-                                    <span className="text-white font-black tracking-[0.4em] text-xl uppercase">SLISR</span>
-                                    <span className="text-slate-500 font-bold tracking-[0.2em] text-sm uppercase">Official Records Portal</span>
+                            {/* Branding Badge-style Header */}
+                            <div className="flex items-center gap-4">
+                                <img src="/assets/logo.png" alt="SLISR Logo" className="h-12 w-auto object-contain" />
+                                <div className="h-8 w-[1px] bg-slate-800"></div>
+                                <div className="flex flex-col">
+                                    <span className="text-white font-black tracking-[0.3em] text-[10px] uppercase">SLISR Portal</span>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-brand-600 animate-pulse"></div>
+                                        <span className="text-brand-500 font-bold tracking-[0.1em] text-[9px] uppercase">Institutional Hub</span>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 text-xs font-black tracking-[0.3em] uppercase shadow-[0_0_20px_rgba(244,63,94,0.1)]">
-                                <span className="relative flex h-2.5 w-2.5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-600"></span>
-                                </span>
-                                Verified Institutional Hub
-                            </div>
-
-                            <h1 className="text-5xl lg:text-7xl font-black text-white tracking-tighter leading-[1] py-2">
-                                Secure Access To <br className="block" />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-brand-500 whitespace-nowrap">Academic Documents</span>
-                            </h1>
 
                             <div className="space-y-6">
-                                <p className="text-slate-400 text-lg max-w-xl leading-relaxed font-medium block">
-                                    Official SLISR documents, securely accessed through a centralized institutional portal.
-                                </p>
-
-                                <p className="text-slate-500 text-base max-w-md leading-relaxed">
-                                    The SLISR Docs Portal enables authorized students, staff, and administrators to access verified academic records with institutional-grade security and compliance.
+                                <h1 className="text-7xl font-black text-white tracking-tighter leading-[1.05]">
+                                    Secure Access To <br />
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-brand-500">Academic Docs</span>
+                                </h1>
+                                <p className="text-slate-400 text-lg max-w-lg leading-relaxed font-medium">
+                                    Access verified institutional records through a centralized and high-security student registry for SLISR authorized personnel.
                                 </p>
                             </div>
+                        </div>
 
-                            {/* Features Section - To Balance Height */}
-                            <div className="grid grid-cols-2 gap-8 pt-8 border-t border-slate-800/40">
-                                <FeatureItem
-                                    icon={ShieldCheck}
-                                    title="Encrypted Vault"
-                                    desc="End-to-end encryption for all academic records."
-                                />
-                                <FeatureItem
-                                    icon={Layers}
-                                    title="Identity Verified"
-                                    desc="Multi-factor institutional authentication."
-                                />
-                            </div>
+                        {/* Features Row - Replicated from reference footer-col */}
+                        <div className="grid grid-cols-3 gap-8 pt-12 border-t border-white/5">
+                            <FeatureItem
+                                icon={ShieldCheck}
+                                title="Encrypted Vault"
+                                desc="Military-grade AES-256 record encryption."
+                            />
+                            <FeatureItem
+                                icon={Layers}
+                                title="Identity Core"
+                                desc="Verified multi-factor portal authentication."
+                            />
+                            <FeatureItem
+                                icon={Zap}
+                                title="Real-time Pull"
+                                desc="Instant access to latest academic status."
+                            />
                         </div>
                     </div>
 
-                    {/* Right Column: Expanded Login Card */}
-                    <div className="flex items-center justify-center lg:justify-end w-full">
-                        <div className="w-full max-w-md bg-[#0A0A0C]/90 backdrop-blur-3xl p-8 lg:p-10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] border border-white/5 relative overflow-hidden group">
+                    {/* Right Column: Replicated Card Density */}
+                    <div className="flex justify-center lg:justify-end w-full">
+                        <div className="w-full max-w-md bg-[#0A0A0C]/90 backdrop-blur-2xl p-10 lg:p-12 rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] border border-white/5 relative overflow-hidden group">
 
-                            {/* Mobile Logo Only */}
-                            <div className="lg:hidden flex justify-center mb-8">
-                                <img src="/assets/logo.png" alt="SLISR Logo" className="h-24 w-auto object-contain" />
-                            </div>
-
-                            {/* Card Glow Effect - Using Brand Rose */}
-                            <div className="absolute -top-32 -right-32 w-64 h-64 bg-brand-600/10 rounded-full blur-[100px] group-hover:bg-brand-600/20 transition-colors duration-500"></div>
+                            {/* Card Glow */}
+                            <div className="absolute -top-32 -right-32 w-64 h-64 bg-brand-600/5 rounded-full blur-[100px] transition-colors duration-500"></div>
 
                             {view === 'login' ? (
-                                <div className="space-y-6 animate-fade-in relative z-10">
-                                    <div className="space-y-2">
+                                <div className="space-y-8 animate-fade-in relative z-10">
+                                    <div className="text-center space-y-2">
                                         <h2 className="text-4xl font-black text-white tracking-tighter">Sign In</h2>
-                                        <p className="text-slate-500 text-sm font-semibold tracking-wide">Authenticate to access your dashboard.</p>
+                                        <p className="text-slate-500 text-sm font-semibold">Authenticate to access your dashboard</p>
                                     </div>
-
-                                    {error && (
-                                        <div className="bg-red-500/10 text-red-500 p-4 rounded-xl text-xs border border-red-500/20 font-bold flex items-center gap-3">
-                                            <span className="text-lg">⚠️</span> {error}
-                                        </div>
-                                    )}
 
                                     <form onSubmit={handleLoginSubmit} className="space-y-5">
                                         <InputField
-                                            label="Your Access Role"
+                                            label="ACCESS ROLE"
                                             options={[UserRole.STUDENT, UserRole.STAFF, UserRole.ADMIN]}
                                             value={selectedRole}
                                             onChange={(e: any) => {
@@ -289,7 +253,7 @@ const Login: React.FC = () => {
                                         />
 
                                         <InputField
-                                            label="Institutional Email"
+                                            label="PORTAL EMAIL"
                                             type="email"
                                             placeholder="name@slisr.org"
                                             value={identifier}
@@ -297,135 +261,71 @@ const Login: React.FC = () => {
                                         />
 
                                         <InputField
-                                            label="Portal Password"
+                                            label="PASSWORD"
                                             type="password"
                                             placeholder="••••••••"
                                             value={password}
                                             onChange={(e: any) => setPassword(e.target.value)}
                                         />
 
-                                        <button type="submit" disabled={loading} className="w-full py-4 px-6 bg-brand-600 hover:bg-brand-700 disabled:bg-brand-800 text-white rounded-2xl font-black text-base tracking-wider shadow-lg shadow-brand-500/30 hover:shadow-brand-500/50 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
-                                            {loading ? 'Authenticating...' : 'Secure Login'}
+                                        {error && (
+                                            <p className="text-[10px] text-red-500 font-bold text-center uppercase tracking-widest">{error}</p>
+                                        )}
+
+                                        <button type="submit" disabled={loading} className="w-full py-4 px-6 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl font-black text-sm tracking-wider shadow-lg shadow-brand-500/20 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50">
+                                            {loading ? 'AUTHENTICATING...' : 'SECURE LOGIN →'}
                                         </button>
                                     </form>
 
-                                    <div className="space-y-5 pt-2">
-                                        <div className="text-center space-y-2">
-                                            <button onClick={() => setView('forgot')} className="text-sm text-brand-500 hover:text-brand-400 transition-colors font-semibold">
+                                    <div className="text-center space-y-6">
+                                        <div className="space-y-1">
+                                            <button onClick={() => setView('forgot')} className="text-xs text-brand-500 hover:text-brand-400 font-bold transition-colors">
                                                 Forgot your password?
                                             </button>
-                                            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-tight">
-                                                Contact SLISR Administration for support
-                                            </p>
+                                            <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tight">Access restricted to authorized personnel</p>
                                         </div>
-                                        <div className="pt-6 border-t border-slate-800/80 flex flex-col items-center gap-2 text-center">
-                                            <span className="text-slate-600 text-[9px] font-bold uppercase tracking-widest opacity-60">Unauthorized access is monitored.</span>
-                                            <Link to="/register" className="text-brand-500 font-black text-xs uppercase tracking-[0.2em] hover:text-brand-400 transition-colors group">
-                                                Request New Access <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+                                        <div className="pt-6 border-t border-white/5">
+                                            <Link to="/register" className="text-brand-500 font-black text-[11px] uppercase tracking-[0.2em] hover:text-brand-400 transition-colors">
+                                                Request New Access
                                             </Link>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="space-y-8 animate-fade-in relative z-10">
-                                    <div className="flex items-center gap-5">
+                                    <div className="flex items-center gap-4 justify-center">
                                         <button
                                             onClick={() => { setView('login'); setResetSuccess(false); }}
-                                            className="w-10 h-10 rounded-xl bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-all border border-slate-700/50 shadow-lg"
+                                            className="w-10 h-10 rounded-xl bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white transition-all"
                                         >
                                             <ArrowLeft size={18} />
                                         </button>
-                                        <div className="space-y-0.5">
-                                            <h2 className="text-2xl font-black text-white tracking-tight">Reset Access</h2>
-                                            <p className="text-slate-500 text-[10px] font-bold tracking-wide uppercase">Admin Approval Required</p>
-                                        </div>
+                                        <h2 className="text-2xl font-black text-white tracking-tight">Reset Portal</h2>
                                     </div>
 
                                     {resetSuccess ? (
                                         <div className="text-center py-6 space-y-6">
-                                            <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-3xl flex items-center justify-center mx-auto border border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.15)]">
+                                            <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
                                                 <Send size={32} />
                                             </div>
-                                            <div className="space-y-2">
-                                                <h3 className="text-xl font-black text-white">Request Dispatched</h3>
-                                                <p className="text-slate-400 text-xs leading-relaxed max-w-[240px] mx-auto font-medium">
-                                                    Verification queued. <br />
-                                                    Admin confirmation required.
-                                                </p>
-                                            </div>
-                                            <Button onClick={() => setView('login')} className="w-full h-14 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border-slate-700">Return to Authentication Hub</Button>
+                                            <p className="text-slate-400 text-xs font-medium">Verification request dispatched to administrators.</p>
+                                            <Button onClick={() => setView('login')} className="w-full">Return Hub</Button>
                                         </div>
                                     ) : (
                                         <form onSubmit={handleResetSubmit} className="space-y-3.5">
-                                            <div className="bg-brand-900/20 border border-brand-500/20 p-3 rounded-lg text-[9px] text-brand-400 leading-relaxed font-bold uppercase tracking-widest mb-2 text-center">
-                                                Submit records for verification.
-                                            </div>
-
                                             <InputField
-                                                label="Access Role"
+                                                label="RESTORATION ROLE"
                                                 options={[UserRole.STUDENT, UserRole.STAFF, UserRole.ADMIN]}
                                                 value={resetRole}
                                                 onChange={(e: any) => setResetRole(e.target.value as UserRole)}
                                             />
-
                                             <div className="grid grid-cols-2 gap-3">
-                                                <InputField
-                                                    label="Given Name"
-                                                    value={resetData.firstName}
-                                                    onChange={(e: any) => setResetData({ ...resetData, firstName: e.target.value })}
-                                                />
-                                                <InputField
-                                                    label="Surname"
-                                                    value={resetData.lastName}
-                                                    onChange={(e: any) => setResetData({ ...resetData, lastName: e.target.value })}
-                                                />
+                                                <InputField label="FIRST NAME" value={resetData.firstName} onChange={(e: any) => setResetData({ ...resetData, firstName: e.target.value })} />
+                                                <InputField label="LAST NAME" value={resetData.lastName} onChange={(e: any) => setResetData({ ...resetData, lastName: e.target.value })} />
                                             </div>
-
-                                            <InputField
-                                                label="Access Email"
-                                                type="email"
-                                                value={resetData.email}
-                                                onChange={(e: any) => setResetData({ ...resetData, email: e.target.value })}
-                                            />
-
-                                            {resetRole === UserRole.STUDENT && (
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <InputField
-                                                        label="Admission ID"
-                                                        value={resetData.admissionNumber}
-                                                        onChange={(e: any) => setResetData({ ...resetData, admissionNumber: e.target.value })}
-                                                    />
-                                                    <InputField
-                                                        label="Gender"
-                                                        options={['Male', 'Female']}
-                                                        value={resetData.gender}
-                                                        onChange={(e: any) => setResetData({ ...resetData, gender: e.target.value })}
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {(resetRole === UserRole.STAFF || resetRole === UserRole.ADMIN) && (
-                                                <InputField
-                                                    label="Phone Number"
-                                                    value={resetData.phone}
-                                                    onChange={(e: any) => setResetData({ ...resetData, phone: e.target.value })}
-                                                />
-                                            )}
-
-                                            {resetRole === UserRole.STAFF && (
-                                                <InputField
-                                                    label="Designation"
-                                                    value={resetData.designation}
-                                                    onChange={(e: any) => setResetData({ ...resetData, designation: e.target.value })}
-                                                />
-                                            )}
-
-                                            <button
-                                                type="submit"
-                                                disabled={loading}
-                                                className="w-full h-14 bg-brand-700 hover:bg-brand-600 text-white text-xs font-black rounded-xl transition-all shadow-xl active:scale-[0.98] mt-2 uppercase tracking-[0.2em]"
-                                            >
-                                                {loading ? 'Submitting...' : 'Request Access Reset'}
+                                            <InputField label="EMAIL" type="email" value={resetData.email} onChange={(e: any) => setResetData({ ...resetData, email: e.target.value })} />
+                                            <button type="submit" disabled={loading} className="w-full py-4 bg-brand-600 text-white text-xs font-black rounded-xl mt-4">
+                                                {loading ? 'SUBMITTING...' : 'REQUEST RESET'}
                                             </button>
                                         </form>
                                     )}
@@ -436,16 +336,14 @@ const Login: React.FC = () => {
                 </div>
             </main>
 
-            {/* Footer */}
-            <footer className="relative z-20 px-8 py-3 border-t border-white/5 bg-[#070708]">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
-                    <p className="text-slate-500 text-xs font-medium tracking-wide">
-                        Sri Lankan International School (SLISR) Student Registry
-                    </p>
+            {/* Global Footer */}
+            <footer className="relative z-20 px-8 py-4 border-t border-white/5 text-[9px] text-slate-600 font-bold uppercase tracking-widest bg-[#070708]">
+                <div className="max-w-7xl mx-auto flex justify-between">
+                    <span>© {new Date().getFullYear()} SLISR Student Registry</span>
                     <div className="flex gap-6">
-                        <span className="text-slate-600 text-[9px] font-medium uppercase tracking-wider cursor-default">Digital Privacy</span>
-                        <span className="text-slate-600 text-[9px] font-medium uppercase tracking-wider cursor-default">Compliance</span>
-                        <span className="text-slate-600 text-[9px] font-medium uppercase tracking-wider cursor-default">Status</span>
+                        <span>Digital Privacy</span>
+                        <span>Compliance</span>
+                        <span>Status</span>
                     </div>
                 </div>
             </footer>
