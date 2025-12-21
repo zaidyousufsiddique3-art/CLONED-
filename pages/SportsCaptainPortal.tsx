@@ -18,7 +18,8 @@ import {
     Filter,
     Search,
     ExternalLink,
-    ChevronRight
+    ChevronRight,
+    ArrowLeft
 } from 'lucide-react';
 import { APP_URL } from '../constants';
 
@@ -270,117 +271,132 @@ const SportsCaptainPortal: React.FC = () => {
                 </div>
             )}
 
-            {/* Application Detail View Modal */}
+            {/* Application Detail Immersive View */}
             {viewingApplication && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl" onClick={() => setViewingApplication(null)}></div>
-                    <div className="relative bg-white dark:bg-[#070708] w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3rem] shadow-2xl border border-slate-200 dark:border-white/10 animate-scale-in">
-                        <div className="sticky top-0 z-20 bg-white/80 dark:bg-[#070708]/80 backdrop-blur-md px-10 py-8 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
-                            <div>
-                                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">Application Details</h3>
-                                <p className="text-brand-600 text-xs font-bold uppercase tracking-widest mt-1"> स्पोर्ट्स कैप्टन आवेदन </p>
-                            </div>
-                            <button onClick={() => setViewingApplication(null)} className="p-3 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-red-500/10 hover:text-red-500 transition-all">
-                                <ExternalLink size={20} />
+                <div className="fixed inset-0 z-[60] bg-slate-50 dark:bg-[#060607] overflow-y-auto animate-in fade-in duration-300">
+                    {/* Top Sticky bar */}
+                    <div className="sticky top-0 z-30 bg-white/80 dark:bg-[#070708]/80 backdrop-blur-3xl px-6 md:px-12 py-6 border-b border-slate-200 dark:border-white/5 flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => setViewingApplication(null)}
+                                className="p-3 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-brand-600 hover:text-white transition-all text-slate-500"
+                            >
+                                <ArrowLeft size={20} />
                             </button>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">Application Dossier</h3>
                         </div>
+                        <div className="flex items-center gap-2">
+                            <div className="px-5 py-2.5 bg-brand-600/10 text-brand-600 rounded-xl text-xs font-black uppercase tracking-widest border border-brand-600/20">
+                                Official Record
+                            </div>
+                        </div>
+                    </div>
 
-                        <div className="p-10 space-y-10">
-                            {/* Student Profile Header */}
-                            <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
-                                <div className="w-24 h-24 rounded-3xl bg-brand-600 text-white flex items-center justify-center text-4xl font-black shadow-2xl shadow-brand-500/20">
+                    <div className="max-w-6xl mx-auto px-6 py-12 md:px-12 space-y-12">
+                        {/* Student Portfolio Header */}
+                        <div className="bg-white dark:bg-[#0A0A0C] p-10 rounded-[3rem] border border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-brand-600/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
+
+                            <div className="relative z-10 flex flex-col md:flex-row gap-10 items-center">
+                                <div className="w-32 h-32 rounded-[2.5rem] bg-brand-600 text-white flex items-center justify-center text-5xl font-black shadow-2xl shadow-brand-500/30 shrink-0">
                                     {viewingApplication.studentName.charAt(0)}
                                 </div>
-                                <div className="space-y-4 flex-1">
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Full Name</p>
-                                            <p className="font-bold text-slate-900 dark:text-white">{viewingApplication.studentName}</p>
+                                <div className="space-y-8 flex-1 w-full text-center md:text-left">
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Candidate Name</p>
+                                            <p className="text-xl font-black text-slate-900 dark:text-white tracking-tight">{viewingApplication.studentName}</p>
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Student ID</p>
-                                            <p className="font-mono text-slate-500 dark:text-slate-400">{viewingApplication.studentAdmissionNo}</p>
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Admission ID</p>
+                                            <p className="text-xl font-mono font-bold text-slate-500 dark:text-slate-400">{viewingApplication.studentAdmissionNo}</p>
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Gender</p>
-                                            <p className="font-bold text-slate-900 dark:text-white">{viewingApplication.studentGender}</p>
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Identity Header</p>
+                                            <p className="text-xl font-bold text-slate-900 dark:text-white">{viewingApplication.studentGender}</p>
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Submission</p>
-                                            <p className="font-bold text-slate-900 dark:text-white">{new Date(viewingApplication.createdAt).toLocaleDateString()}</p>
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Reception Date</p>
+                                            <p className="text-xl font-bold text-slate-900 dark:text-white">{new Date(viewingApplication.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Portfolio Documents */}
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-[1px] flex-1 bg-slate-100 dark:bg-white/5"></div>
-                                    <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Document Portfolio</h4>
-                                    <div className="h-[1px] flex-1 bg-slate-100 dark:bg-white/5"></div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {[
-                                        { label: 'Academic CV', url: viewingApplication.cvUrl, name: viewingApplication.cvName },
-                                        { label: 'Statement of Intent', url: viewingApplication.intentUrl, name: viewingApplication.intentName },
-                                        { label: 'Strategic Action Plan', url: viewingApplication.actionPlanUrl, name: viewingApplication.actionPlanName }
-                                    ].map((doc, idx) => (
-                                        <div key={idx} className="p-6 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/5 flex flex-col justify-between items-start gap-4">
-                                            <div className="w-12 h-12 bg-white dark:bg-[#0A0A0C] rounded-2xl flex items-center justify-center text-brand-600 shadow-sm">
-                                                <FileText size={24} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{doc.label}</p>
-                                                <p className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1">{doc.name || 'document_file.pdf'}</p>
-                                            </div>
-                                            <a
-                                                href={doc.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="w-full py-3 bg-white dark:bg-[#0A0A0C] border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-black text-slate-600 dark:text-white uppercase tracking-widest hover:bg-brand-600 hover:text-white hover:border-brand-600 transition-all text-center flex items-center justify-center gap-2"
-                                            >
-                                                <Download size={14} />
-                                                Download Doc
-                                            </a>
-                                        </div>
-                                    ))}
-                                </div>
+                        {/* Primary Portfolio Documents */}
+                        <div className="space-y-8">
+                            <div className="flex items-center gap-6">
+                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.4em] whitespace-nowrap">Core Documents</h4>
+                                <div className="h-[1px] w-full bg-slate-200 dark:bg-white/10"></div>
                             </div>
 
-                            {/* Supporting Certificates */}
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-[1px] flex-1 bg-slate-100 dark:bg-white/5"></div>
-                                    <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Supporting Certificates</h4>
-                                    <div className="h-[1px] flex-1 bg-slate-100 dark:bg-white/5"></div>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {viewingApplication.supportingCertificates.map((cert, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl hover:border-brand-600/30 transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-brand-600 bg-brand-600/10 p-2 rounded-xl">
-                                                    <Trophy size={18} />
-                                                </div>
-                                                <div className="overflow-hidden">
-                                                    <p className="font-bold text-sm text-slate-900 dark:text-white truncate max-w-[150px]">{cert.name}</p>
-                                                    <p className="text-[10px] text-slate-500 font-medium uppercase">{(cert.size / 1024).toFixed(1)} KB</p>
-                                                </div>
-                                            </div>
-                                            <a href={cert.dataUrl} target="_blank" rel="noopener noreferrer" className="p-2 text-slate-400 hover:text-brand-600 transition-colors">
-                                                <Download size={20} />
-                                            </a>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {[
+                                    { label: 'Academic CV', url: viewingApplication.cvUrl, name: viewingApplication.cvName },
+                                    { label: 'Intent Statement', url: viewingApplication.intentUrl, name: viewingApplication.intentName },
+                                    { label: 'Strategic Plan', url: viewingApplication.actionPlanUrl, name: viewingApplication.actionPlanName }
+                                ].map((doc, idx) => (
+                                    <div key={idx} className="group p-8 bg-white dark:bg-[#0A0A0C] rounded-[2.5rem] border border-slate-200 dark:border-white/5 flex flex-col justify-between items-start gap-6 hover:border-brand-600/30 transition-all shadow-lg hover:shadow-brand-500/5">
+                                        <div className="w-14 h-14 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-center text-brand-600 transition-colors group-hover:bg-brand-600 group-hover:text-white">
+                                            <FileText size={28} />
                                         </div>
-                                    ))}
-                                    {viewingApplication.supportingCertificates.length === 0 && (
-                                        <div className="col-span-full py-12 text-center text-slate-500 font-bold bg-slate-50 dark:bg-white/5 rounded-[2rem] border border-dashed border-slate-200 dark:border-white/10">
-                                            No additional certificates provided.
+                                        <div className="w-full">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{doc.label}</p>
+                                            <p className="font-bold text-slate-900 dark:text-white text-sm truncate w-full" title={doc.name || 'document.pdf'}>
+                                                {doc.name || 'document_file.pdf'}
+                                            </p>
                                         </div>
-                                    )}
-                                </div>
+                                        <a
+                                            href={doc.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full py-4 bg-slate-900 dark:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand-600 transition-all text-center flex items-center justify-center gap-2 shadow-xl shadow-black/10"
+                                        >
+                                            <Download size={14} />
+                                            Download Asset
+                                        </a>
+                                    </div>
+                                ))}
                             </div>
+                        </div>
+
+                        {/* Achievement Certificates */}
+                        <div className="space-y-8">
+                            <div className="flex items-center gap-6">
+                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.4em] whitespace-nowrap">Evidence & Certificates</h4>
+                                <div className="h-[1px] w-full bg-slate-200 dark:bg-white/10"></div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {viewingApplication.supportingCertificates.map((cert, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-6 bg-white dark:bg-[#0A0A0C] border border-slate-200 dark:border-white/5 rounded-[1.5rem] hover:border-brand-600/50 transition-all shadow-soft group">
+                                        <div className="flex items-center gap-4 overflow-hidden">
+                                            <div className="text-brand-600 bg-brand-600/10 p-3 rounded-xl group-hover:bg-brand-600 group-hover:text-white transition-colors">
+                                                <Trophy size={18} />
+                                            </div>
+                                            <div className="overflow-hidden">
+                                                <p className="font-bold text-xs text-slate-900 dark:text-white truncate max-w-[140px]" title={cert.name}>{cert.name}</p>
+                                                <p className="text-[9px] text-slate-500 font-black uppercase tracking-tighter">{(cert.size / 1024).toFixed(1)} KB Record</p>
+                                            </div>
+                                        </div>
+                                        <a href={cert.dataUrl} target="_blank" rel="noopener noreferrer" className="p-3 text-slate-400 hover:text-brand-600 transition-colors bg-slate-50 dark:bg-white/5 rounded-xl">
+                                            <Download size={18} />
+                                        </a>
+                                    </div>
+                                ))}
+                                {viewingApplication.supportingCertificates.length === 0 && (
+                                    <div className="col-span-full py-16 text-center text-slate-400 font-bold bg-white dark:bg-[#0A0A0C] rounded-[2.5rem] border border-dashed border-slate-200 dark:border-white/10 uppercase tracking-widest text-xs">
+                                        No supplementary records found.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="pt-12 pb-24 flex justify-center">
+                            <Button onClick={() => setViewingApplication(null)} className="px-12 py-5 rounded-2xl">
+                                Return to Applications List
+                            </Button>
                         </div>
                     </div>
                 </div>
