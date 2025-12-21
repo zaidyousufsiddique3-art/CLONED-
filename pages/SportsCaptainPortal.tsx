@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { createRequest } from '../firebase/requestService';
 import { DocumentType, RequestStatus } from '../types';
+import { collection, query, where, getDocs, updateDoc, doc } from '@firebase/firestore';
+import { db } from '../firebase/firebaseConfig';
 import { APP_URL } from '../constants';
 
 const SportsCaptainPortal: React.FC = () => {
@@ -39,8 +41,14 @@ const SportsCaptainPortal: React.FC = () => {
 
     // Received Tab State
     const [applications, setApplications] = useState<SportsCaptainApplication[]>([]);
+    const [invitationsCount, setInvitationsCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [viewingApplication, setViewingApplication] = useState<SportsCaptainApplication | null>(null);
+
+    // Status Update State
+    const [newStatus, setNewStatus] = useState<SportsCaptainApplication['status']>('Pending');
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     useEffect(() => {
         loadStudents();
@@ -49,8 +57,19 @@ const SportsCaptainPortal: React.FC = () => {
     useEffect(() => {
         if (activeTab === 'received' || searchParams.get('studentId')) {
             loadApplications();
+            loadInvitationsCount();
         }
     }, [activeTab, searchParams]);
+
+    const loadInvitationsCount = async () => {
+        try {
+            const q = query(collection(db, 'requests'), where('type', '==', DocumentType.SPORTS_CAPTAIN));
+            const snapshot = await getDocs(q);
+            setInvitationsCount(snapshot.size);
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     useEffect(() => {
         const studentId = searchParams.get('studentId');
@@ -58,6 +77,8 @@ const SportsCaptainPortal: React.FC = () => {
             const app = applications.find(a => a.studentId === studentId);
             if (app) {
                 setViewingApplication(app);
+                setNewStatus(app.status || 'Pending');
+                setRejectionReason(app.rejectionReason || '');
                 setActiveTab('received');
             }
         }
@@ -119,6 +140,57 @@ const SportsCaptainPortal: React.FC = () => {
         }
     };
 
+    const handleUpdateStatus = async () => {
+        if (!viewingApplication) return;
+        setUpdatingStatus(true);
+        try {
+            // 1. Update Application Record
+            const appRef = doc(db, 'sports_captain_applications', viewingApplication.id);
+            await updateDoc(appRef, {
+                status: newStatus,
+                rejectionReason: newStatus === 'Rejected' ? rejectionReason : '',
+                updatedAt: new Date().toISOString()
+            });
+
+            // 2. Update Document Request Status
+            const q = query(
+                collection(db, 'requests'),
+                where('studentId', '==', viewingApplication.studentId),
+                where('type', '==', DocumentType.SPORTS_CAPTAIN)
+            );
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+                for (const requestDoc of snapshot.docs) {
+                    let requestStatus = RequestStatus.APPLICATION_RECEIVED;
+                    if (newStatus === 'Accepted') requestStatus = RequestStatus.COMPLETED;
+                    if (newStatus === 'Rejected') requestStatus = RequestStatus.REJECTED;
+                    if (newStatus === 'In-review') requestStatus = RequestStatus.IN_REVIEW;
+
+                    await updateDoc(doc(db, 'requests', requestDoc.id), {
+                        status: requestStatus,
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+            }
+
+            // 3. Send Notification to Student
+            await sendNotification(
+                viewingApplication.studentId,
+                "You received a status update from the Sports Coordinator",
+                "/sports-captain/apply"
+            );
+
+            alert("Status updated and notification sent.");
+            loadApplications();
+            setViewingApplication({ ...viewingApplication, status: newStatus, rejectionReason: newStatus === 'Rejected' ? rejectionReason : '' });
+        } catch (error: any) {
+            console.error(error);
+            alert("Update failed: " + error.message);
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
     return (
         <div className="space-y-8 animate-fade-in">
             {/* Header with Pill Tabs */}
@@ -147,10 +219,26 @@ const SportsCaptainPortal: React.FC = () => {
                 </div>
 
                 {activeTab === 'received' && (
-                    <div className="flex items-center gap-3">
-                        <div className="bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-xl text-xs font-bold border border-emerald-500/20 flex items-center">
-                            <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
-                            {applications.length} Total Applications
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full xl:w-auto">
+                        <div className="bg-white dark:bg-white/5 p-4 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Applications Sent</p>
+                            <p className="text-xl font-black text-slate-900 dark:text-white">{invitationsCount}</p>
+                        </div>
+                        <div className="bg-white dark:bg-white/5 p-4 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Applications Received</p>
+                            <p className="text-xl font-black text-brand-600">{applications.length}</p>
+                        </div>
+                        <div className="bg-amber-500/5 p-4 rounded-2xl border border-amber-500/10 shadow-sm">
+                            <p className="text-[10px] font-black text-amber-600/60 uppercase tracking-widest mb-1">In-Review</p>
+                            <p className="text-xl font-black text-amber-600">{applications.filter(a => a.status === 'In-review' || a.status === 'Pending').length}</p>
+                        </div>
+                        <div className="bg-red-500/5 p-4 rounded-2xl border border-red-500/10 shadow-sm">
+                            <p className="text-[10px] font-black text-red-600/60 uppercase tracking-widest mb-1">Rejected</p>
+                            <p className="text-xl font-black text-red-600">{applications.filter(a => a.status === 'Rejected').length}</p>
+                        </div>
+                        <div className="bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10 shadow-sm">
+                            <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Successful</p>
+                            <p className="text-xl font-black text-emerald-600">{applications.filter(a => a.status === 'Accepted').length}</p>
                         </div>
                     </div>
                 )}
@@ -296,14 +384,22 @@ const SportsCaptainPortal: React.FC = () => {
                                             </td>
                                             <td className="px-8 py-6 font-mono text-sm text-slate-500 dark:text-slate-400">{app.studentAdmissionNo}</td>
                                             <td className="px-8 py-6">
-                                                <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${app.status === 'Accepted' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-brand-500/10 text-brand-500'}`}>
-                                                    Application Received
+                                                <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${app.status === 'Accepted' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                    app.status === 'Rejected' ? 'bg-red-500/10 text-red-500' :
+                                                        app.status === 'In-review' ? 'bg-amber-500/10 text-amber-500' :
+                                                            'bg-brand-500/10 text-brand-500'
+                                                    }`}>
+                                                    {app.status || 'Application Received'}
                                                 </span>
                                             </td>
                                             <td className="px-8 py-6 text-slate-500 text-sm font-medium">{new Date(app.createdAt).toLocaleDateString()}</td>
                                             <td className="px-8 py-6 text-right">
                                                 <button
-                                                    onClick={() => setViewingApplication(app)}
+                                                    onClick={() => {
+                                                        setViewingApplication(app);
+                                                        setNewStatus(app.status || 'In-review');
+                                                        setRejectionReason(app.rejectionReason || '');
+                                                    }}
                                                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-500/10 hover:bg-brand-700 transition-all opacity-0 group-hover:opacity-100"
                                                 >
                                                     <Eye className="w-3.5 h-3.5" />
@@ -331,7 +427,7 @@ const SportsCaptainPortal: React.FC = () => {
                             >
                                 <ArrowLeft size={18} />
                             </button>
-                            <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">Application Dossier</h3>
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">Application</h3>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="px-4 py-2 bg-brand-600/10 text-brand-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-brand-600/20">
@@ -369,6 +465,57 @@ const SportsCaptainPortal: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Status Management Bar */}
+                        <div className="bg-slate-900 dark:bg-white/5 p-8 rounded-[2.5rem] border border-white/5 flex flex-col lg:flex-row items-center gap-8">
+                            <div className="flex-1 space-y-2 w-full">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Update Application Status</label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {['Accepted', 'In-review', 'Rejected'].map((s) => (
+                                        <button
+                                            key={s}
+                                            onClick={() => setNewStatus(s as any)}
+                                            className={`py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border ${newStatus === s
+                                                ? s === 'Accepted' ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
+                                                    s === 'Rejected' ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20' :
+                                                        'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20'
+                                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'
+                                                }`}
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {newStatus === 'Rejected' && (
+                                <div className="flex-[1.5] space-y-2 w-full animate-in slide-in-from-top-2">
+                                    <label className="text-[10px] font-black text-red-400 uppercase tracking-widest ml-1">Reason for Rejection</label>
+                                    <input
+                                        type="text"
+                                        value={rejectionReason}
+                                        onChange={(e) => setRejectionReason(e.target.value)}
+                                        placeholder="e.g. Insufficient sporting portfolio for Grade 12 level..."
+                                        className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none text-white font-bold transition-all text-sm"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="shrink-0 w-full lg:w-auto pt-6 lg:pt-0">
+                                <Button
+                                    onClick={handleUpdateStatus}
+                                    isLoading={updatingStatus}
+                                    disabled={newStatus === 'Rejected' && !rejectionReason.trim()}
+                                    className={`w-full lg:w-auto px-12 py-5 rounded-2xl font-black uppercase tracking-widest text-xs ${newStatus === 'Accepted' ? 'bg-emerald-600 hover:bg-emerald-700' :
+                                        newStatus === 'Rejected' ? 'bg-red-600 hover:bg-red-700' :
+                                            'bg-brand-600'
+                                        }`}
+                                >
+                                    <Send className="w-4 h-4 mr-2" />
+                                    Send Update
+                                </Button>
                             </div>
                         </div>
 

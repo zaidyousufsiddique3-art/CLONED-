@@ -14,6 +14,8 @@ export enum RequestStatus {
   COMPLETED = 'Completed',
   PENDING_ACTION = 'Pending Action',
   APPLICATION_RECEIVED = 'Application Received',
+  REJECTED = 'Rejected',
+  IN_REVIEW = 'In-review',
 }
 
 export enum DocumentType {
@@ -128,6 +130,7 @@ export interface SportsCaptainApplication {
   studentName: string;
   studentAdmissionNo: string;
   studentGender: string;
+  grade?: string;
   cvUrl?: string;
   cvName?: string;
   intentUrl?: string;
@@ -135,7 +138,8 @@ export interface SportsCaptainApplication {
   actionPlanUrl?: string;
   actionPlanName?: string;
   supportingCertificates: Attachment[];
-  status: 'Pending' | 'Under Review' | 'Accepted' | 'Declined';
+  status: 'Accepted' | 'In-review' | 'Rejected' | 'Pending';
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
 }

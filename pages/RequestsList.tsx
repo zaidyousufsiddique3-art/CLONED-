@@ -191,6 +191,8 @@ const RequestsList: React.FC = () => {
             case 'Completed': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200';
             case RequestStatus.PENDING_ACTION: return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200';
             case RequestStatus.APPLICATION_RECEIVED: return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 border-cyan-200';
+            case RequestStatus.REJECTED: return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200';
+            case RequestStatus.IN_REVIEW: return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200';
             default: return 'bg-slate-100 text-slate-600 border-slate-200';
         }
     };

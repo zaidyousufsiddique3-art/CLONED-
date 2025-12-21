@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { uploadFile } from '../firebase/storage';
-import { createSportsCaptainApplication } from '../firebase/sportsCaptainService';
+import { createSportsCaptainApplication, getSportsCaptainApplicationByStudent } from '../firebase/sportsCaptainService';
 import { sendNotification } from '../firebase/notificationService';
 import { Attachment, UserRole, DocumentType, RequestStatus } from '../types';
 import { collection, query, where, getDocs, updateDoc, doc } from '@firebase/firestore';
@@ -20,9 +20,12 @@ import {
     File as FileIcon,
     Layout,
     PlusCircle,
-    Plus
+    Plus,
+    AlertCircle,
+    Clock
 } from 'lucide-react';
 import { SPORTS_COORDINATOR_EMAIL } from '../constants';
+import { SportsCaptainApplication } from '../types';
 
 interface FileUploadBoxProps {
     title: string;
@@ -87,6 +90,24 @@ const SportsCaptainApplicationForm: React.FC = () => {
         actionPlan: 'idle',
         certificates: 'idle'
     });
+
+    const [existingApplication, setExistingApplication] = React.useState<SportsCaptainApplication | null>(null);
+    const [checkingExisting, setCheckingExisting] = React.useState(true);
+
+    React.useEffect(() => {
+        if (user) {
+            getSportsCaptainApplicationByStudent(user.id).then(app => {
+                if (app) {
+                    setExistingApplication(app);
+                    // Pre-fill fields if needed, but we'll show a status view
+                    setFullName(app.studentName);
+                    setGrade(app.grade || '');
+                    setGender(app.studentGender);
+                }
+                setCheckingExisting(false);
+            });
+        }
+    }, [user]);
 
     const [fullName, setFullName] = useState(user ? `${user.firstName} ${user.lastName}` : '');
     const [grade, setGrade] = useState('');
@@ -244,7 +265,39 @@ const SportsCaptainApplicationForm: React.FC = () => {
                 Back to Portal
             </button>
 
-            <div className="bg-white dark:bg-[#070708] rounded-[3rem] p-10 md:p-16 shadow-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden">
+            {existingApplication && (
+                <div className={`p-8 rounded-[2.5rem] border ${existingApplication.status === 'Accepted' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' :
+                        existingApplication.status === 'Rejected' ? 'bg-red-500/10 border-red-500/20 text-red-600' :
+                            'bg-amber-500/10 border-amber-500/20 text-amber-600'
+                    } animate-in fade-in slide-in-from-top-4 duration-500`}>
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex items-center gap-5">
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${existingApplication.status === 'Accepted' ? 'bg-emerald-500 text-white' :
+                                    existingApplication.status === 'Rejected' ? 'bg-red-500 text-white' :
+                                        'bg-amber-500 text-white'
+                                }`}>
+                                {existingApplication.status === 'Accepted' ? <Trophy size={28} /> :
+                                    existingApplication.status === 'Rejected' ? <AlertCircle size={28} /> :
+                                        <Clock size={28} />}
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black tracking-tight uppercase">Application {existingApplication.status || 'Received'}</h3>
+                                <p className="text-xs font-bold opacity-80 uppercase tracking-widest mt-1">
+                                    Official Status Update from Sports Coordinator
+                                </p>
+                            </div>
+                        </div>
+                        {existingApplication.status === 'Rejected' && existingApplication.rejectionReason && (
+                            <div className="flex-1 max-w-md bg-white/20 backdrop-blur-md p-5 rounded-2xl border border-white/20">
+                                <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-60">Reason for Rejection</p>
+                                <p className="text-sm font-bold leading-relaxed">{existingApplication.rejectionReason}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <div className={`bg-white dark:bg-[#070708] rounded-[3rem] p-10 md:p-16 shadow-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden ${existingApplication ? 'opacity-70 pointer-events-none' : ''}`}>
                 <div className="absolute -top-32 -right-32 w-64 h-64 bg-brand-600/5 rounded-full blur-[100px]"></div>
 
                 <div className="relative z-10 space-y-12">
