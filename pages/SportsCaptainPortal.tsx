@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, UserRole, SportsCaptainApplication } from '../types';
+import { User, SportsCaptainApplication, DocumentType, RequestStatus } from '../types';
 import { useSearchParams } from 'react-router-dom';
 import { getStudents } from '../firebase/userService';
 import { sendNotification } from '../firebase/notificationService';
-import { getSportsCaptainApplications } from '../firebase/sportsCaptainService';
+import { getSportsCaptainApplications, deleteSportsCaptainApplication } from '../firebase/sportsCaptainService';
 import Button from '../components/Button';
 import {
     Send,
@@ -15,21 +14,18 @@ import {
     Download,
     Eye,
     Trophy,
-    ExternalLink,
-    ChevronRight,
     ArrowLeft,
-    Calendar
+    Calendar,
+    Trash2
 } from 'lucide-react';
 import { createRequest } from '../firebase/requestService';
-import { DocumentType, RequestStatus } from '../types';
-import { collection, query, where, getDocs, updateDoc, doc } from '@firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, orderBy } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
-import { APP_URL } from '../constants';
 
 const SportsCaptainPortal: React.FC = () => {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
-    const [activeTab, setActiveTab] = useState<'sent' | 'received'>('sent');
+    const [activeTab, setActiveTab] = useState<'send-request' | 'sent-list' | 'received'>('send-request');
 
     // Sent Tab State
     const [gender, setGender] = useState<string>('Male');
@@ -45,6 +41,9 @@ const SportsCaptainPortal: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [viewingApplication, setViewingApplication] = useState<SportsCaptainApplication | null>(null);
 
+    // Sent List State
+    const [sentInvitations, setSentInvitations] = useState<any[]>([]);
+
     // Status Update State
     const [newStatus, setNewStatus] = useState<SportsCaptainApplication['status']>('Pending');
     const [rejectionReason, setRejectionReason] = useState('');
@@ -55,10 +54,18 @@ const SportsCaptainPortal: React.FC = () => {
     }, [gender]);
 
     useEffect(() => {
-        if (activeTab === 'received' || searchParams.get('studentId')) {
+        if (activeTab === 'received') {
             loadApplications();
-            loadInvitationsCount();
+        } else if (activeTab === 'sent-list') {
+            loadSentInvitations();
         }
+
+        if (searchParams.get('studentId')) {
+            loadApplications();
+            // We'll set activeTab to received if we find it in the other useEffect
+        }
+
+        loadInvitationsCount();
     }, [activeTab, searchParams]);
 
     const loadInvitationsCount = async () => {
@@ -68,6 +75,24 @@ const SportsCaptainPortal: React.FC = () => {
             setInvitationsCount(snapshot.size);
         } catch (error) {
             console.error(error);
+        }
+    };
+
+    const loadSentInvitations = async () => {
+        setLoading(true);
+        try {
+            const q = query(
+                collection(db, 'requests'),
+                where('type', '==', DocumentType.SPORTS_CAPTAIN),
+                orderBy('createdAt', 'desc')
+            );
+            const snapshot = await getDocs(q);
+            const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setSentInvitations(docs);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -121,8 +146,8 @@ const SportsCaptainPortal: React.FC = () => {
                 details: "Invitation for Sports Captain Application",
                 status: RequestStatus.ASSIGNED,
                 expectedCompletionDate: new Date(deadline).toISOString(),
-                assignedToId: user.id,
-                assignedToName: `${user.firstName} ${user.lastName}`,
+                assignedToId: user?.id,
+                assignedToName: user ? `${user.firstName} ${user.lastName}` : 'Coordinator',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 comments: [],
@@ -132,6 +157,7 @@ const SportsCaptainPortal: React.FC = () => {
 
             setSuccessMessage(`Invitation dispatched to ${student.firstName}.`);
             setDeadline('');
+            loadInvitationsCount();
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
             console.error(error);
@@ -191,20 +217,42 @@ const SportsCaptainPortal: React.FC = () => {
         }
     };
 
+    const handleDeleteApplication = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (window.confirm("Are you sure you want to delete this application? This action cannot be undone.")) {
+            try {
+                await deleteSportsCaptainApplication(id);
+                loadApplications();
+            } catch (error: any) {
+                alert("Deletion failed: " + error.message);
+            }
+        }
+    };
+
     return (
         <div className="space-y-8 animate-fade-in">
             {/* Header with Pill Tabs */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="bg-slate-200 dark:bg-[#070708] p-1.5 rounded-2xl flex shrink-0 border border-slate-300 dark:border-white/5 shadow-inner">
                     <button
-                        onClick={() => setActiveTab('sent')}
-                        className={`flex items-center px-6 py-3 rounded-xl text-sm font-black transition-all duration-300 ${activeTab === 'sent'
+                        onClick={() => setActiveTab('send-request')}
+                        className={`flex items-center px-6 py-3 rounded-xl text-sm font-black transition-all duration-300 ${activeTab === 'send-request'
                             ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20 translate-y-[-1px]'
                             : 'text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white'
                             }`}
                     >
                         <Send className="w-4 h-4 mr-2" />
-                        Applications Sent
+                        Send Application Request
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('sent-list')}
+                        className={`flex items-center px-6 py-3 rounded-xl text-sm font-black transition-all duration-300 ${activeTab === 'sent-list'
+                            ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20 translate-y-[-1px]'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white'
+                            }`}
+                    >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Sent Applications
                     </button>
                     <button
                         onClick={() => setActiveTab('received')}
@@ -244,8 +292,8 @@ const SportsCaptainPortal: React.FC = () => {
                 )}
             </div>
 
-            {activeTab === 'sent' ? (
-                /* PAGE 1: APPLICATIONS SENT */
+            {activeTab === 'send-request' ? (
+                /* PAGE 1: SEND APPLICATION REQUEST */
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] p-10 shadow-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden group">
                         <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-600/5 rounded-full blur-3xl group-hover:bg-brand-600/10 transition-colors"></div>
@@ -266,7 +314,8 @@ const SportsCaptainPortal: React.FC = () => {
                                                 onClick={() => setGender(g)}
                                                 className={`py-4 rounded-2xl font-bold text-sm border transition-all ${gender === g
                                                     ? 'bg-brand-600 border-brand-600 text-white shadow-lg shadow-brand-500/20'
-                                                    : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-brand-600/50'}`}
+                                                    : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-brand-600/50'
+                                                    }`}
                                             >
                                                 {g}
                                             </button>
@@ -348,8 +397,51 @@ const SportsCaptainPortal: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            ) : activeTab === 'sent-list' ? (
+                /* PAGE 2: SENT APPLICATIONS LIST */
+                <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden min-h-[400px]">
+                    <div className="scroll-x-mobile">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-100 dark:border-white/5">
+                                    <th className="px-8 py-6">Student Name</th>
+                                    <th className="px-8 py-6">Admission No</th>
+                                    <th className="px-8 py-6">Deadline</th>
+                                    <th className="px-8 py-6">Status</th>
+                                    <th className="px-8 py-6">Dispatched Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-8 py-20 text-center text-slate-500 font-bold text-sm animate-pulse">Retrieving dispatched invitations...</td>
+                                    </tr>
+                                ) : sentInvitations.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-8 py-20 text-center text-slate-500 font-bold text-sm">No invitations sent yet.</td>
+                                    </tr>
+                                ) : sentInvitations.map(invit => (
+                                    <tr key={invit.id} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-all border-b border-slate-50 dark:border-white/5">
+                                        <td className="px-8 py-6 font-bold text-slate-900 dark:text-white">{invit.studentName}</td>
+                                        <td className="px-8 py-6 font-mono text-sm text-slate-500 dark:text-slate-400">{invit.studentAdmissionNo}</td>
+                                        <td className="px-8 py-6 text-slate-500 text-sm font-medium">{new Date(invit.expectedCompletionDate).toLocaleDateString()}</td>
+                                        <td className="px-8 py-6">
+                                            <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${invit.status === RequestStatus.COMPLETED ? 'bg-emerald-500/10 text-emerald-500' :
+                                                invit.status === RequestStatus.REJECTED ? 'bg-red-500/10 text-red-500' :
+                                                    'bg-brand-500/10 text-brand-500'
+                                                }`}>
+                                                {invit.status === RequestStatus.APPLICATION_RECEIVED ? 'Assigned' : invit.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6 text-slate-400 text-sm font-medium">{new Date(invit.createdAt).toLocaleDateString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             ) : (
-                /* PAGE 2: APPLICATIONS RECEIVED */
+                /* PAGE 3: APPLICATIONS RECEIVED */
                 <div className="space-y-6">
                     <div className="bg-white dark:bg-[#070708] backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden min-h-[400px]">
                         <div className="scroll-x-mobile">
@@ -367,11 +459,11 @@ const SportsCaptainPortal: React.FC = () => {
                                 <tbody>
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={5} className="px-8 py-20 text-center text-slate-500 font-bold text-sm animate-pulse">Retrieving application records...</td>
+                                            <td colSpan={6} className="px-8 py-20 text-center text-slate-500 font-bold text-sm animate-pulse">Retrieving application records...</td>
                                         </tr>
                                     ) : applications.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="px-8 py-20 text-center text-slate-500 font-bold text-sm">No applications received yet.</td>
+                                            <td colSpan={6} className="px-8 py-20 text-center text-slate-500 font-bold text-sm">No applications received yet.</td>
                                         </tr>
                                     ) : applications.map(app => (
                                         <tr key={app.id} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-all border-b border-slate-50 dark:border-white/5">
@@ -390,23 +482,32 @@ const SportsCaptainPortal: React.FC = () => {
                                                     app.status === 'Rejected' ? 'bg-red-500/10 text-red-500' :
                                                         app.status === 'In-review' ? 'bg-amber-500/10 text-amber-500' :
                                                             'bg-brand-500/10 text-brand-500'
-                                                    }`}>
+                                                    } `}>
                                                     {(app.status === 'Pending' || !app.status) ? 'Assigned' : app.status}
                                                 </span>
                                             </td>
                                             <td className="px-8 py-6 text-slate-500 text-sm font-medium">{new Date(app.createdAt).toLocaleDateString()}</td>
                                             <td className="px-8 py-6 text-right">
-                                                <button
-                                                    onClick={() => {
-                                                        setViewingApplication(app);
-                                                        setNewStatus(app.status || 'In-review');
-                                                        setRejectionReason(app.rejectionReason || '');
-                                                    }}
-                                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-500/10 hover:bg-brand-700 transition-all opacity-0 group-hover:opacity-100"
-                                                >
-                                                    <Eye className="w-3.5 h-3.5" />
-                                                    View Details
-                                                </button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setViewingApplication(app);
+                                                            setNewStatus(app.status || 'In-review');
+                                                            setRejectionReason(app.rejectionReason || '');
+                                                        }}
+                                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white rounded-xl text-xs font-black shadow-lg shadow-brand-500/10 hover:bg-brand-700 transition-all opacity-0 group-hover:opacity-100"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5" />
+                                                        View Details
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleDeleteApplication(app.id, e)}
+                                                        className="p-2.5 text-slate-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
+                                                        title="Delete Application"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -445,7 +546,7 @@ const SportsCaptainPortal: React.FC = () => {
 
                             <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
                                 <div className="w-24 h-24 rounded-[2rem] bg-brand-600 text-white flex items-center justify-center text-4xl font-black shadow-2xl shadow-brand-500/30 shrink-0">
-                                    {viewingApplication.studentName.charAt(0)}
+                                    {viewingApplication.studentName ? viewingApplication.studentName.charAt(0) : 'S'}
                                 </div>
                                 <div className="space-y-6 flex-1 w-full text-center md:text-left">
                                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">

@@ -25,3 +25,8 @@ export const getSportsCaptainApplicationByStudent = async (studentId: string): P
     if (snapshot.empty) return null;
     return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as SportsCaptainApplication;
 };
+
+export const deleteSportsCaptainApplication = async (id: string) => {
+    const { deleteDoc } = await import('@firebase/firestore');
+    await deleteDoc(doc(db, 'sports_captain_applications', id));
+};
