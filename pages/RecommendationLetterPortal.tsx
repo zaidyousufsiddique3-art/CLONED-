@@ -44,9 +44,9 @@ const RecommendationLetterPortal: React.FC = () => {
         let q;
 
         if (user.role === UserRole.SUPER_ADMIN) {
-            q = query(coll, where('documentType', '==', DocumentType.REFERENCE_LETTER), orderBy('createdAt', 'desc'));
+            q = query(coll, where('documentType', '==', DocumentType.REFERENCE_LETTER));
         } else {
-            q = query(coll, where('documentType', '==', DocumentType.REFERENCE_LETTER), where('generatedById', '==', user.id), orderBy('createdAt', 'desc'));
+            q = query(coll, where('documentType', '==', DocumentType.REFERENCE_LETTER), where('generatedById', '==', user.id));
         }
 
         const unsubscribe = onSnapshot(q,
