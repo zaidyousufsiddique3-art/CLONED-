@@ -58,10 +58,6 @@ const RecommendationLetterPortal: React.FC = () => {
             (error) => {
                 console.error("History fetch error:", error);
                 setLoadingHistory(false);
-                // If it's an index error, it usually provides a link in the console
-                if (error.message.includes('index')) {
-                    alert("This view requires a database index. Please check the browser console for the link to create it, or wait for the system to auto-generate it.");
-                }
             }
         );
 
