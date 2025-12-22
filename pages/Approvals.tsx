@@ -62,7 +62,15 @@ const Approvals: React.FC = () => {
 
     const handleApproveFinal = async () => {
         if (!selectedRequest || !user) return;
+
+        if (!selectedRequest.payload) {
+            alert("Error: This is a legacy request and cannot be approved as it lacks the necessary data payload. Please ask the Superadmin to resend the request.");
+            return;
+        }
+
         setProcessing(true);
+        console.log("[Approvals] Starting approval for request:", selectedRequest.id);
+
         try {
             // 1. Regenerate PDF with Principal assets
             const payload = {
@@ -71,13 +79,18 @@ const Approvals: React.FC = () => {
                 PRINCIPAL_STAMP_URL: includeStamp ? user.principalStampUrl : undefined,
             };
 
+            console.log("[Approvals] Sending payload to API...");
             const response = await fetch('/api/generate-expected-grade-pdf', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) throw new Error('Failed to regenerate PDF');
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("[Approvals] API Error:", errorData);
+                throw new Error(errorData.error || 'Failed to regenerate PDF');
+            }
 
             const blob = await response.blob();
             const base64 = await new Promise<string>((resolve) => {
@@ -101,9 +114,9 @@ const Approvals: React.FC = () => {
             setShowApproveModal(false);
             setSelectedRequest(null);
             alert("Request approved successfully.");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error approving request:", error);
-            alert("Failed to approve request.");
+            alert(`Failed to approve request: ${error.message || 'Unknown error'}`);
         } finally {
             setProcessing(false);
         }
