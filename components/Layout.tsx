@@ -137,10 +137,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <NavItem to="/requests" icon={FileText} label="Institutional Records" />
             )}
 
+            {(user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) && (
+              <NavItem to="/users" icon={Users} label="User Management" />
+            )}
+
             {user.role === UserRole.SUPER_ADMIN && (
               <>
-                <NavItem to="/requests" icon={FileText} label="Institutional Records" />
-                <NavItem to="/users" icon={Users} label="User Management" />
                 <NavItem to="/documents" icon={Folder} label="Documents Portal" />
                 <NavItem to="/predicted-grades" icon={TrendingUp} label="Predicted Grades" />
               </>

@@ -190,7 +190,7 @@ const UserManagement: React.FC = () => {
     return u.role === activeTab;
   });
 
-  if (currentUser?.role !== UserRole.SUPER_ADMIN) return <div className="p-10 text-center text-red-500">Access Denied</div>;
+  if (currentUser?.role !== UserRole.SUPER_ADMIN && currentUser?.role !== UserRole.ADMIN) return <div className="p-10 text-center text-red-500">Access Denied</div>;
   if (loading) return <div className="p-10 text-center text-slate-500">Loading users...</div>;
   if (error) return <div className="p-10 text-center text-red-500">{error}</div>;
 
@@ -259,11 +259,19 @@ const UserManagement: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-5 text-right flex justify-end space-x-2">
-                    <button onClick={() => handleEditOpen(u)} className="p-2 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <button
+                      onClick={() => handleEditOpen(u)}
+                      disabled={currentUser?.role === UserRole.ADMIN && (u.role === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN)}
+                      className="p-2 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 disabled:cursor-not-allowed"
+                    >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     {u.role !== UserRole.SUPER_ADMIN && (
-                      <button onClick={() => handleDeleteUser(u.id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
+                      <button
+                        onClick={() => handleDeleteUser(u.id)}
+                        disabled={currentUser?.role === UserRole.ADMIN && (u.role === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN)}
+                        className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-20 disabled:cursor-not-allowed"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
@@ -397,25 +405,27 @@ const UserManagement: React.FC = () => {
                 </div>
               )}
 
-              {currentUser?.role === UserRole.SUPER_ADMIN && (editingUser.role === UserRole.STAFF || editingUser.role === UserRole.ADMIN) && (
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                  <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
-                    <div>
-                      <label className="block text-sm font-bold text-slate-900 dark:text-white">Add Recommendation Portal</label>
-                      <p className="text-xs text-slate-500">Grant access to the recommendation letter generator</p>
+              {/* ADMIN or SUPER_ADMIN can toggle for STAFF. Only SUPER_ADMIN can toggle for ADMIN. */}
+              {((currentUser?.role === UserRole.SUPER_ADMIN && (editingUser.role === UserRole.STAFF || editingUser.role === UserRole.ADMIN)) ||
+                (currentUser?.role === UserRole.ADMIN && editingUser.role === UserRole.STAFF)) && (
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-900 dark:text-white">Add Recommendation Portal</label>
+                        <p className="text-xs text-slate-500">Grant access to the recommendation letter generator</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editFormData.hasRecommendationAccess}
+                          onChange={e => setEditFormData({ ...editFormData, hasRecommendationAccess: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-600"></div>
+                      </label>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={editFormData.hasRecommendationAccess}
-                        onChange={e => setEditFormData({ ...editFormData, hasRecommendationAccess: e.target.checked })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-600"></div>
-                    </label>
                   </div>
-                </div>
-              )}
+                )}
 
               <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
                 <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-2">Password Management</label>
