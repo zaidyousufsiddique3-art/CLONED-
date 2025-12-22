@@ -10,7 +10,8 @@ import {
     AlertCircle,
     TrendingUp,
     Download,
-    X
+    X,
+    Pen
 } from 'lucide-react';
 import { ref, listAll, getDownloadURL, getBytes } from 'firebase/storage';
 import { storage } from '../firebase/firebaseConfig';
@@ -47,6 +48,7 @@ const PredictedGradesPortal: React.FC = () => {
     const [ialSession, setIalSession] = useState('');
     const [generatingPdf, setGeneratingPdf] = useState(false);
     const [gender, setGender] = useState<'male' | 'female'>('male');
+    const [addSignature, setAddSignature] = useState(false);
 
     useEffect(() => {
         fetchFolders();
@@ -268,6 +270,7 @@ const PredictedGradesPortal: React.FC = () => {
                 IAS_SESSION_MONTH_YEAR: iasSession,
                 IAL_SESSION_MONTH_YEAR: ialSession,
                 GENDER: gender,
+                SIGNATURE_URL: addSignature ? user.signatureUrl : undefined,
             };
 
             // Populate Original and Predicted Grades (Max 4)
@@ -307,6 +310,7 @@ const PredictedGradesPortal: React.FC = () => {
             setIasSession('');
             setIalSession('');
             setGender('male');
+            setAddSignature(false);
 
         } catch (error) {
             console.error('Error generating PDF:', error);
@@ -605,6 +609,43 @@ const PredictedGradesPortal: React.FC = () => {
                                     <option value="female">Female</option>
                                 </select>
                             </div>
+
+                            {/* Signature Toggle - Superadmin Only */}
+                            {user?.role === UserRole.SUPER_ADMIN && (
+                                <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <div className={`flex items-center justify-between p-4 rounded-xl border transition-all ${addSignature ? 'bg-emerald-500/10 border-emerald-500/50' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2 rounded-lg ${addSignature ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+                                                <Pen className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white">Add Signature</p>
+                                                <p className="text-[10px] text-slate-500">Include your default digital signature</p>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!user.signatureUrl) {
+                                                    alert("Please upload a default signature in your profile first.");
+                                                    return;
+                                                }
+                                                setAddSignature(!addSignature);
+                                            }}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${addSignature ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${addSignature ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+                                    {!user.signatureUrl && (
+                                        <p className="mt-2 text-[10px] text-amber-500 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" />
+                                            No signature found. Upload in Profile.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div className="p-6 border-t border-slate-200 dark:border-slate-700 flex gap-3">

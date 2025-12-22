@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
-import { Camera, User, Lock, Mail, Phone } from 'lucide-react';
+import { Camera, User, Lock, Mail, Phone, Pen, Upload } from 'lucide-react';
 import { fileToBase64 } from '../services/mockDb';
 import { UserRole } from '../types';
 
@@ -48,6 +48,22 @@ const Profile: React.FC = () => {
         updateUser({ ...user, profileImage: base64 });
       } catch (err) {
         console.error("Failed to upload image", err);
+      }
+    }
+  };
+
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.type !== 'image/png') {
+        alert("Only PNG files are accepted for signatures to ensure transparency.");
+        return;
+      }
+      try {
+        const base64 = await fileToBase64(file);
+        updateUser({ ...user, signatureUrl: base64 });
+      } catch (err) {
+        console.error("Failed to upload signature", err);
       }
     }
   };
@@ -168,6 +184,63 @@ const Profile: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* Signature Section - Superadmin Only */}
+              {user.role === UserRole.SUPER_ADMIN && (
+                <div className="pt-8 mt-8 border-t border-slate-200 dark:border-slate-700/50">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Pen className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">🖊️ Default Signature</h3>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-100 dark:border-white/10">
+                    <div className="flex flex-col md:flex-row items-center gap-6">
+                      <div className="w-48 h-24 bg-white dark:bg-[#070708] rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center overflow-hidden">
+                        {user.signatureUrl ? (
+                          <img src={user.signatureUrl} alt="Signature" className="max-w-full max-h-full object-contain" />
+                        ) : (
+                          <div className="text-center p-4">
+                            <p className="text-xs text-slate-400">No signature uploaded</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 space-y-4 text-center md:text-left">
+                        <div>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">Update Signature Image</p>
+                          <p className="text-xs text-slate-500">Only .png files are accepted for transparency.</p>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <label className="flex-1">
+                            <div className="flex items-center justify-center px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl cursor-pointer transition-colors text-sm font-bold">
+                              <Upload className="w-4 h-4 mr-2" />
+                              Select PNG Signature
+                            </div>
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/png"
+                              onChange={handleSignatureUpload}
+                            />
+                          </label>
+                          {user.signatureUrl && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              onClick={() => updateUser({ ...user, signatureUrl: '' })}
+                            >
+                              Clear Signature
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end pt-4">
                 <Button type="submit" isLoading={loading}>Save Changes</Button>

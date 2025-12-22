@@ -367,6 +367,37 @@ export default async function handler(req: any, res: any) {
                 color: rgb(0, 0, 0),
             });
         }
+
+        // --- SIGNATURE OVERLAY (Superadmin Only) ---
+        if (payload.SIGNATURE_URL) {
+            try {
+                let sigImage;
+                if (payload.SIGNATURE_URL.startsWith('data:image/png;base64,')) {
+                    const base64Data = payload.SIGNATURE_URL.split(',')[1];
+                    const imageBytes = Buffer.from(base64Data, 'base64');
+                    sigImage = await pdfDoc.embedPng(imageBytes);
+                } else {
+                    const resp = await fetch(payload.SIGNATURE_URL);
+                    const imageBytes = await resp.arrayBuffer();
+                    sigImage = await pdfDoc.embedPng(new Uint8Array(imageBytes));
+                }
+
+                if (sigImage) {
+                    const sigDims = sigImage.scale(0.2);
+                    const targetWidth = 100; // Optimal width for signature area
+                    const targetHeight = (sigDims.height / sigDims.width) * targetWidth;
+
+                    page.drawImage(sigImage, {
+                        x: rightSigX + (sigLineLength / 2) - (targetWidth / 2),
+                        y: sigY, // Touching the line
+                        width: targetWidth,
+                        height: targetHeight,
+                    });
+                }
+            } catch (sigErr) {
+                console.error("Error embedding signature:", sigErr);
+            }
+        }
         page.drawText('S.M.M. Hajath', {
             x: rightSigX,
             y: sigY - 15,

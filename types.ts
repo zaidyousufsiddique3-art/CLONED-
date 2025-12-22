@@ -44,6 +44,7 @@ export interface User {
   isActive: boolean;
   password?: string; // In a real app, this would be hashed. Storing plain for demo localStorage.
   profileImage?: string; // Base64 or URL
+  signatureUrl?: string; // URL to signature image
   hasRecommendationAccess?: boolean;
   createdAt: string;
 }
