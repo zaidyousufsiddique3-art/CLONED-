@@ -289,8 +289,8 @@ const RecommendationLetterPortal: React.FC = () => {
                         />
                     </section>
 
-                    {/* Signature Toggle - Superadmin Only */}
-                    {user?.role === UserRole.SUPER_ADMIN && (
+                    {/* Signature Toggle - Superadmin or Staff with Access */}
+                    {(user?.role === UserRole.SUPER_ADMIN || user?.hasRecommendationAccess) && (
                         <div className="pt-8 pb-8 flex justify-center">
                             <div className={`w-full max-w-md flex items-center justify-between p-4 rounded-xl border transition-all ${addSignature ? 'bg-emerald-500/10 border-emerald-500/50' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
                                 <div className="flex items-center gap-3">

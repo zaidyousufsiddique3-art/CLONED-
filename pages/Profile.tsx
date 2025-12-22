@@ -185,8 +185,8 @@ const Profile: React.FC = () => {
                 </div>
               </div>
 
-              {/* Signature Section - Superadmin Only */}
-              {user.role === UserRole.SUPER_ADMIN && (
+              {/* Signature Section - Superadmin or Staff with Recommendation Access */}
+              {(user.role === UserRole.SUPER_ADMIN || user.hasRecommendationAccess) && (
                 <div className="pt-8 mt-8 border-t border-slate-200 dark:border-slate-700/50">
                   <div className="flex items-center space-x-2 mb-4">
                     <Pen className="w-5 h-5 text-brand-600 dark:text-brand-400" />
