@@ -11,7 +11,6 @@ const APPRECIATIVE_OPTIONS = [
     { id: '3', title: 'Teamwork & Support', text: '[First Name] worked well with peers, offering support and collaborating effectively in group settings.' },
     { id: '4', title: 'Character & Respect', text: '[First Name] displayed a respectful attitude and positive conduct, valuing differing opinions.' },
     { id: '5', title: 'Discipline & Focus', text: '[First Name] approached academic responsibilities with discipline, focus, and maturity.' },
-    { id: '6', title: 'Leadership & Initiative', text: '[First Name] demonstrated initiative and leadership, taking responsibility when required.' },
     { id: '7', title: 'Overall Potential', text: '[First Name] possesses the motivation and character required to succeed in higher education.' },
 ];
 

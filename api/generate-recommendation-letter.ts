@@ -193,38 +193,58 @@ export default async function handler(req: any, res: any) {
         currentY -= lineSpacing * 1.5;
 
         // Helper to replace markers
-        const formatText = (text: string) => {
-            return text
-                .replace(/\[First Name\]/g, firstName)
+        const formatText = (text: string, useFirstNameOnce: boolean = false) => {
+            let formatted = text
                 .replace(/\[his\/her\]/g, pronouns.possessive)
                 .replace(/\[him\/her\]/g, pronouns.object)
                 .replace(/\[he\/she\]/g, pronouns.subject);
+
+            if (useFirstNameOnce) {
+                // Replace ONLY the first [First Name] with the actual name
+                // and subsequent ones with the Subject pronoun.
+                let firstMatch = true;
+                formatted = formatted.replace(/\[First Name\]/g, () => {
+                    if (firstMatch) {
+                        firstMatch = false;
+                        return firstName;
+                    }
+                    return pronouns.Subject;
+                });
+            } else {
+                // Replace all [First Name] with Subject pronoun
+                formatted = formatted.replace(/\[First Name\]/g, pronouns.Subject);
+            }
+            return formatted;
         };
 
-        // Opening Paragraph
-        const openingParagraph = `I am writing this letter to formally recommend ${firstName} ${lastName}, a student in ${grade} at Sri Lankan International School, Riyadh, for admission to your esteemed institution in ${country}. ${firstName} has been an exemplary student at our school, and it is with great pleasure that I provide this reference based on ${pronouns.possessive} academic performance and character.`;
+        // Opening Paragraph - Full Name once
+        const openingParagraph = `I am writing this letter to formally recommend ${firstName} ${lastName}, a student in ${grade} at Sri Lankan International School, Riyadh, for admission to your esteemed institution in ${country}. ${pronouns.Subject} has been an exemplary student at our school, and it is with great pleasure that I provide this reference based on ${pronouns.possessive} academic performance and character.`;
         currentY = drawJustifiedText(page, openingParagraph, currentY, font, fontSize, SAFE_AREA.RIGHT - SAFE_AREA.LEFT, lineSpacing);
         currentY -= paragraphGap;
 
-        // Selected Options
-        for (const option of selectedOptions) {
-            const text = formatText(option);
-            currentY = drawJustifiedText(page, text, currentY, font, fontSize, SAFE_AREA.RIGHT - SAFE_AREA.LEFT, lineSpacing);
-            currentY -= paragraphGap;
-        }
+        // Paragraph 1: Selected Option 1 + Option 2 (Combined)
+        // [First Name] used once in this combined block.
+        const combinedPara1Raw = `${selectedOptions[0]} ${selectedOptions[1]}`;
+        const paragraph1 = formatText(combinedPara1Raw, true);
+        currentY = drawJustifiedText(page, paragraph1, currentY, font, fontSize, SAFE_AREA.RIGHT - SAFE_AREA.LEFT, lineSpacing);
+        currentY -= paragraphGap;
 
-        // Additional Information (Optional)
+        // Paragraph 2: Selected Option 3 + Special Notes (Combined)
+        // No [First Name] used here, only pronouns.
+        let combinedPara2Raw = selectedOptions[2];
         if (additionalInfo && additionalInfo.trim()) {
-            currentY = drawJustifiedText(page, additionalInfo, currentY, font, fontSize, SAFE_AREA.RIGHT - SAFE_AREA.LEFT, lineSpacing);
-            currentY -= paragraphGap;
+            combinedPara2Raw += ` ${additionalInfo.trim()}`;
         }
+        const paragraph2 = formatText(combinedPara2Raw, false);
+        currentY = drawJustifiedText(page, paragraph2, currentY, font, fontSize, SAFE_AREA.RIGHT - SAFE_AREA.LEFT, lineSpacing);
+        currentY -= paragraphGap;
 
-        // Closing Paragraph
+        // Closing Paragraph - Fixed wording
         const closingParagraph = `Based on my observation and reports from the teaching staff, I am confident that ${firstName} will be a valuable asset to your academic community. ${pronouns.Subject} carries our highest recommendation for ${pronouns.possessive} future endeavors. If you require any further information, please do not hesitate to contact me at ${refereeEmail}.`;
         currentY = drawJustifiedText(page, closingParagraph, currentY, font, fontSize, SAFE_AREA.RIGHT - SAFE_AREA.LEFT, lineSpacing);
         currentY -= lineSpacing;
 
-        // Signature
+        // Signature - Traditional Left Alignment
         if (currentY < 150) {
             // If running out of space, just keep drawing and hope for the best, or log
             console.warn("Signature might overflow");
