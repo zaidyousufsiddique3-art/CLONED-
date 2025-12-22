@@ -153,9 +153,14 @@ export interface ApprovalRequest {
   recipientEmail: string;
   studentName: string;
   documentType: DocumentType;
-  pdfUrl: string; // Base64 or Storage URL
+  pdfUrl: string; // Initial generated PDF (Base64)
+  finalPdfUrl?: string; // Signed/Stamped PDF (Base64)
   status: 'Pending Approval' | 'Approved' | 'Rejected';
   rejectionReason?: string;
+  includeSignature?: boolean;
+  includeStamp?: boolean;
   createdAt: string;
   updatedAt: string;
+  // Metadata for PDF regeneration if needed
+  payload?: any;
 }

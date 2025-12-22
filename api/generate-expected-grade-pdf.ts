@@ -369,7 +369,7 @@ export default async function handler(req: any, res: any) {
             });
         }
 
-        // --- SIGNATURE OVERLAY (Superadmin Only) ---
+        // --- SIGNATURE OVERLAY (Superadmin / Coordinator) ---
         if (payload.SIGNATURE_URL) {
             try {
                 let sigImage;
@@ -399,6 +399,72 @@ export default async function handler(req: any, res: any) {
                 console.error("Error embedding signature:", sigErr);
             }
         }
+
+        // --- PRINCIPAL SIGNATURE OVERLAY ---
+        if (payload.PRINCIPAL_SIGNATURE_URL) {
+            try {
+                let pSigImage;
+                if (payload.PRINCIPAL_SIGNATURE_URL.startsWith('data:image/png;base64,')) {
+                    const base64Data = payload.PRINCIPAL_SIGNATURE_URL.split(',')[1];
+                    const imageBytes = Buffer.from(base64Data, 'base64');
+                    pSigImage = await pdfDoc.embedPng(imageBytes);
+                } else {
+                    const resp = await fetch(payload.PRINCIPAL_SIGNATURE_URL);
+                    const imageBytes = await resp.arrayBuffer();
+                    pSigImage = await pdfDoc.embedPng(new Uint8Array(imageBytes));
+                }
+
+                if (pSigImage) {
+                    const sigDims = pSigImage.scale(0.2);
+                    const targetWidth = 100;
+                    const targetHeight = (sigDims.height / sigDims.width) * targetWidth;
+
+                    page.drawImage(pSigImage, {
+                        x: leftSigX + (sigLineLength / 2) - (targetWidth / 2),
+                        y: sigY - 8,
+                        width: targetWidth,
+                        height: targetHeight,
+                    });
+                }
+            } catch (pSigErr) {
+                console.error("Error embedding principal signature:", pSigErr);
+            }
+        }
+
+        // --- PRINCIPAL STAMP OVERLAY ---
+        if (payload.PRINCIPAL_STAMP_URL) {
+            try {
+                let stampImage;
+                if (payload.PRINCIPAL_STAMP_URL.startsWith('data:image/png;base64,')) {
+                    const base64Data = payload.PRINCIPAL_STAMP_URL.split(',')[1];
+                    const imageBytes = Buffer.from(base64Data, 'base64');
+                    stampImage = await pdfDoc.embedPng(imageBytes);
+                } else {
+                    const resp = await fetch(payload.PRINCIPAL_STAMP_URL);
+                    const imageBytes = await resp.arrayBuffer();
+                    stampImage = await pdfDoc.embedPng(new Uint8Array(imageBytes));
+                }
+
+                if (stampImage) {
+                    const stampWidth = 130; // Official stamp should be prominent
+                    const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
+
+                    // Center between signatures
+                    const stampX = (leftSigX + rightSigX + sigLineLength) / 2 - (stampWidth / 2);
+
+                    page.drawImage(stampImage, {
+                        x: stampX,
+                        y: sigY - (stampHeight / 2) + 20, // Center vertically around the signature line
+                        width: stampWidth,
+                        height: stampHeight,
+                        opacity: 0.85, // Slight transparency for realistic feel
+                    });
+                }
+            } catch (stampErr) {
+                console.error("Error embedding principal stamp:", stampErr);
+            }
+        }
+
         page.drawText('S.M.M. Hajath', {
             x: rightSigX,
             y: sigY - 15,

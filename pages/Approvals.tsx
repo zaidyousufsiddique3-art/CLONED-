@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
     collection,
@@ -21,7 +20,10 @@ import {
     Eye,
     X,
     AlertCircle,
-    Send
+    Send,
+    Pen,
+    Stamp,
+    MousePointer2
 } from 'lucide-react';
 import { sendNotification } from '../firebase/notificationService';
 import { PRINCIPAL_EMAIL } from '../constants';
@@ -32,8 +34,13 @@ const Approvals: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState<ApprovalRequest | null>(null);
     const [showRejectModal, setShowRejectModal] = useState(false);
+    const [showApproveModal, setShowApproveModal] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
     const [processing, setProcessing] = useState(false);
+
+    // Approval options
+    const [includeSignature, setIncludeSignature] = useState(true);
+    const [includeStamp, setIncludeStamp] = useState(false);
 
     useEffect(() => {
         if (!user || user.email.toLowerCase() !== PRINCIPAL_EMAIL.toLowerCase()) return;
@@ -53,17 +60,45 @@ const Approvals: React.FC = () => {
         return () => unsubscribe();
     }, [user]);
 
-    const handleApprove = async (request: ApprovalRequest) => {
+    const handleApproveFinal = async () => {
+        if (!selectedRequest || !user) return;
         setProcessing(true);
         try {
-            await updateDoc(doc(db, 'approval_requests', request.id), {
+            // 1. Regenerate PDF with Principal assets
+            const payload = {
+                ...selectedRequest.payload,
+                PRINCIPAL_SIGNATURE_URL: includeSignature ? user.signatureUrl : undefined,
+                PRINCIPAL_STAMP_URL: includeStamp ? user.principalStampUrl : undefined,
+            };
+
+            const response = await fetch('/api/generate-expected-grade-pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error('Failed to regenerate PDF');
+
+            const blob = await response.blob();
+            const base64 = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+            });
+
+            // 2. Update Firestore
+            await updateDoc(doc(db, 'approval_requests', selectedRequest.id), {
                 status: 'Approved',
+                finalPdfUrl: base64,
+                includeSignature,
+                includeStamp,
                 updatedAt: new Date().toISOString()
             });
 
-            // Notify Superadmin
-            await sendNotification(request.senderId, `Predicted Grades approved by Principal for ${request.studentName}`, "/predicted-grades");
+            // 3. Notify Superadmin
+            await sendNotification(selectedRequest.senderId, `Predicted Grades approved by Principal for ${selectedRequest.studentName}`, "/predicted-grades");
 
+            setShowApproveModal(false);
             setSelectedRequest(null);
             alert("Request approved successfully.");
         } catch (error) {
@@ -117,7 +152,7 @@ const Approvals: React.FC = () => {
                             <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
                         </div>
                     ) : requests.length === 0 ? (
-                        <div className="bg-white dark:bg-[#070708] p-8 rounded-[2rem] border border-dashed border-slate-200 dark:border-white/10 text-center">
+                        <div className="bg-white dark:bg-[#070708] p-8 rounded-[2rem] border border-dashed border-slate-200 dark:border-white/10 text-center text-white">
                             <CheckCircle className="w-12 h-12 text-slate-200 dark:text-slate-800 mx-auto mb-4" />
                             <p className="text-slate-500 font-medium">No pending requests</p>
                         </div>
@@ -127,8 +162,8 @@ const Approvals: React.FC = () => {
                                 key={req.id}
                                 onClick={() => setSelectedRequest(req)}
                                 className={`w-full text-left p-6 rounded-[2rem] transition-all border ${selectedRequest?.id === req.id
-                                        ? 'bg-brand-600 border-brand-500 text-white shadow-xl shadow-brand-500/20'
-                                        : 'bg-white dark:bg-[#070708] border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-300 hover:border-brand-500/50'
+                                    ? 'bg-brand-600 border-brand-500 text-white shadow-xl shadow-brand-500/20'
+                                    : 'bg-white dark:bg-[#070708] border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-300 hover:border-brand-500/50'
                                     }`}
                             >
                                 <div className="flex items-start justify-between mb-3">
@@ -172,18 +207,23 @@ const Approvals: React.FC = () => {
                                         Reject
                                     </button>
                                     <button
-                                        onClick={() => handleApprove(selectedRequest)}
-                                        disabled={processing}
+                                        onClick={() => {
+                                            if (!user.signatureUrl && !user.principalStampUrl) {
+                                                alert("Please upload a signature or stamp in your profile first.");
+                                                return;
+                                            }
+                                            setShowApproveModal(true);
+                                        }}
                                         className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2"
                                     >
-                                        {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                        <CheckCircle className="w-4 h-4" />
                                         Approve
                                     </button>
                                 </div>
                             </div>
 
                             {/* PDF View */}
-                            <div className="flex-1 bg-slate-100 dark:bg-slate-900 overflow-hidden relative">
+                            <div className="flex-1 bg-slate-100 dark:bg-slate-900 overflow-hidden relative text-white">
                                 <iframe
                                     src={selectedRequest.pdfUrl}
                                     className="w-full h-full border-none"
@@ -200,6 +240,87 @@ const Approvals: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* Approval Options Modal */}
+            {showApproveModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl w-full max-w-lg border border-white/10 animate-in zoom-in-95">
+                        <div className="p-8">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h3 className="text-2xl font-black text-white tracking-tight">Approve Document</h3>
+                                    <p className="text-slate-500 text-sm mt-1">Select authorization assets to include</p>
+                                </div>
+                                <button onClick={() => setShowApproveModal(false)} className="p-2 text-slate-400 hover:text-white transition-colors">
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {/* Option 1: Signature */}
+                                <button
+                                    onClick={() => setIncludeSignature(!includeSignature)}
+                                    disabled={!user.signatureUrl}
+                                    className={`w-full flex items-center justify-between p-6 rounded-[1.5rem] border transition-all ${includeSignature ? 'bg-brand-600/10 border-brand-500/50' : 'bg-white/5 border-white/5 opacity-50'}`}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={`p-3 rounded-xl ${includeSignature ? 'bg-brand-600 text-white' : 'bg-slate-800 text-slate-500'}`}>
+                                            <Pen className="w-5 h-5" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-bold text-white">Principal Signature</p>
+                                            <p className="text-xs text-slate-500">Append your digital signature</p>
+                                        </div>
+                                    </div>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${includeSignature ? 'border-brand-500 bg-brand-500' : 'border-slate-700'}`}>
+                                        {includeSignature && <CheckCircle className="w-4 h-4 text-white" />}
+                                    </div>
+                                </button>
+
+                                {/* Option 2: Stamp */}
+                                <button
+                                    onClick={() => setIncludeStamp(!includeStamp)}
+                                    disabled={!user.principalStampUrl}
+                                    className={`w-full flex items-center justify-between p-6 rounded-[1.5rem] border transition-all ${includeStamp ? 'bg-brand-600/10 border-brand-500/50' : 'bg-white/5 border-white/5 opacity-50'}`}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={`p-3 rounded-xl ${includeStamp ? 'bg-brand-600 text-white' : 'bg-slate-800 text-slate-500'}`}>
+                                            <Stamp className="w-5 h-5" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-bold text-white">Institutional Stamp</p>
+                                            <p className="text-xs text-slate-500">Apply official principal stamp</p>
+                                        </div>
+                                    </div>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${includeStamp ? 'border-brand-500 bg-brand-500' : 'border-slate-700'}`}>
+                                        {includeStamp && <CheckCircle className="w-4 h-4 text-white" />}
+                                    </div>
+                                </button>
+
+                                {/* Option 3: Both is implicitly covered by selecting both */}
+                            </div>
+
+                            <button
+                                onClick={handleApproveFinal}
+                                disabled={processing || (!includeSignature && !includeStamp)}
+                                className="w-full mt-8 py-5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
+                            >
+                                {processing ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        GENERATING SIGNED PDF...
+                                    </>
+                                ) : (
+                                    <>
+                                        <MousePointer2 className="w-5 h-5" />
+                                        FINALIZE & APPROVE
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Rejection Modal */}
             {showRejectModal && (
