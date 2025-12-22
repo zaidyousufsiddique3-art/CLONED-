@@ -49,11 +49,21 @@ const RecommendationLetterPortal: React.FC = () => {
             q = query(coll, where('documentType', '==', DocumentType.REFERENCE_LETTER), where('generatedById', '==', user.id), orderBy('createdAt', 'desc'));
         }
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GeneratedDocument));
-            setHistoryRequests(docs);
-            setLoadingHistory(false);
-        });
+        const unsubscribe = onSnapshot(q,
+            (snapshot) => {
+                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GeneratedDocument));
+                setHistoryRequests(docs);
+                setLoadingHistory(false);
+            },
+            (error) => {
+                console.error("History fetch error:", error);
+                setLoadingHistory(false);
+                // If it's an index error, it usually provides a link in the console
+                if (error.message.includes('index')) {
+                    alert("This view requires a database index. Please check the browser console for the link to create it, or wait for the system to auto-generate it.");
+                }
+            }
+        );
 
         return () => unsubscribe();
     }, [user, activeTab]);
