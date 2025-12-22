@@ -31,7 +31,7 @@ const RecommendationLetterPortal: React.FC = () => {
 
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
-    if (user?.role !== UserRole.SUPER_ADMIN) {
+    if (user?.role !== UserRole.SUPER_ADMIN && !user?.hasRecommendationAccess) {
         return <div className="p-10 text-center text-red-500 font-bold">Access Denied</div>;
     }
 

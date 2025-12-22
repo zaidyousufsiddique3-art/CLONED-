@@ -80,7 +80,8 @@ const UserManagement: React.FC = () => {
       phone: user.phone || '',
       admissionNumber: user.admissionNumber || '',
       gender: user.gender || 'Male',
-      designation: user.designation || ''
+      designation: user.designation || '',
+      hasRecommendationAccess: user.hasRecommendationAccess || false
     });
     setIsEditModalOpen(true);
   };
@@ -393,6 +394,26 @@ const UserManagement: React.FC = () => {
                 <div>
                   <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Designation</label>
                   <input value={editFormData.designation} onChange={e => setEditFormData({ ...editFormData, designation: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                </div>
+              )}
+
+              {currentUser?.role === UserRole.SUPER_ADMIN && (editingUser.role === UserRole.STAFF || editingUser.role === UserRole.ADMIN) && (
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                  <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-900 dark:text-white">Add Recommendation Portal</label>
+                      <p className="text-xs text-slate-500">Grant access to the recommendation letter generator</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editFormData.hasRecommendationAccess}
+                        onChange={e => setEditFormData({ ...editFormData, hasRecommendationAccess: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-600"></div>
+                    </label>
+                  </div>
                 </div>
               )}
 

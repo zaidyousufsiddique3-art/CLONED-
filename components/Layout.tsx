@@ -143,8 +143,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <NavItem to="/users" icon={Users} label="User Management" />
                 <NavItem to="/documents" icon={Folder} label="Documents Portal" />
                 <NavItem to="/predicted-grades" icon={TrendingUp} label="Predicted Grades" />
-                <NavItem to="/recommendation-letter" icon={FileText} label="Recommendation Letter" />
               </>
+            )}
+
+            {(user.role === UserRole.SUPER_ADMIN || user.hasRecommendationAccess) && (
+              <NavItem to="/recommendation-letter" icon={FileText} label="Recommendation Letter" />
             )}
 
             {/* Sports Coordinator Specific Access */}
