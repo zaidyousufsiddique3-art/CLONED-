@@ -185,11 +185,13 @@ export default async function handler(req: any, res: any) {
         page.drawText('Admission Committee', { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font: fontBold });
         currentY -= lineSpacing;
         page.drawText(country, { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font });
-        currentY -= lineSpacing * 2;
+        currentY -= lineSpacing * 3.5; // Added vertical space above title
 
-        // Title
+        // Title - CENTER ALIGNED
         const titleText = `Reference Letter – ${firstName} ${lastName}`;
-        page.drawText(titleText, { x: SAFE_AREA.LEFT, y: currentY, size: fontSize + 1, font: fontBold });
+        const titleWidth = fontBold.widthOfTextAtSize(titleText, fontSize + 1);
+        const titleX = SAFE_AREA.CENTER_X - (titleWidth / 2);
+        page.drawText(titleText, { x: titleX, y: currentY, size: fontSize + 1, font: fontBold });
         currentY -= lineSpacing * 1.5;
 
         // Helper to replace markers
