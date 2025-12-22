@@ -11,14 +11,25 @@ service firebase.storage {
         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['ADMIN', 'SUPER_ADMIN']
       );
     }
-
     // 2. DOCUMENTS PORTAL (SUPERADMIN ONLY)
     match /superadmin_documents/{allPaths=**} {
       allow read, write: if request.auth != null && 
         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'SUPER_ADMIN';
     }
 
-    // 3. DEFAULT (OTHER ATTACHMENTS)
+    // 3. APPROVAL REQUESTS (ALL AUTH USERS CAN UPLOAD/READ)
+    match /approvals/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // 4. FINAL APPROVED DOCUMENTS
+    match /approved_documents/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.email == 'Principal.slisr@gmail.com';
+    }
+
+    // 5. DEFAULT (OTHER ATTACHMENTS)
     match /{allPaths=**} {
       allow read, write: if request.auth != null;
     }

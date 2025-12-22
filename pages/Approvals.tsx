@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { sendNotification } from '../firebase/notificationService';
 import { PRINCIPAL_EMAIL } from '../constants';
+import { uploadFile } from '../firebase/storage';
 
 const Approvals: React.FC = () => {
     const { user } = useAuth();
@@ -93,16 +94,15 @@ const Approvals: React.FC = () => {
             }
 
             const blob = await response.blob();
-            const base64 = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(blob);
-            });
+
+            // Upload the approved PDF to storage to avoid the 1MB Firestore limit
+            const fileName = `approved_documents/${Date.now()}_${selectedRequest.studentName.replace(/\s+/g, '_')}.pdf`;
+            const finalPdfUrl = await uploadFile(blob, fileName);
 
             // 2. Update Firestore
             await updateDoc(doc(db, 'approval_requests', selectedRequest.id), {
                 status: 'Approved',
-                finalPdfUrl: base64,
+                finalPdfUrl: finalPdfUrl,
                 includeSignature,
                 includeStamp,
                 updatedAt: new Date().toISOString()

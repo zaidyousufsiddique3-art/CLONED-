@@ -5,7 +5,7 @@ import { getUserByEmail } from '../firebase/userService';
 import { sendNotification } from '../firebase/notificationService';
 import { ApprovalRequest, DocumentType, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { storage } from '../firebase/firebaseConfig';
+import { storage, uploadFile } from '../firebase/storage';
 import { ref, listAll } from 'firebase/storage';
 import { StudentResult } from '../services/extractionService';
 import { PRINCIPAL_EMAIL } from '../constants';
@@ -275,19 +275,17 @@ const PredictedGradesPortal: React.FC = () => {
         if (!pdfBlob || !selectedStudent || !user) return;
         setSendingApproval(true);
         try {
-            const reader = new FileReader();
-            const base64Promise = new Promise<string>((resolve) => {
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(pdfBlob);
-            });
-            const base64 = await base64Promise;
+            // Upload PDF to storage instead of using base64 (to avoid 1MB Firestore limit)
+            const fileName = `approvals/${Date.now()}_${formatStudentName(selectedStudent.candidateName).replace(/\s+/g, '_')}.pdf`;
+            const pdfUrl = await uploadFile(pdfBlob, fileName);
+
             const approvalReq = {
                 senderId: user.id,
                 senderName: `${user.firstName} ${user.lastName}`,
                 recipientEmail: PRINCIPAL_EMAIL,
                 studentName: formatStudentName(selectedStudent.candidateName),
                 documentType: DocumentType.PREDICTED_GRADES,
-                pdfUrl: base64,
+                pdfUrl: pdfUrl,
                 status: 'Pending Approval',
                 payload: lastPayload,
                 createdAt: new Date().toISOString(),
