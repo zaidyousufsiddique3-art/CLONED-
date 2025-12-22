@@ -60,25 +60,47 @@ const PredictedGradesPortal: React.FC = () => {
     const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
     const [lastPayload, setLastPayload] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'generate' | 'approvals'>('generate');
+    const [activeTab, setActiveTab] = useState<'generate' | 'approvals' | 'history'>('generate');
     const [myApprovalRequests, setMyApprovalRequests] = useState<ApprovalRequest[]>([]);
+    const [allHistoryRequests, setAllHistoryRequests] = useState<ApprovalRequest[]>([]);
 
     useEffect(() => {
         fetchFolders();
     }, []);
 
     useEffect(() => {
-        if (!user || activeTab !== 'approvals') return;
+        if (!user || (activeTab !== 'approvals' && activeTab !== 'history')) return;
 
-        const q = query(
-            collection(db, 'approval_requests'),
-            where('senderId', '==', user.id),
-            orderBy('createdAt', 'desc')
-        );
+        let q;
+        if (activeTab === 'approvals') {
+            q = query(
+                collection(db, 'approval_requests'),
+                where('senderId', '==', user.id),
+                orderBy('createdAt', 'desc')
+            );
+        } else {
+            // History tab: Superadmin sees all, others see theirs
+            if (user.role === UserRole.SUPER_ADMIN) {
+                q = query(
+                    collection(db, 'approval_requests'),
+                    orderBy('createdAt', 'desc')
+                );
+            } else {
+                q = query(
+                    collection(db, 'approval_requests'),
+                    where('senderId', '==', user.id),
+                    orderBy('createdAt', 'desc')
+                );
+            }
+        }
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const reqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApprovalRequest));
-            setMyApprovalRequests(reqs);
+            if (activeTab === 'approvals') {
+                setMyApprovalRequests(reqs);
+            } else {
+                setAllHistoryRequests(reqs);
+            }
         });
 
         return () => unsubscribe();
@@ -323,11 +345,17 @@ const PredictedGradesPortal: React.FC = () => {
                     <FileCheck className="w-4 h-4" />
                     APPROVALS
                 </button>
+                <button
+                    onClick={() => setActiveTab('history')}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'history' ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                >
+                    <Clock className="w-4 h-4" />
+                    HISTORY
+                </button>
             </div>
 
             {activeTab === 'generate' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Column */}
                     <div className="lg:col-span-1 space-y-6">
                         <div className="flex items-center space-x-2 mb-2">
                             <input type="checkbox" id="debugMode" checked={debugMode} onChange={e => setDebugMode(e.target.checked)} className="rounded border-gray-300 text-brand-600" />
@@ -434,7 +462,7 @@ const PredictedGradesPortal: React.FC = () => {
                         )}
                     </div>
                 </div>
-            ) : (
+            ) : activeTab === 'approvals' ? (
                 /* Approvals Tab Content */
                 <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden text-white">
                     <div className="p-8 border-b border-white/5 bg-white/[0.01]">
@@ -461,6 +489,58 @@ const PredictedGradesPortal: React.FC = () => {
                                                         <div className="hidden group-hover:block absolute right-0 bottom-full mb-2 w-48 p-2 bg-slate-900 border border-white/10 rounded shadow-xl text-[10px] z-10">Reason: {req.rejectionReason}</div>
                                                     </div>
                                                 )}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            ) : (
+                /* History Tab Content (Superadmin/All) */
+                <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden text-white">
+                    <div className="p-8 border-b border-white/5 bg-white/[0.01]">
+                        <h2 className="text-xl font-bold">Predicted Grades Master History</h2>
+                        <p className="text-sm text-slate-500">
+                            {user.role === UserRole.SUPER_ADMIN ? 'Complete audit trail of all generated predicted grade documents' : 'Your generated documents history'}
+                        </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-900/50">
+                                <tr className="text-slate-500 text-xs uppercase tracking-widest">
+                                    <th className="px-8 py-4">Student</th>
+                                    <th className="px-8 py-4">Type</th>
+                                    <th className="px-8 py-4 text-center">Date</th>
+                                    <th className="px-8 py-4 text-center">Status</th>
+                                    <th className="px-8 py-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {allHistoryRequests.length === 0 ? <tr><td colSpan={5} className="px-8 py-12 text-center text-slate-500 italic">No history records found</td></tr> : (
+                                    allHistoryRequests.map(req => (
+                                        <tr key={req.id} className="hover:bg-white/[0.02]">
+                                            <td className="px-8 py-5 font-bold">{req.studentName}</td>
+                                            <td className="px-8 py-5 text-xs text-slate-500">{req.documentType}</td>
+                                            <td className="px-8 py-5 text-center text-xs text-slate-500">{new Date(req.createdAt).toLocaleDateString()}</td>
+                                            <td className="px-8 py-5 text-center">
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${req.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-500' : req.status === 'Rejected' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                                                    {req.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <button
+                                                    onClick={() => {
+                                                        const a = document.createElement('a');
+                                                        a.href = req.finalPdfUrl || req.pdfUrl;
+                                                        a.download = `${req.status === 'Approved' ? 'Signed_' : ''}${req.studentName}.pdf`;
+                                                        a.click();
+                                                    }}
+                                                    className="px-4 py-2 bg-brand-600 rounded-xl text-xs font-bold hover:bg-brand-500 transition-all flex items-center gap-2 ml-auto shadow-lg shadow-brand-500/20"
+                                                >
+                                                    <Download className="w-3.5 h-3.5" /> Download
+                                                </button>
                                             </td>
                                         </tr>
                                     ))

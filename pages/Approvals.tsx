@@ -23,7 +23,8 @@ import {
     Send,
     Pen,
     Stamp,
-    MousePointer2
+    MousePointer2,
+    Download
 } from 'lucide-react';
 import { sendNotification } from '../firebase/notificationService';
 import { PRINCIPAL_EMAIL } from '../constants';
@@ -43,13 +44,15 @@ const Approvals: React.FC = () => {
     const [includeSignature, setIncludeSignature] = useState(true);
     const [includeStamp, setIncludeStamp] = useState(false);
 
+    const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
+
     useEffect(() => {
         if (!user || user.email.toLowerCase() !== PRINCIPAL_EMAIL.toLowerCase()) return;
 
         const q = query(
             collection(db, 'approval_requests'),
             where('recipientEmail', '==', PRINCIPAL_EMAIL),
-            where('status', '==', 'Pending Approval')
+            where('status', '==', activeTab === 'pending' ? 'Pending Approval' : 'Approved')
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -59,7 +62,7 @@ const Approvals: React.FC = () => {
         });
 
         return () => unsubscribe();
-    }, [user]);
+    }, [user, activeTab]);
 
     const handleApproveFinal = async () => {
         if (!selectedRequest || !user) return;
@@ -153,11 +156,29 @@ const Approvals: React.FC = () => {
 
     return (
         <div className="space-y-6 animate-fade-in">
+            {/* Tab Navigation */}
+            <div className="flex bg-white dark:bg-[#070708] p-1.5 rounded-2xl border border-slate-200 dark:border-white/10 w-fit">
+                <button
+                    onClick={() => { setActiveTab('pending'); setSelectedRequest(null); }}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'pending' ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                >
+                    <Clock className="w-4 h-4" />
+                    PENDING APPROVALS
+                </button>
+                <button
+                    onClick={() => { setActiveTab('history'); setSelectedRequest(null); }}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'history' ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                >
+                    <CheckCircle className="w-4 h-4" />
+                    HISTORY
+                </button>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* List of Requests */}
                 <div className="lg:col-span-1 space-y-4">
                     <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">
-                        Pending Approvals ({requests.length})
+                        {activeTab === 'pending' ? 'Pending' : 'Approved'} Documents ({requests.length})
                     </h3>
 
                     {loading ? (
@@ -167,7 +188,7 @@ const Approvals: React.FC = () => {
                     ) : requests.length === 0 ? (
                         <div className="bg-white dark:bg-[#070708] p-8 rounded-[2rem] border border-dashed border-slate-200 dark:border-white/10 text-center text-white">
                             <CheckCircle className="w-12 h-12 text-slate-200 dark:text-slate-800 mx-auto mb-4" />
-                            <p className="text-slate-500 font-medium">No pending requests</p>
+                            <p className="text-slate-500 font-medium">No {activeTab} requests</p>
                         </div>
                     ) : (
                         requests.map(req => (
@@ -183,9 +204,11 @@ const Approvals: React.FC = () => {
                                     <div className={`p-2 rounded-xl ${selectedRequest?.id === req.id ? 'bg-white/20' : 'bg-brand-500/10'}`}>
                                         <FileText className={`w-5 h-5 ${selectedRequest?.id === req.id ? 'text-white' : 'text-brand-500'}`} />
                                     </div>
-                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${selectedRequest?.id === req.id ? 'bg-white/20 text-white' : 'bg-amber-500/10 text-amber-500'
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${selectedRequest?.id === req.id
+                                        ? 'bg-white/20 text-white'
+                                        : activeTab === 'pending' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
                                         }`}>
-                                        Pending
+                                        {req.status === 'Pending Approval' ? 'Pending' : 'Approved'}
                                     </span>
                                 </div>
                                 <p className="font-bold text-lg mb-1">{req.studentName}</p>
@@ -194,7 +217,7 @@ const Approvals: React.FC = () => {
                                 </p>
                                 <div className={`flex items-center mt-4 text-[10px] font-medium ${selectedRequest?.id === req.id ? 'text-brand-200' : 'text-slate-400'}`}>
                                     <Clock className="w-3 h-3 mr-1" />
-                                    {new Date(req.createdAt).toLocaleDateString()}
+                                    {new Date(req.updatedAt || req.createdAt).toLocaleDateString()}
                                 </div>
                             </button>
                         ))
@@ -204,48 +227,67 @@ const Approvals: React.FC = () => {
                 {/* Preview & Actions */}
                 <div className="lg:col-span-2">
                     {selectedRequest ? (
-                        <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden animate-scale-in h-[calc(100vh-12rem)] flex flex-col">
+                        <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden animate-scale-in h-[calc(100vh-16rem)] flex flex-col">
                             {/* Header */}
                             <div className="px-8 py-6 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
                                 <div>
                                     <h2 className="text-xl font-bold dark:text-white">{selectedRequest.studentName}</h2>
-                                    <p className="text-sm text-slate-500">Submitted by {selectedRequest.senderName}</p>
+                                    <p className="text-sm text-slate-500">
+                                        {activeTab === 'pending' ? `Submitted by ${selectedRequest.senderName}` : `Approved on ${new Date(selectedRequest.updatedAt).toLocaleDateString()}`}
+                                    </p>
                                 </div>
                                 <div className="flex gap-3">
-                                    <button
-                                        onClick={() => setShowRejectModal(true)}
-                                        className="px-6 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
-                                    >
-                                        <XCircle className="w-4 h-4" />
-                                        Reject
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            if (!user.signatureUrl && !user.principalStampUrl) {
-                                                alert("Please upload a signature or stamp in your profile first.");
-                                                return;
-                                            }
-                                            setShowApproveModal(true);
-                                        }}
-                                        className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2"
-                                    >
-                                        <CheckCircle className="w-4 h-4" />
-                                        Approve
-                                    </button>
+                                    {activeTab === 'pending' ? (
+                                        <>
+                                            <button
+                                                onClick={() => setShowRejectModal(true)}
+                                                className="px-6 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
+                                            >
+                                                <XCircle className="w-4 h-4" />
+                                                Reject
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (!user.signatureUrl && !user.principalStampUrl) {
+                                                        alert("Please upload a signature or stamp in your profile first.");
+                                                        return;
+                                                    }
+                                                    setShowApproveModal(true);
+                                                }}
+                                                className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2"
+                                            >
+                                                <CheckCircle className="w-4 h-4" />
+                                                Approve
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                const a = document.createElement('a');
+                                                a.href = selectedRequest.finalPdfUrl || selectedRequest.pdfUrl;
+                                                a.download = `Approved_${selectedRequest.studentName}.pdf`;
+                                                a.click();
+                                            }}
+                                            className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-brand-500/20 flex items-center gap-2"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            Download Final PDF
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
                             {/* PDF View */}
                             <div className="flex-1 bg-slate-100 dark:bg-slate-900 overflow-hidden relative text-white">
                                 <iframe
-                                    src={selectedRequest.pdfUrl}
+                                    src={activeTab === 'pending' ? selectedRequest.pdfUrl : (selectedRequest.finalPdfUrl || selectedRequest.pdfUrl)}
                                     className="w-full h-full border-none"
                                     title="Approval PDF"
                                 />
                             </div>
                         </div>
                     ) : (
-                        <div className="h-full min-h-[500px] flex flex-col items-center justify-center text-slate-400 bg-white/50 dark:bg-[#070708]/50 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-white/10">
+                        <div className="h-full min-h-[500px] flex flex-col items-center justify-center text-slate-400 bg-white/50 dark:bg-[#070708]/50 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-white/10 text-center">
                             <Eye className="w-16 h-16 mb-4 opacity-10" />
                             <p className="text-xl font-bold">Select a request to review</p>
                             <p className="text-sm opacity-60">PDF preview will appear here</p>

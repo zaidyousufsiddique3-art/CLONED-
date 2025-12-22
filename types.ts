@@ -153,14 +153,24 @@ export interface ApprovalRequest {
   recipientEmail: string;
   studentName: string;
   documentType: DocumentType;
-  pdfUrl: string; // Initial generated PDF (Base64)
-  finalPdfUrl?: string; // Signed/Stamped PDF (Base64)
+  pdfUrl: string; // Initial generated PDF
+  finalPdfUrl?: string; // Signed/Stamped PDF
   status: 'Pending Approval' | 'Approved' | 'Rejected';
   rejectionReason?: string;
   includeSignature?: boolean;
   includeStamp?: boolean;
   createdAt: string;
   updatedAt: string;
-  // Metadata for PDF regeneration if needed
   payload?: any;
+}
+
+export interface GeneratedDocument {
+  id: string;
+  studentName: string;
+  documentType: DocumentType;
+  pdfUrl: string;
+  generatedById: string;
+  generatedByName: string;
+  refereeName?: string; // For recommendation letters
+  createdAt: string;
 }
