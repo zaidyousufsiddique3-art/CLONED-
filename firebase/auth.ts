@@ -67,6 +67,7 @@ export const registerUser = async (userData: User, password: string): Promise<Us
 export const loginUser = async (identifier: string, password: string, role: UserRole): Promise<User> => {
   const email = identifier.trim();
   const SUPER_ADMIN_EMAIL = 'administration@slisr.org'.toLowerCase();
+  const PRINCIPAL_EMAIL = 'principal@slisr.org'.toLowerCase();
   const SPORTS_COORDINATOR_EMAIL = 'Chandana.kulathunga@slisr.org'.toLowerCase();
 
   try {
@@ -74,8 +75,9 @@ export const loginUser = async (identifier: string, password: string, role: User
     try {
       userCredential = await signInWithEmailAndPassword(auth, email, password);
     } catch (authError: any) {
-      // If hardcoded Sports Coordinator trying to login but not created in Firebase Auth yet
+      // Check for hardcoded accounts
       const isSportsCoordinator = email.toLowerCase() === SPORTS_COORDINATOR_EMAIL && password === 'Chandana@123';
+      const isPrincipal = email.toLowerCase() === PRINCIPAL_EMAIL && password === 'Rukshan@123';
 
       if (isSportsCoordinator) {
         try {
@@ -90,12 +92,28 @@ export const loginUser = async (identifier: string, password: string, role: User
             createdAt: new Date().toISOString()
           } as any, password);
         } catch (regError) {
-          // If already registered but different password etc, retry login one last time
-          // or if registration fails for some other reason, we still try to let the authError bubble up
           console.warn("Sports Coordinator auto-registration skipped or failed:", regError);
         }
-        // Final attempt to sign in with the provided credentials
+        // Final attempt to sign in
         userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+      } else if (isPrincipal) {
+        try {
+          // Attempt to register Principal if not exists
+          await registerUser({
+            firstName: 'Rukshan',
+            lastName: 'Razak',
+            email: email.toLowerCase(),
+            role: UserRole.ADMIN, // Restricted to Admin role
+            isActive: true,
+            createdAt: new Date().toISOString()
+          } as any, password);
+        } catch (regError) {
+          console.warn("Principal auto-registration skipped or failed:", regError);
+        }
+        // Final attempt to sign in
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
+
       } else {
         throw authError;
       }
@@ -116,6 +134,21 @@ export const loginUser = async (identifier: string, password: string, role: User
       };
       await setDoc(doc(db, 'users', userCredential.user.uid), adminData);
       appUser = { id: userCredential.user.uid, ...adminData } as User;
+    }
+
+    // Auto-recover Principal profile
+    if (!appUser && email.toLowerCase() === PRINCIPAL_EMAIL) {
+      const principalData: any = {
+        firstName: 'Rukshan',
+        lastName: 'Razak',
+        role: UserRole.ADMIN,
+        email: email,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        phone: ''
+      };
+      await setDoc(doc(db, 'users', userCredential.user.uid), principalData);
+      appUser = { id: userCredential.user.uid, ...principalData } as User;
     }
 
     // Auto-recover Sports Coordinator profile
