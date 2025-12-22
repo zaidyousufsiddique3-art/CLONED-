@@ -424,8 +424,8 @@ const RecommendationLetterPortal: React.FC = () => {
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-slate-900/50">
-                                <tr className="text-slate-500 text-xs uppercase tracking-widest">
+                            <thead className="bg-brand-600">
+                                <tr className="text-white text-xs uppercase tracking-widest">
                                     <th className="px-8 py-4">Student Name</th>
                                     <th className="px-8 py-4">Referee Name</th>
                                     <th className="px-8 py-4 text-center">Date Generated</th>
