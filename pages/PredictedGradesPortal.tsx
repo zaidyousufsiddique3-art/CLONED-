@@ -69,42 +69,36 @@ const PredictedGradesPortal: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (!user || (activeTab !== 'approvals' && activeTab !== 'history')) return;
+        if (!user) return;
 
-        let q;
-        if (activeTab === 'approvals') {
-            q = query(
-                collection(db, 'approval_requests'),
-                where('senderId', '==', user.id),
-                orderBy('createdAt', 'desc')
-            );
-        } else {
-            // History tab: Superadmin sees all, others see theirs
-            if (user.role === UserRole.SUPER_ADMIN) {
-                q = query(
-                    collection(db, 'approval_requests'),
-                    orderBy('createdAt', 'desc')
-                );
-            } else {
-                q = query(
-                    collection(db, 'approval_requests'),
-                    where('senderId', '==', user.id),
-                    orderBy('createdAt', 'desc')
-                );
-            }
-        }
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        // 1. Fetch My Approvals (immediate background load)
+        const qApprovals = query(
+            collection(db, 'approval_requests'),
+            where('senderId', '==', user.id)
+        );
+        const unsubApprovals = onSnapshot(qApprovals, (snapshot) => {
             const reqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApprovalRequest));
-            if (activeTab === 'approvals') {
-                setMyApprovalRequests(reqs);
-            } else {
-                setAllHistoryRequests(reqs);
-            }
+            setMyApprovalRequests(reqs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
         });
 
-        return () => unsubscribe();
-    }, [user, activeTab]);
+        // 2. Fetch History (immediate background load)
+        let qHistory;
+        if (user.role === UserRole.SUPER_ADMIN) {
+            qHistory = query(collection(db, 'approval_requests'));
+        } else {
+            qHistory = query(collection(db, 'approval_requests'), where('senderId', '==', user.id));
+        }
+
+        const unsubHistory = onSnapshot(qHistory, (snapshot) => {
+            const reqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApprovalRequest));
+            setAllHistoryRequests(reqs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        });
+
+        return () => {
+            unsubApprovals();
+            unsubHistory();
+        };
+    }, [user]);
 
     const fetchFolders = async () => {
         try {
