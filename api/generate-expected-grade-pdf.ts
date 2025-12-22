@@ -114,8 +114,8 @@ export default async function handler(req: any, res: any) {
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        // Base font size (can be reduced by max 1pt if needed)
-        let fontSize = 11;
+        // Base font size (reduced by 1pt for a cleaner look)
+        let fontSize = 10;
 
         // Gender Logic
         const gender = payload.GENDER || 'male';
