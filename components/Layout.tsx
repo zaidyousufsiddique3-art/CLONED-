@@ -84,7 +84,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         location.pathname === '/profile' ? 'Profile' :
                           location.pathname === '/documents' ? 'Vault' :
                             location.pathname === '/predicted-grades' ? 'Analytics' :
-                              location.pathname.startsWith('/sports-captain') ? 'Sports Hub' : APP_NAME}
+                              location.pathname === '/recommendation-letter' ? 'Reference' :
+                                location.pathname.startsWith('/sports-captain') ? 'Sports Hub' : APP_NAME}
           </span>
         </div>
         <div className="flex items-center space-x-3">
@@ -142,6 +143,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <NavItem to="/users" icon={Users} label="User Management" />
                 <NavItem to="/documents" icon={Folder} label="Documents Portal" />
                 <NavItem to="/predicted-grades" icon={TrendingUp} label="Predicted Grades" />
+                <NavItem to="/recommendation-letter" icon={FileText} label="Recommendation Letter" />
               </>
             )}
 
@@ -204,7 +206,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                             location.pathname === '/profile' ? 'Security Profile' :
                               location.pathname === '/documents' ? 'Vault' :
                                 location.pathname === '/predicted-grades' ? 'Analytics' :
-                                  location.pathname.startsWith('/sports-captain') ? 'Sports Captain Hub' : ''}
+                                  location.pathname === '/recommendation-letter' ? 'Recommendation Letter' :
+                                    location.pathname.startsWith('/sports-captain') ? 'Sports Captain Hub' : ''}
               </h2>
               <p className="text-slate-500 dark:text-slate-500 mt-1 font-bold text-xs uppercase tracking-widest">
                 {location.pathname === '/dashboard' ? `Welcome, ${user.firstName}` :
