@@ -315,6 +315,59 @@ const RequestDetail: React.FC = () => {
                     <ArrowLeft className="mr-2 w-5 h-5" /> Back to Requests
                 </button>
 
+                {/* Progress Tracker - Student View Only */}
+                {user.role === UserRole.STUDENT && (
+                    <div className="mb-10 animate-fade-in">
+                        <div className="bg-white dark:bg-[#070708] rounded-[2rem] p-8 border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+                            <div className="relative flex justify-between items-center max-w-2xl mx-auto px-4 md:px-10">
+                                {/* Base Line */}
+                                <div className="absolute top-5 left-10 right-10 h-[2px] bg-slate-100 dark:bg-white/5 z-0"></div>
+
+                                {/* Progress Line */}
+                                <div
+                                    className="absolute top-5 left-10 h-[2px] bg-emerald-500 transition-all duration-1000 ease-in-out z-0"
+                                    style={{
+                                        width: request.status === RequestStatus.COMPLETED ? 'calc(100% - 80px)' :
+                                            request.status === RequestStatus.IN_PROGRESS ? 'calc(50% - 40px)' :
+                                                '0px'
+                                    }}
+                                ></div>
+
+                                {[
+                                    { id: 'assigned', label: 'Assigned', activeStatuses: [RequestStatus.ASSIGNED, RequestStatus.IN_PROGRESS, RequestStatus.COMPLETED] },
+                                    { id: 'in_progress', label: 'In Progress', activeStatuses: [RequestStatus.IN_PROGRESS, RequestStatus.COMPLETED] },
+                                    { id: 'completed', label: 'Completed', activeStatuses: [RequestStatus.COMPLETED] }
+                                ].map((step) => {
+                                    const isActive = step.activeStatuses.includes(request.status);
+                                    return (
+                                        <div key={step.id} className="relative z-10 flex flex-col items-center">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${isActive
+                                                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                                                    : 'bg-white dark:bg-[#070708] border-slate-200 dark:border-white/10 text-slate-400'
+                                                }`}>
+                                                {isActive ? (
+                                                    <CheckCircle className="w-5 h-5" />
+                                                ) : (
+                                                    <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700"></div>
+                                                )}
+                                            </div>
+                                            <div className="mt-4 flex flex-col items-center">
+                                                <span className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${isActive ? 'text-emerald-500' : 'text-slate-400'
+                                                    }`}>
+                                                    {step.label}
+                                                </span>
+                                                {isActive && (
+                                                    <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1 animate-pulse"></span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-8">
                         <div className="bg-white dark:bg-[#070708] rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm">
