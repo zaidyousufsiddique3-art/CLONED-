@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import Button from '../components/Button';
-import { FileText, Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { FileText, Send, CheckCircle2, AlertCircle, Loader2, Pen } from 'lucide-react';
 
 const APPRECIATIVE_OPTIONS = [
     { id: '1', title: 'Academic Strength', text: '[First Name] consistently demonstrated strong subject knowledge and the ability to clearly articulate academic concepts beyond the expected level for [his/her] grade.' },
@@ -30,6 +30,8 @@ const RecommendationLetterPortal: React.FC = () => {
     });
 
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+
+    const [addSignature, setAddSignature] = useState(false);
 
     if (user?.role !== UserRole.SUPER_ADMIN && !user?.hasRecommendationAccess) {
         return <div className="p-10 text-center text-red-500 font-bold">Access Denied</div>;
@@ -72,7 +74,8 @@ const RecommendationLetterPortal: React.FC = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...formData,
-                    selectedOptions: selectedTextOptions
+                    selectedOptions: selectedTextOptions,
+                    signatureUrl: addSignature ? user.signatureUrl : undefined
                 }),
             });
 
@@ -286,8 +289,39 @@ const RecommendationLetterPortal: React.FC = () => {
                         />
                     </section>
 
+                    {/* Signature Toggle - Superadmin Only */}
+                    {user?.role === UserRole.SUPER_ADMIN && (
+                        <div className="pt-8 pb-8 flex justify-center">
+                            <div className={`w-full max-w-md flex items-center justify-between p-4 rounded-xl border transition-all ${addSignature ? 'bg-emerald-500/10 border-emerald-500/50' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${addSignature ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+                                        <Pen className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white">Add Signature</p>
+                                        <p className="text-[10px] text-slate-500">Include your default digital signature</p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!user.signatureUrl) {
+                                            alert("Please upload a default signature in your profile first.");
+                                            return;
+                                        }
+                                        setAddSignature(!addSignature);
+                                    }}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${addSignature ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${addSignature ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Actions */}
-                    <div className="pt-10 border-t border-slate-100 dark:border-white/5 flex flex-col items-center">
+                    <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex flex-col items-center">
                         <Button
                             onClick={handleGenerate}
                             isLoading={loading}

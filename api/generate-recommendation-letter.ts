@@ -132,7 +132,8 @@ export default async function handler(req: any, res: any) {
             refereeEmail,
             country,
             selectedOptions,
-            additionalInfo
+            additionalInfo,
+            signatureUrl // Extract signature
         } = payload;
 
         const letterheadPath = path.join(process.cwd(), "assets", "expected-grade-letterhead.pdf");
@@ -254,7 +255,61 @@ export default async function handler(req: any, res: any) {
 
         currentY -= lineSpacing;
         page.drawText('Yours sincerely,', { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font });
-        currentY -= lineSpacing * 2;
+
+        currentY -= lineSpacing;
+        page.drawText('Yours sincerely,', { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font });
+
+        if (signatureUrl && signatureUrl.trim() !== '') {
+            // --- SIGNATURE SECTION (ON) ---
+            const signatureGap = 60; // Extra vertical spacing for signature
+            currentY -= signatureGap;
+
+            const lineLength = 150;
+            const lineY = currentY + 15; // Dotted line position
+
+            // 1. Draw Dotted Line
+            for (let x = SAFE_AREA.LEFT; x < SAFE_AREA.LEFT + lineLength; x += 4) {
+                page.drawLine({
+                    start: { x, y: lineY },
+                    end: { x: x + 2, y: lineY },
+                    thickness: 0.5,
+                    color: rgb(0, 0, 0),
+                });
+            }
+
+            // 2. Embed Signature Image
+            try {
+                let sigImage;
+                if (signatureUrl.startsWith('data:image/png;base64,')) {
+                    const base64Data = signatureUrl.split(',')[1];
+                    const imageBytes = Buffer.from(base64Data, 'base64');
+                    sigImage = await pdfDoc.embedPng(imageBytes);
+                } else {
+                    const resp = await fetch(signatureUrl);
+                    const imageBytes = await resp.arrayBuffer();
+                    sigImage = await pdfDoc.embedPng(new Uint8Array(imageBytes));
+                }
+
+                if (sigImage) {
+                    const sigDims = sigImage.scale(0.2);
+                    const targetWidth = 100;
+                    const targetHeight = (sigDims.height / sigDims.width) * targetWidth;
+
+                    page.drawImage(sigImage, {
+                        x: SAFE_AREA.LEFT + (lineLength / 2) - (targetWidth / 2),
+                        y: lineY, // Sits on the line
+                        width: targetWidth,
+                        height: targetHeight,
+                    });
+                }
+            } catch (err) {
+                console.error('Signature embedding failed:', err);
+            }
+        } else {
+            // --- NO SIGNATURE (OFF) ---
+            // Just standard spacing
+            currentY -= lineSpacing * 2;
+        }
 
         page.drawText(refereeName, { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font: fontBold });
         currentY -= lineSpacing;
