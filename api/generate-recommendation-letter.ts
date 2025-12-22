@@ -147,7 +147,7 @@ export default async function handler(req: any, res: any) {
 
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-        const fontSize = 11;
+        const fontSize = 10;
         const lineSpacing = 16;
         const paragraphGap = 12;
 
@@ -188,11 +188,11 @@ export default async function handler(req: any, res: any) {
         page.drawText(country, { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font });
         currentY -= lineSpacing * 3.5; // Added vertical space above title
 
-        // Title - CENTER ALIGNED
+        // Title - CENTER ALIGNED - EXCEPTION: Keep font size 12 (11+1) to maintain emphasis
         const titleText = `Reference Letter – ${firstName} ${lastName}`;
-        const titleWidth = fontBold.widthOfTextAtSize(titleText, fontSize + 1);
+        const titleWidth = fontBold.widthOfTextAtSize(titleText, 12);
         const titleX = SAFE_AREA.CENTER_X - (titleWidth / 2);
-        page.drawText(titleText, { x: titleX, y: currentY, size: fontSize + 1, font: fontBold });
+        page.drawText(titleText, { x: titleX, y: currentY, size: 12, font: fontBold });
         currentY -= lineSpacing * 1.5;
 
         // Helper to replace markers
@@ -256,9 +256,6 @@ export default async function handler(req: any, res: any) {
         currentY -= lineSpacing;
         page.drawText('Yours sincerely,', { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font });
 
-        currentY -= lineSpacing;
-        page.drawText('Yours sincerely,', { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font });
-
         if (signatureUrl && signatureUrl.trim() !== '') {
             // --- SIGNATURE SECTION (ON) ---
             const signatureGap = 60; // Extra vertical spacing for signature
@@ -297,7 +294,7 @@ export default async function handler(req: any, res: any) {
 
                     page.drawImage(sigImage, {
                         x: SAFE_AREA.LEFT + (lineLength / 2) - (targetWidth / 2),
-                        y: lineY, // Sits on the line
+                        y: lineY - 3, // Sits on the line
                         width: targetWidth,
                         height: targetHeight,
                     });
