@@ -2,11 +2,12 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
-import { APP_NAME, SPORTS_COORDINATOR_EMAIL } from '../constants';
+import { APP_NAME, SPORTS_COORDINATOR_EMAIL, PRINCIPAL_EMAIL } from '../constants';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   FileText,
+  FileCheck,
   Users,
   Settings,
   LogOut,
@@ -83,9 +84,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                       location.pathname === '/notifications' ? 'Alerts' :
                         location.pathname === '/profile' ? 'Profile' :
                           location.pathname === '/documents' ? 'Vault' :
-                            location.pathname === '/predicted-grades' ? 'Analytics' :
-                              location.pathname === '/recommendation-letter' ? 'Reference' :
-                                location.pathname.startsWith('/sports-captain') ? 'Sports Hub' : APP_NAME}
+                            location.pathname === '/approvals' ? 'Approvals' :
+                              location.pathname === '/predicted-grades' ? 'Analytics' :
+                                location.pathname === '/recommendation-letter' ? 'Reference' :
+                                  location.pathname.startsWith('/sports-captain') ? 'Sports Hub' : APP_NAME}
           </span>
         </div>
         <div className="flex items-center space-x-3">
@@ -134,7 +136,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             )}
 
             {(user.role === UserRole.ADMIN || (user.role === UserRole.STAFF && user.email.toLowerCase() !== SPORTS_COORDINATOR_EMAIL.toLowerCase())) && (
-              <NavItem to="/requests" icon={FileText} label="Institutional Records" />
+              user.email.toLowerCase() === PRINCIPAL_EMAIL.toLowerCase() ? (
+                <NavItem to="/approvals" icon={FileCheck} label="Approvals" />
+              ) : (
+                <NavItem to="/requests" icon={FileText} label="Institutional Records" />
+              )
             )}
 
             {(user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) && (
@@ -210,9 +216,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                           location.pathname === '/notifications' ? 'System Alerts' :
                             location.pathname === '/profile' ? 'Security Profile' :
                               location.pathname === '/documents' ? 'Vault' :
-                                location.pathname === '/predicted-grades' ? 'Analytics' :
-                                  location.pathname === '/recommendation-letter' ? 'Recommendation Letter' :
-                                    location.pathname.startsWith('/sports-captain') ? 'Sports Captain Hub' : ''}
+                                location.pathname === '/approvals' ? 'Approvals' :
+                                  location.pathname === '/predicted-grades' ? 'Analytics' :
+                                    location.pathname === '/recommendation-letter' ? 'Recommendation Letter' :
+                                      location.pathname.startsWith('/sports-captain') ? 'Sports Captain Hub' : ''}
               </h2>
               <p className="text-slate-500 dark:text-slate-500 mt-1 font-bold text-xs uppercase tracking-widest">
                 {location.pathname === '/dashboard' ? `Welcome, ${user.firstName}` :

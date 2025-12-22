@@ -16,6 +16,7 @@ import PredictedGradesPortal from './pages/PredictedGradesPortal';
 import SportsCaptainPortal from './pages/SportsCaptainPortal';
 import SportsCaptainApplicationForm from './pages/SportsCaptainApplicationForm';
 import RecommendationLetterPortal from './pages/RecommendationLetterPortal';
+import Approvals from './pages/Approvals';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { user } = useAuth();
@@ -106,6 +107,12 @@ const AppRoutes = () => {
       <Route path="/recommendation-letter" element={
         <ProtectedRoute>
           <Layout><RecommendationLetterPortal /></Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/approvals" element={
+        <ProtectedRoute>
+          <Layout><Approvals /></Layout>
         </ProtectedRoute>
       } />
     </Routes>

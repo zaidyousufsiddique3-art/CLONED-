@@ -145,3 +145,17 @@ export interface SportsCaptainApplication {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ApprovalRequest {
+  id: string;
+  senderId: string;
+  senderName: string;
+  recipientEmail: string;
+  studentName: string;
+  documentType: DocumentType;
+  pdfUrl: string; // Base64 or Storage URL
+  status: 'Pending Approval' | 'Approved' | 'Rejected';
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}

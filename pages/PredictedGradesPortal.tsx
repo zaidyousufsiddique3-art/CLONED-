@@ -11,7 +11,8 @@ import {
     TrendingUp,
     Download,
     X,
-    Pen
+    Pen,
+    Send
 } from 'lucide-react';
 import { ref, listAll, getDownloadURL, getBytes } from 'firebase/storage';
 import { storage } from '../firebase/firebaseConfig';
@@ -21,6 +22,13 @@ import { StudentResult } from '../services/extractionService';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import jsPDF from 'jspdf';
+
+import { PRINCIPAL_EMAIL } from '../constants';
+import { collection, addDoc } from '@firebase/firestore';
+import { db } from '../firebase/firebaseConfig';
+import { getUserByEmail } from '../firebase/userService';
+import { sendNotification } from '../firebase/notificationService';
+import { DocumentType } from '../types';
 
 const BASE_PATH = 'superadmin_documents/';
 
@@ -47,8 +55,11 @@ const PredictedGradesPortal: React.FC = () => {
     const [iasSession, setIasSession] = useState('');
     const [ialSession, setIalSession] = useState('');
     const [generatingPdf, setGeneratingPdf] = useState(false);
+    const [sendingApproval, setSendingApproval] = useState(false);
     const [gender, setGender] = useState<'male' | 'female'>('male');
     const [addSignature, setAddSignature] = useState(false);
+    const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
+    const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
 
     useEffect(() => {
         fetchFolders();
@@ -74,6 +85,8 @@ const PredictedGradesPortal: React.FC = () => {
         setStudents([]);
         setSelectedStudentId('');
         setShowPredicted(false);
+        setPreviewPdfUrl(null);
+        setPdfBlob(null);
         if (!folderName) return;
 
         scanFolder(folderName);
@@ -82,6 +95,8 @@ const PredictedGradesPortal: React.FC = () => {
     const handleStudentChange = (id: string) => {
         setSelectedStudentId(id);
         setShowPredicted(false);
+        setPreviewPdfUrl(null);
+        setPdfBlob(null);
     };
 
     const scanFolder = async (folderName: string) => {
@@ -295,28 +310,78 @@ const PredictedGradesPortal: React.FC = () => {
                 throw new Error(err.error || 'Server error');
             }
 
-            // Trigger Download
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Expected_Grade_Sheet_${formatStudentName(selectedStudent.candidateName).replace(/\s+/g, '_')}_${Date.now()}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+
+            setPdfBlob(blob);
+            setPreviewPdfUrl(url);
 
             setShowPdfModal(false);
-            setIasSession('');
-            setIalSession('');
-            setGender('male');
-            setAddSignature(false);
+            // Don't clear sessions yet as it might be used for approval? 
+            // Actually instructions say just render inline.
 
         } catch (error) {
             console.error('Error generating PDF:', error);
             alert('Error generating PDF. Please check server logs.');
         } finally {
             setGeneratingPdf(false);
+        }
+    };
+
+    const handleDownload = () => {
+        if (!pdfBlob || !selectedStudent) return;
+        const url = window.URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Expected_Grade_Sheet_${formatStudentName(selectedStudent.candidateName).replace(/\s+/g, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
+    const handleSendForApproval = async () => {
+        if (!pdfBlob || !selectedStudent || !user) return;
+        setSendingApproval(true);
+        try {
+            // 1. Convert blob to base64 for ease in this simulation 
+            // In real app, upload to storage and store URL
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve) => {
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(pdfBlob);
+            });
+            const base64 = await base64Promise;
+
+            // 2. Create approval request
+            const approvalReq = {
+                senderId: user.id,
+                senderName: `${user.firstName} ${user.lastName}`,
+                recipientEmail: PRINCIPAL_EMAIL,
+                studentName: formatStudentName(selectedStudent.candidateName),
+                documentType: DocumentType.PREDICTED_GRADES,
+                pdfUrl: base64,
+                status: 'Pending Approval',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            await addDoc(collection(db, 'approval_requests'), approvalReq);
+
+            // 3. Notify Principal
+            const principal = await getUserByEmail(PRINCIPAL_EMAIL);
+            if (principal) {
+                await sendNotification(principal.id, "New approval request pending", "/approvals");
+            }
+
+            alert("Request sent to Principal for approval.");
+            setPreviewPdfUrl(null);
+            setPdfBlob(null);
+
+        } catch (error) {
+            console.error("Failed to send for approval:", error);
+            alert("Failed to send approval request.");
+        } finally {
+            setSendingApproval(false);
         }
     };
 
@@ -432,6 +497,56 @@ const PredictedGradesPortal: React.FC = () => {
                                 >
                                     <Download className="w-4 h-4" />
                                     Generate Output
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PDF Preview Inline - New Section */}
+                    {previewPdfUrl && user?.role === UserRole.SUPER_ADMIN && (
+                        <div className="p-8 bg-white dark:bg-[#070708] rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/10 animate-fade-in space-y-6">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-white font-black text-lg tracking-tight flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-brand-500" />
+                                    Document Preview
+                                </h3>
+                                <button onClick={() => setPreviewPdfUrl(null)} className="text-slate-500 hover:text-white transition-colors">
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            <div className="aspect-[1/1.4] w-full bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-white/5 shadow-inner">
+                                <iframe
+                                    src={previewPdfUrl}
+                                    className="w-full h-full border-none"
+                                    title="PDF Preview"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={handleDownload}
+                                    className="py-3 px-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border border-white/5 flex items-center justify-center gap-2"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Download
+                                </button>
+                                <button
+                                    onClick={handleSendForApproval}
+                                    disabled={sendingApproval}
+                                    className="py-3 px-3 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2"
+                                >
+                                    {sendingApproval ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <TrendingUp className="w-4 h-4" />
+                                            Send for Approval
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -668,7 +783,7 @@ const PredictedGradesPortal: React.FC = () => {
                                 ) : (
                                     <>
                                         <Download className="w-4 h-4" />
-                                        Submit & Download
+                                        Submit & Preview
                                     </>
                                 )}
                             </button>
