@@ -1,10 +1,10 @@
 
-import { 
-  collection, doc, setDoc, updateDoc, deleteDoc, 
-  query, where, orderBy, onSnapshot, getDocs 
+import {
+  collection, doc, setDoc, updateDoc, deleteDoc,
+  query, where, orderBy, onSnapshot, getDocs
 } from '@firebase/firestore';
 import { db } from './firebaseConfig';
-import { DocRequest, RequestStatus } from '../types';
+import { DocRequest, RequestStatus, DocumentType } from '../types';
 
 const REQUESTS_COLLECTION = 'requests';
 
@@ -15,11 +15,11 @@ export const generateRequestId = async (admissionNo: string): Promise<string> =>
   const snapshot = await getDocs(q);
   const count = snapshot.size + 1;
   const countStr = count.toString().padStart(3, '0');
-  
+
   const now = new Date();
   const month = (now.getMonth() + 1).toString().padStart(2, '0');
   const day = now.getDate().toString().padStart(2, '0');
-  
+
   return `${admissionNo}_${countStr}_${month}${day}`;
 };
 
@@ -50,25 +50,25 @@ export const subscribeToAllRequests = (callback: (reqs: DocRequest[]) => void) =
 
 export const subscribeToStudentRequests = (studentId: string, callback: (reqs: DocRequest[]) => void) => {
   const q = query(
-    collection(db, REQUESTS_COLLECTION), 
+    collection(db, REQUESTS_COLLECTION),
     where('studentId', '==', studentId)
   );
   // Client-side sort needed because compound query requires index
   return onSnapshot(q, (snapshot) => {
     const reqs = snapshot.docs.map(doc => doc.data() as DocRequest);
-    reqs.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    reqs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     callback(reqs);
   });
 };
 
 export const subscribeToAssignedRequests = (userId: string, callback: (reqs: DocRequest[]) => void) => {
   const q = query(
-    collection(db, REQUESTS_COLLECTION), 
+    collection(db, REQUESTS_COLLECTION),
     where('assignedToId', '==', userId)
   );
   return onSnapshot(q, (snapshot) => {
     const reqs = snapshot.docs.map(doc => doc.data() as DocRequest);
-    reqs.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    reqs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     callback(reqs);
   });
 };
@@ -80,5 +80,17 @@ export const subscribeToRequest = (id: string, callback: (req: DocRequest | null
     } else {
       callback(null);
     }
+  });
+};
+
+export const subscribeToSportsRequests = (callback: (reqs: DocRequest[]) => void) => {
+  const q = query(
+    collection(db, REQUESTS_COLLECTION),
+    where('type', 'in', [DocumentType.SPORTS_CAPTAIN, DocumentType.SPORTS_RECOMMENDATION])
+  );
+  return onSnapshot(q, (snapshot) => {
+    const reqs = snapshot.docs.map(doc => doc.data() as DocRequest);
+    reqs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    callback(reqs);
   });
 };

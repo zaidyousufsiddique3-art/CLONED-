@@ -41,6 +41,9 @@ const SportsCaptainPortal: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [viewingApplication, setViewingApplication] = useState<SportsCaptainApplication | null>(null);
 
+    // Requests View State
+    const [viewingRequest, setViewingRequest] = useState<any | null>(null);
+
     // Sent List State
     const [sentInvitations, setSentInvitations] = useState<any[]>([]);
 
@@ -67,8 +70,8 @@ const SportsCaptainPortal: React.FC = () => {
             }
         );
 
-        // 2. Listen for Requests (Sent Invitations + Count)
-        const qReqs = query(collection(db, 'requests'), where('type', '==', DocumentType.SPORTS_CAPTAIN));
+        // 2. Listen for Requests (Sent Invitations + Received Requests)
+        const qReqs = query(collection(db, 'requests'), where('type', 'in', [DocumentType.SPORTS_CAPTAIN, DocumentType.SPORTS_RECOMMENDATION]));
         const unsubReqs = onSnapshot(qReqs,
             (snapshot) => {
                 const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -242,7 +245,7 @@ const SportsCaptainPortal: React.FC = () => {
                             }`}
                     >
                         <FileText className="w-4 h-4 mr-2" />
-                        Sent Applications
+                        Requests
                     </button>
                     <button
                         onClick={() => setActiveTab('received')}
@@ -260,7 +263,7 @@ const SportsCaptainPortal: React.FC = () => {
             {/* Global Analytics Section */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="bg-white dark:bg-white/5 p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm transition-all hover:border-brand-500/30 group">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 group-hover:text-brand-500 transition-colors">Invitations Sent</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 group-hover:text-brand-500 transition-colors">Total Requests</p>
                     <p className="text-3xl font-black text-slate-900 dark:text-white leading-none">{invitationsCount}</p>
                 </div>
                 <div className="bg-white dark:bg-white/5 p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm transition-all hover:border-brand-500/30 group">
@@ -394,8 +397,9 @@ const SportsCaptainPortal: React.FC = () => {
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-100 dark:border-white/5">
                                     <th className="px-8 py-6">Student Name</th>
-                                    <th className="px-8 py-6">Admission No</th>
-                                    <th className="px-8 py-6">Deadline</th>
+                                    <th className="px-8 py-6">Type</th>
+                                    <th className="px-8 py-6">Admn No</th>
+                                    <th className="px-8 py-6">Deadline / Info</th>
                                     <th className="px-8 py-6">Status</th>
                                     <th className="px-8 py-6">Dispatched Date</th>
                                 </tr>
@@ -407,13 +411,19 @@ const SportsCaptainPortal: React.FC = () => {
                                     </tr>
                                 ) : sentInvitations.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-8 py-20 text-center text-slate-500 font-bold text-sm">No invitations sent yet.</td>
+                                        <td colSpan={6} className="px-8 py-20 text-center text-slate-500 font-bold text-sm">No requests found.</td>
                                     </tr>
                                 ) : sentInvitations.map(invit => (
-                                    <tr key={invit.id} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-all border-b border-slate-50 dark:border-white/5">
-                                        <td className="px-8 py-6 font-bold text-slate-900 dark:text-white">{invit.studentName}</td>
+                                    <tr key={invit.id} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-all border-b border-slate-50 dark:border-white/5 cursor-pointer" onClick={() => setViewingRequest(invit)}>
+                                        <td className="px-8 py-6 font-bold text-slate-900 dark:text-white">
+                                            {invit.studentName}
+                                            {invit.status === 'Pending' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">New</span>}
+                                        </td>
+                                        <td className="px-8 py-6 text-xs font-bold text-slate-500">{invit.type}</td>
                                         <td className="px-8 py-6 font-mono text-sm text-slate-500 dark:text-slate-400">{invit.studentAdmissionNo}</td>
-                                        <td className="px-8 py-6 text-slate-500 text-sm font-medium">{new Date(invit.expectedCompletionDate).toLocaleDateString()}</td>
+                                        <td className="px-8 py-6 text-slate-500 text-sm font-medium">
+                                            {invit.expectedCompletionDate ? new Date(invit.expectedCompletionDate).toLocaleDateString() : 'View Details'}
+                                        </td>
                                         <td className="px-8 py-6">
                                             <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${invit.status === RequestStatus.COMPLETED ? 'bg-emerald-500/10 text-emerald-500' :
                                                 invit.status === RequestStatus.REJECTED ? 'bg-red-500/10 text-red-500' :
@@ -683,6 +693,48 @@ const SportsCaptainPortal: React.FC = () => {
                         <div className="pt-8 pb-16 flex justify-center">
                             <Button onClick={() => setViewingApplication(null)} className="px-10 py-4 rounded-xl text-xs">
                                 Return to Applications List
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {viewingRequest && (
+                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-[#0A0A0C] w-full max-w-2xl rounded-3xl p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white">Request Details</h3>
+                                <p className="text-slate-500 font-bold text-sm mt-1">{viewingRequest.type}</p>
+                            </div>
+                            <button onClick={() => setViewingRequest(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors">
+                                <Trash2 className="w-5 h-5 opacity-0" /> {/* Hidden trigger for alignment, using X below */}
+                                <div className="absolute top-8 right-8 cursor-pointer" onClick={() => setViewingRequest(null)}>✕</div>
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl">
+                                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Student</p>
+                                    <p className="font-bold text-slate-900 dark:text-white mt-1">{viewingRequest.studentName}</p>
+                                </div>
+                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl">
+                                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Date</p>
+                                    <p className="font-bold text-slate-900 dark:text-white mt-1">{new Date(viewingRequest.createdAt).toLocaleDateString()}</p>
+                                </div>
+                            </div>
+
+                            <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
+                                <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-3">Request Details / Achievements</p>
+                                <div className="prose dark:prose-invert text-sm whitespace-pre-wrap">
+                                    {viewingRequest.details}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end pt-2">
+                            <Button onClick={() => setViewingRequest(null)} className="bg-slate-900 text-white hover:bg-slate-800">
+                                Close
                             </Button>
                         </div>
                     </div>

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole, RequestStatus, DocRequest, User, DocumentType } from '../types';
-import { subscribeToAllRequests, subscribeToAssignedRequests, subscribeToStudentRequests } from '../firebase/requestService';
+import { subscribeToAllRequests, subscribeToAssignedRequests, subscribeToStudentRequests, subscribeToSportsRequests } from '../firebase/requestService';
 import { getPotentialAssignees } from '../firebase/userService';
 import { sendNotification } from '../firebase/notificationService';
 import { Link, useNavigate } from 'react-router-dom';
@@ -57,6 +57,8 @@ const Dashboard: React.FC = () => {
       unsubscribe = subscribeToStudentRequests(user.id, handleData);
     } else if (user.role === UserRole.SUPER_ADMIN) {
       unsubscribe = subscribeToAllRequests(handleData);
+    } else if (isSportsCoordinator) {
+      unsubscribe = subscribeToSportsRequests(handleData);
     } else {
       // Staff/Admin ONLY see assigned
       unsubscribe = subscribeToAssignedRequests(user.id, handleData);
@@ -389,9 +391,9 @@ const Dashboard: React.FC = () => {
                       <td className="px-8 py-5 text-sm text-slate-800 dark:text-white">{req.assignedToName || 'Unassigned'}</td>
                     )}
                     <td className="px-8 py-5 flex items-center space-x-3">
-                      {req.type === DocumentType.SPORTS_CAPTAIN ? (
+                      {req.type === DocumentType.SPORTS_CAPTAIN && user?.role === UserRole.STUDENT ? (
                         <Link
-                          to={user?.role === UserRole.STUDENT ? "/sports-captain/apply" : `/sports-captain?studentId=${req.studentId}`}
+                          to="/sports-captain/apply"
                           className="text-brand-600 dark:text-brand-400 hover:text-brand-700 font-medium text-sm"
                         >
                           View

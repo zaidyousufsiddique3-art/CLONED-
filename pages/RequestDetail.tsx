@@ -42,14 +42,6 @@ const RequestDetail: React.FC = () => {
             if (!data) { navigate('/dashboard'); return; }
 
             // Sports Captain Handling
-            if (data.type === DocumentType.SPORTS_CAPTAIN) {
-                if (user.role === UserRole.STUDENT) {
-                    navigate('/sports-captain/apply');
-                } else {
-                    navigate(`/sports-captain?studentId=${data.studentId}`);
-                }
-                return;
-            }
 
             setRequest(data);
             setSelectedAssignee(data.assignedToId || '');
@@ -345,8 +337,8 @@ const RequestDetail: React.FC = () => {
                                         return (
                                             <div key={step.id} className="relative z-10 flex flex-col items-center">
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${isActive
-                                                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                                                        : 'bg-white dark:bg-[#070708] border-slate-200 dark:border-white/10 text-slate-400'
+                                                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                                                    : 'bg-white dark:bg-[#070708] border-slate-200 dark:border-white/10 text-slate-400'
                                                     }`}>
                                                     {isActive ? (
                                                         <CheckCircle className="w-5 h-5" />
