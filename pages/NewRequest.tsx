@@ -8,7 +8,7 @@ import { getSuperAdmins } from '../firebase/userService';
 import { uploadFile } from '../firebase/storage';
 import { generateId } from '../services/mockDb';
 import Button from '../components/Button';
-import { ArrowLeft, Upload, File, X, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Upload, File, X, CheckCircle, Plus, Minus } from 'lucide-react';
 
 // Subject options for IAS Results multi-select
 const IAS_SUBJECTS = [
@@ -19,9 +19,25 @@ const IAS_SUBJECTS = [
 
 const GRADE_OPTIONS = ['A', 'B', 'C', 'D', 'E', 'U'];
 
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 16 }, (_, i) => (CURRENT_YEAR - i).toString());
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 interface SubjectGrade {
   subject: string;
   grade: string;
+}
+
+interface SportsAchievement {
+  label: string;
+  description: string;
+  month: string;
+  year: string;
 }
 
 interface FormData {
@@ -69,6 +85,9 @@ interface FormData {
   // Other
   documentName: string;
   optionalUpload: File | null;
+
+  // Sports
+  sportsAchievements: SportsAchievement[];
 }
 
 const NewRequest: React.FC = () => {
@@ -105,6 +124,7 @@ const NewRequest: React.FC = () => {
     numberOfCertificates: '',
     documentName: '',
     optionalUpload: null,
+    sportsAchievements: [{ label: 'Achievement 1', description: '', month: '', year: '' }],
   });
 
   const handleInputChange = (field: keyof FormData, value: any) => {
@@ -131,6 +151,29 @@ const NewRequest: React.FC = () => {
   const removeIASSubject = (index: number) => {
     const updated = formData.iasResults.filter((_, i) => i !== index);
     setFormData(prev => ({ ...prev, iasResults: updated }));
+  };
+
+  const addAchievement = () => {
+    setFormData(prev => ({
+      ...prev,
+      sportsAchievements: [
+        ...prev.sportsAchievements,
+        { label: `Achievement ${prev.sportsAchievements.length + 1}`, description: '', month: '', year: '' }
+      ]
+    }));
+  };
+
+  const updateAchievement = (index: number, field: keyof SportsAchievement, value: string) => {
+    const updated = [...formData.sportsAchievements];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData(prev => ({ ...prev, sportsAchievements: updated }));
+  };
+
+  const removeAchievement = (index: number) => {
+    const updated = formData.sportsAchievements.filter((_, i) => i !== index);
+    // Re-index labels
+    const reindexed = updated.map((item, i) => ({ ...item, label: `Achievement ${i + 1}` }));
+    setFormData(prev => ({ ...prev, sportsAchievements: reindexed }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -291,6 +334,21 @@ const NewRequest: React.FC = () => {
               uploadedBy: `${user.firstName} ${user.lastName}`,
               status: 'Pending',
               createdAt: new Date().toISOString()
+            });
+          }
+          break;
+
+        case DocumentType.SPORTS_CAPTAIN:
+        case DocumentType.SPORTS_RECOMMENDATION:
+          detailsText += `Full Name: ${formData.fullName}\n`;
+          detailsText += `Admission Number: ${formData.admissionNumber}\n`;
+          detailsText += `Grade: ${formData.grade}\n`;
+          if (formData.sportsAchievements.length > 0) {
+            detailsText += `\nSports Achievements:\n`;
+            formData.sportsAchievements.forEach(ach => {
+              if (ach.description) {
+                detailsText += `  - ${ach.label}: ${ach.description} (${ach.month} ${ach.year})\n`;
+              }
             });
           }
           break;
@@ -459,6 +517,63 @@ const NewRequest: React.FC = () => {
             <FormInput label="Document Name" value={formData.documentName} onChange={(v) => handleInputChange('documentName', v)} required />
             <FormDate label="Expected Date of Collection" value={formData.expectedDateOfCollection} onChange={(v) => handleInputChange('expectedDateOfCollection', v)} required />
             <FormFileUpload label="Upload (Optional)" file={formData.optionalUpload} onChange={(f) => handleFileChange('optionalUpload', f)} accept=".pdf,.png" />
+          </>
+        );
+
+      case DocumentType.SPORTS_CAPTAIN:
+      case DocumentType.SPORTS_RECOMMENDATION:
+        return (
+          <>
+            <FormInput label="Full Name" value={formData.fullName} onChange={(v) => handleInputChange('fullName', v)} required />
+            <FormInput label="Admission Number" value={formData.admissionNumber} onChange={(v) => handleInputChange('admissionNumber', v)} required />
+            <FormInput label="Grade" value={formData.grade} onChange={(v) => handleInputChange('grade', v)} required />
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Sports Achievements</label>
+                <button type="button" onClick={addAchievement} className="flex items-center gap-1 text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline">
+                  <Plus className="w-3 h-3" /> Add Achievement
+                </button>
+              </div>
+
+              {formData.sportsAchievements.map((ach, idx) => (
+                <div key={idx} className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-3 relative group">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{ach.label}</span>
+                    {formData.sportsAchievements.length > 1 && (
+                      <button type="button" onClick={() => removeAchievement(idx)} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg transition-colors">
+                        <Minus className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={ach.description}
+                    onChange={(e) => updateAchievement(idx, 'description', e.target.value)}
+                    placeholder="Description (e.g. Winner - Inter-School Badminton)"
+                    className="w-full px-4 py-3 bg-white dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <select
+                      value={ach.month}
+                      onChange={(e) => updateAchievement(idx, 'month', e.target.value)}
+                      className="px-4 py-3 bg-white dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
+                    >
+                      <option value="">Month</option>
+                      {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    <select
+                      value={ach.year}
+                      onChange={(e) => updateAchievement(idx, 'year', e.target.value)}
+                      className="px-4 py-3 bg-white dark:bg-[#070708] border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white"
+                    >
+                      <option value="">Year</option>
+                      {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
           </>
         );
 
