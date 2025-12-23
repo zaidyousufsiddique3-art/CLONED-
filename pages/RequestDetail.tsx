@@ -154,7 +154,10 @@ const RequestDetail: React.FC = () => {
             const url = await uploadFile(selectedFile, `requests/${request.id}/${selectedFile.name}`);
 
             const isSuperAdmin = user.role === UserRole.SUPER_ADMIN;
-            const status = isSuperAdmin ? 'Approved' : 'Pending';
+            // Sports Coordinator requests (Sports Captain / Sports Recommendation) bypass admin review
+            const isSportsRequest = request.type === DocumentType.SPORTS_RECOMMENDATION || request.type === DocumentType.SPORTS_CAPTAIN;
+
+            const status = (isSuperAdmin || isSportsRequest) ? 'Approved' : 'Pending';
 
             const newAttachment: Attachment = {
                 id: generateId(),
@@ -171,8 +174,8 @@ const RequestDetail: React.FC = () => {
                 attachments: [...request.attachments, newAttachment],
             };
 
-            // If SuperAdmin uploads, AUTO-COMPLETE and NOTIFY
-            if (isSuperAdmin) {
+            // If SuperAdmin uploads OR it's a Sports request, AUTO-COMPLETE and NOTIFY
+            if (isSuperAdmin || isSportsRequest) {
                 updatePayload.status = RequestStatus.COMPLETED;
                 const message = "Your document is ready for collection. You can collect it from the school or download the attached copy.";
                 await sendNotification(request.studentId, message, `/requests/${request.id}`);
