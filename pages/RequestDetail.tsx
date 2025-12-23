@@ -596,28 +596,30 @@ const RequestDetail: React.FC = () => {
                     </div>
 
                     <div className="space-y-6">
-                        {isSuperAdmin && (
+                        {(isSuperAdmin || (canManage && request.type === DocumentType.SPORTS_RECOMMENDATION)) && (
                             <div className="bg-white dark:bg-[#070708] rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <h3 className="font-bold mb-4 text-slate-900 dark:text-white flex items-center">
-                                    <Lock className="w-5 h-5 mr-2 text-slate-400" /> Admin Actions
+                                    <Lock className="w-5 h-5 mr-2 text-slate-400" /> {isSuperAdmin ? 'Admin Actions' : 'Coordinator Actions'}
                                 </h3>
                                 <div className="space-y-4">
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">Assign Request</label>
-                                        <select
-                                            value={selectedAssignee}
-                                            onChange={e => setSelectedAssignee(e.target.value)}
-                                            className="w-full p-3 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-slate-600 rounded-xl outline-none text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500"
-                                        >
-                                            <option value="">Select Staff Member...</option>
-                                            {potentialAssignees.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} - {u.role}</option>)}
-                                        </select>
-                                    </div>
-                                    <Button onClick={handleAssign} className="w-full" disabled={statusLoading}>
-                                        {statusLoading ? 'Updating...' : 'Update Assignment'}
-                                    </Button>
+                                    {isSuperAdmin && (
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">Assign Request</label>
+                                            <select
+                                                value={selectedAssignee}
+                                                onChange={e => setSelectedAssignee(e.target.value)}
+                                                className="w-full p-3 bg-slate-50 dark:bg-[#070708] border border-slate-200 dark:border-slate-600 rounded-xl outline-none text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500"
+                                            >
+                                                <option value="">Select Staff Member...</option>
+                                                {potentialAssignees.map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName} - {u.role}</option>)}
+                                            </select>
+                                            <Button onClick={handleAssign} className="w-full mt-2" disabled={statusLoading}>
+                                                {statusLoading ? 'Updating...' : 'Update Assignment'}
+                                            </Button>
+                                        </div>
+                                    )}
 
-                                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                                    <div className={`pt-4 ${isSuperAdmin ? 'border-t border-slate-100 dark:border-slate-700' : ''}`}>
                                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 block">Expected Collection Date</label>
                                         <input
                                             type="date"
