@@ -208,8 +208,11 @@ const SportsRecommendationPortal: React.FC = () => {
         if (selectedOptions.includes(id)) {
             setSelectedOptions(selectedOptions.filter(o => o !== id));
         } else {
-            // Restriction removed per user request: regardless of achievement count, 
-            // the coordinator should be able to select options freely.
+            // STRICT LIMIT: Max 3 options allowed total
+            if (selectedOptions.length >= 3) {
+                alert("You can only select a maximum of 3 appreciative statements.");
+                return;
+            }
             setSelectedOptions([...selectedOptions, id]);
         }
     };
