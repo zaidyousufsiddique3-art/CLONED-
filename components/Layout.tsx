@@ -140,11 +140,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               user.email.toLowerCase() === PRINCIPAL_EMAIL.toLowerCase() ? (
                 <NavItem to="/approvals" icon={FileCheck} label="Approvals" />
               ) : (
-                <NavItem to="/requests" icon={FileText} label="Institutional Records" />
+                <NavItem to="/requests" icon={FileText} label={user.role === UserRole.STAFF ? "Student Requests" : "Institutional Records"} />
               )
             )}
 
-            {(user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN || user.role === UserRole.STAFF || user.role === UserRole.STUDENT) && (
+            {(user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) && (
               <NavItem to="/all-requests" icon={FileText} label="All Requests" />
             )}
 
@@ -221,7 +221,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 {location.pathname === '/dashboard' ? 'Overview' :
                   location.pathname === '/new-request' ? 'Document Request' :
                     location.pathname === '/my-requests' ? 'My Records' :
-                      location.pathname === '/requests' ? 'Institutional Records' :
+                      location.pathname === '/requests' ? (user.role === UserRole.STAFF ? 'Student Requests' : 'Institutional Records') :
                         location.pathname === '/users' ? 'System Users' :
                           location.pathname === '/notifications' ? 'System Alerts' :
                             location.pathname === '/profile' ? 'Security Profile' :
