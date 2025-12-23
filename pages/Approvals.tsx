@@ -133,7 +133,7 @@ const Approvals: React.FC = () => {
             // 4. Notifications
             const msg = isSportsRec
                 ? `Sports Recommendation Letter for ${selectedRequest.studentName} has been approved.`
-                : `Predicted Grades approved by Principal for ${selectedRequest.studentName}`;
+                : `Predicted Grades for ${selectedRequest.studentName} has been approved.`;
 
             await sendNotification(selectedRequest.senderId, msg, isSportsRec ? "/sports-recommendation" : "/predicted-grades");
 
@@ -158,8 +158,13 @@ const Approvals: React.FC = () => {
                 updatedAt: new Date().toISOString()
             });
 
-            // Notify Superadmin
-            await sendNotification(selectedRequest.senderId, `Predicted Grades rejected: ${rejectionReason}`, "/predicted-grades");
+            // Notify Sender
+            const isSportsRec = selectedRequest.documentType === DocumentType.SPORTS_RECOMMENDATION;
+            const msg = isSportsRec
+                ? `Sports Recommendation Letter for ${selectedRequest.studentName} has been rejected: ${rejectionReason}`
+                : `Predicted Grades for ${selectedRequest.studentName} has been rejected: ${rejectionReason}`;
+
+            await sendNotification(selectedRequest.senderId, msg, isSportsRec ? "/sports-recommendation" : "/predicted-grades");
 
             setShowRejectModal(false);
             setRejectionReason('');

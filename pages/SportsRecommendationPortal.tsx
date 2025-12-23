@@ -341,10 +341,9 @@ const SportsRecommendationPortal: React.FC = () => {
                 });
             }
 
-            // Notify Principal and Self (Sports Coordinator)
+            // Notify Principal ONLY
             const notifMsg = `Sports Recommendation Letter for ${formData.firstName} ${formData.lastName} has been sent for approval.`;
             await sendNotification("PRINCIPAL", notifMsg, "/approvals");
-            await sendNotification(user.id, notifMsg, "/sports-recommendation");
 
             alert("Letter sent to Principal for approval.");
             setShowPreview(false);

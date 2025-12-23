@@ -334,14 +334,16 @@ export default async function handler(req: any, res: any) {
         const rightSigX = SAFE_AREA.RIGHT - 170;
 
         // Left signature - Principal
-        // Dotted line
-        for (let x = leftSigX; x < leftSigX + sigLineLength; x += 4) {
-            page.drawLine({
-                start: { x, y: sigY },
-                end: { x: x + 2, y: sigY },
-                thickness: 0.5,
-                color: rgb(0, 0, 0),
-            });
+        // Dotted line (ONLY if signature is provided)
+        if (payload.PRINCIPAL_SIGNATURE_URL) {
+            for (let x = leftSigX; x < leftSigX + sigLineLength; x += 4) {
+                page.drawLine({
+                    start: { x, y: sigY },
+                    end: { x: x + 2, y: sigY },
+                    thickness: 0.5,
+                    color: rgb(0, 0, 0),
+                });
+            }
         }
         page.drawText('Ruxshan Razak', {
             x: leftSigX,
@@ -446,18 +448,19 @@ export default async function handler(req: any, res: any) {
                 }
 
                 if (stampImage) {
-                    const stampWidth = 130; // Official stamp should be prominent
+                    const stampWidth = 180; // Larger institutional seal
                     const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
 
-                    // Center between signatures
-                    const stampX = (leftSigX + rightSigX + sigLineLength) / 2 - (stampWidth / 2);
+                    // Positioned on the right-hand side, naturally aligned in lower section
+                    const stampX = SAFE_AREA.RIGHT - stampWidth - 10;
+                    const stampY = sigY - 50; // Lowered to avoid designations but stay in lower section
 
                     page.drawImage(stampImage, {
                         x: stampX,
-                        y: sigY - (stampHeight / 2) + 20, // Center vertically around the signature line
+                        y: stampY,
                         width: stampWidth,
                         height: stampHeight,
-                        opacity: 0.85, // Slight transparency for realistic feel
+                        opacity: 0.35, // Lighter for official seal feel
                     });
                 }
             } catch (stampErr) {
