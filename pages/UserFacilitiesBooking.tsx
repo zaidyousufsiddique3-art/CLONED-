@@ -38,12 +38,13 @@ const UserFacilitiesBooking: React.FC = () => {
             // Listen to My Bookings
             const q = query(
                 collection(db, 'sports_facility_bookings'),
-                where('userId', '==', user.id),
-                orderBy('createdAt', 'desc')
+                where('userId', '==', user.id)
             );
 
             const unsubscribe = onSnapshot(q, (snap) => {
                 const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                // Sort client-side to avoid index requirement
+                docs.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                 setMyBookings(docs);
                 setLoadingBookings(false);
             });
