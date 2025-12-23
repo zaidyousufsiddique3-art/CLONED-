@@ -6,11 +6,12 @@ import {
     onSnapshot,
     doc,
     updateDoc,
-    getDoc
+    getDoc,
+    getDocs
 } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { useAuth } from '../context/AuthContext';
-import { ApprovalRequest } from '../types';
+import { ApprovalRequest, DocumentType } from '../types';
 import {
     CheckCircle,
     XCircle,
@@ -52,7 +53,7 @@ const Approvals: React.FC = () => {
         const q = query(
             collection(db, 'approval_requests'),
             where('recipientEmail', '==', PRINCIPAL_EMAIL),
-            where('status', '==', activeTab === 'pending' ? 'Pending Approval' : 'Approved')
+            where('status', 'in', [activeTab === 'pending' ? 'Pending Approval' : 'Approved', activeTab === 'pending' ? 'Sent for Approval' : 'Approved'])
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -77,14 +78,18 @@ const Approvals: React.FC = () => {
 
         try {
             // 1. Regenerate PDF with Principal assets
+            const isSportsRec = selectedRequest.documentType === DocumentType.SPORTS_RECOMMENDATION;
+
             const payload = {
                 ...selectedRequest.payload,
-                PRINCIPAL_SIGNATURE_URL: includeSignature ? user.signatureUrl : undefined,
-                PRINCIPAL_STAMP_URL: includeStamp ? user.principalStampUrl : undefined,
+                PRINCIPAL_SIGNATURE_URL: (isSportsRec || includeSignature) ? user.signatureUrl : undefined,
+                PRINCIPAL_STAMP_URL: (isSportsRec || includeStamp) ? user.principalStampUrl : undefined,
             };
 
             console.log("[Approvals] Sending payload to API...");
-            const response = await fetch('/api/generate-expected-grade-pdf', {
+            const apiEndpoint = isSportsRec ? '/api/generate-sports-recommendation' : '/api/generate-expected-grade-pdf';
+
+            const response = await fetch(apiEndpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -98,7 +103,7 @@ const Approvals: React.FC = () => {
 
             const blob = await response.blob();
 
-            // Upload the approved PDF to storage to avoid the 1MB Firestore limit
+            // Upload the approved PDF to storage
             const fileName = `approved_documents/${Date.now()}_${selectedRequest.studentName.replace(/\s+/g, '_')}.pdf`;
             const finalPdfUrl = await uploadFile(blob, fileName);
 
@@ -106,13 +111,31 @@ const Approvals: React.FC = () => {
             await updateDoc(doc(db, 'approval_requests', selectedRequest.id), {
                 status: 'Approved',
                 finalPdfUrl: finalPdfUrl,
-                includeSignature,
-                includeStamp,
+                includeSignature: isSportsRec ? true : includeSignature,
+                includeStamp: isSportsRec ? true : includeStamp,
                 updatedAt: new Date().toISOString()
             });
 
-            // 3. Notify Superadmin
-            await sendNotification(selectedRequest.senderId, `Predicted Grades approved by Principal for ${selectedRequest.studentName}`, "/predicted-grades");
+            // 3. Update History record if it exists
+            const qHistory = query(collection(db, 'generated_documents'),
+                where('studentName', '==', selectedRequest.studentName),
+                where('documentType', '==', selectedRequest.documentType),
+                where('generatedById', '==', selectedRequest.senderId));
+            const historySnap = await getDocs(qHistory);
+            if (!historySnap.empty) {
+                await updateDoc(doc(db, 'generated_documents', historySnap.docs[0].id), {
+                    status: 'Approved',
+                    pdfUrl: finalPdfUrl,
+                    updatedAt: new Date().toISOString()
+                });
+            }
+
+            // 4. Notifications
+            const msg = isSportsRec
+                ? `Sports Recommendation Letter for ${selectedRequest.studentName} has been approved.`
+                : `Predicted Grades approved by Principal for ${selectedRequest.studentName}`;
+
+            await sendNotification(selectedRequest.senderId, msg, isSportsRec ? "/sports-recommendation" : "/predicted-grades");
 
             setShowApproveModal(false);
             setSelectedRequest(null);
@@ -208,7 +231,7 @@ const Approvals: React.FC = () => {
                                         ? 'bg-white/20 text-white'
                                         : activeTab === 'pending' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
                                         }`}>
-                                        {req.status === 'Pending Approval' ? 'Pending' : 'Approved'}
+                                        {req.status === 'Approved' ? 'Approved' : 'Pending'}
                                     </span>
                                 </div>
                                 <p className="font-bold text-lg mb-1">{req.studentName}</p>

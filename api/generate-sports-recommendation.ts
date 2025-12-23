@@ -132,8 +132,10 @@ export default async function handler(req: any, res: any) {
             refereeEmail,
             country,
             sportsAchievements,
-            appreciativeStatement, // This is the user-editable part from the UI
-            signatureUrl
+            appreciativeStatement,
+            signatureUrl,
+            PRINCIPAL_SIGNATURE_URL,
+            PRINCIPAL_STAMP_URL
         } = payload;
 
         const letterheadPath = path.join(process.cwd(), "assets", "expected-grade-letterhead.pdf");
@@ -241,19 +243,18 @@ export default async function handler(req: any, res: any) {
         currentY -= lineSpacing;
 
         // Closing
-        currentY -= lineSpacing;
         page.drawText('Yours sincerely,', { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font });
 
+        const sigLineLength = 150;
+        const lineY = currentY - 45;
+
+        // Draw dotted line
+        for (let x = SAFE_AREA.LEFT; x < SAFE_AREA.LEFT + sigLineLength; x += 4) {
+            page.drawLine({ start: { x, y: lineY }, end: { x: x + 2, y: lineY }, thickness: 0.5, color: rgb(0, 0, 0) });
+        }
+
+        // 1. Referee Signature (Signature URL)
         if (signatureUrl && signatureUrl.trim() !== '') {
-            const signatureGap = 60;
-            currentY -= signatureGap;
-            const lineLength = 150;
-            const lineY = currentY + 15;
-
-            for (let x = SAFE_AREA.LEFT; x < SAFE_AREA.LEFT + lineLength; x += 4) {
-                page.drawLine({ start: { x, y: lineY }, end: { x: x + 2, y: lineY }, thickness: 0.5, color: rgb(0, 0, 0) });
-            }
-
             try {
                 let sigImage;
                 if (signatureUrl.startsWith('data:image/png;base64,')) {
@@ -262,14 +263,52 @@ export default async function handler(req: any, res: any) {
                     const resp = await fetch(signatureUrl);
                     sigImage = await pdfDoc.embedPng(new Uint8Array(await resp.arrayBuffer()));
                 }
-                const targetWidth = 100;
+                const targetWidth = 90;
                 const targetHeight = (sigImage.height / sigImage.width) * targetWidth;
-                page.drawImage(sigImage, { x: SAFE_AREA.LEFT + (lineLength / 2) - (targetWidth / 2), y: lineY - 8, width: targetWidth, height: targetHeight });
-            } catch (err) { console.error('Sig fail:', err); }
-        } else {
-            currentY -= lineSpacing * 2;
+                page.drawImage(sigImage, { x: SAFE_AREA.LEFT + 10, y: lineY - 5, width: targetWidth, height: targetHeight });
+            } catch (err) { console.error('Referee Sig fail:', err); }
         }
 
+        // 2. Principal Signature (if approved)
+        if (PRINCIPAL_SIGNATURE_URL) {
+            try {
+                let pSigImage;
+                if (PRINCIPAL_SIGNATURE_URL.startsWith('data:image/png;base64,')) {
+                    pSigImage = await pdfDoc.embedPng(Buffer.from(PRINCIPAL_SIGNATURE_URL.split(',')[1], 'base64'));
+                } else {
+                    const resp = await fetch(PRINCIPAL_SIGNATURE_URL);
+                    pSigImage = await pdfDoc.embedPng(new Uint8Array(await resp.arrayBuffer()));
+                }
+                const targetWidth = 90;
+                const targetHeight = (pSigImage.height / pSigImage.width) * targetWidth;
+                // Offset slightly from referee signature
+                page.drawImage(pSigImage, { x: SAFE_AREA.LEFT + 60, y: lineY - 2, width: targetWidth, height: targetHeight });
+            } catch (err) { console.error('Principal Sig fail:', err); }
+        }
+
+        // 3. Principal Stamp (if approved)
+        if (PRINCIPAL_STAMP_URL) {
+            try {
+                let stampImage;
+                if (PRINCIPAL_STAMP_URL.startsWith('data:image/png;base64,')) {
+                    stampImage = await pdfDoc.embedPng(Buffer.from(PRINCIPAL_STAMP_URL.split(',')[1], 'base64'));
+                } else {
+                    const resp = await fetch(PRINCIPAL_STAMP_URL);
+                    stampImage = await pdfDoc.embedPng(new Uint8Array(await resp.arrayBuffer()));
+                }
+                const stampWidth = 110;
+                const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
+                page.drawImage(stampImage, {
+                    x: SAFE_AREA.LEFT + 120,
+                    y: lineY - 40,
+                    width: stampWidth,
+                    height: stampHeight,
+                    opacity: 0.8
+                });
+            } catch (err) { console.error('Stamp fail:', err); }
+        }
+
+        currentY = lineY - 20;
         page.drawText(refereeName, { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font: fontBold });
         currentY -= lineSpacing;
         page.drawText(refereeDesignation, { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font });

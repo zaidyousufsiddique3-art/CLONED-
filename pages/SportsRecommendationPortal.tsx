@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { collection, addDoc, query, where, onSnapshot, orderBy } from '@firebase/firestore';
+import { collection, addDoc, query, where, onSnapshot, orderBy, getDocs, updateDoc, doc } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { uploadFile } from '../firebase/storage';
 import { DocumentType, UserRole, GeneratedDocument } from '../types';
 import Button from '../components/Button';
 import { FileText, Send, CheckCircle2, AlertCircle, Loader2, Pen, Clock, Download, Search, Plus, Minus, Trophy } from 'lucide-react';
+import { sendNotification } from '../firebase/notificationService';
+import { PRINCIPAL_EMAIL } from '../constants';
 
 interface SportsAchievement {
     label: string;
@@ -21,6 +23,51 @@ const MONTHS = [
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 16 }, (_, i) => (CURRENT_YEAR - i).toString());
+
+const SPORTS_APPRECIATIVE_OPTIONS = [
+    {
+        id: 'athletic_achievement',
+        title: 'Athletic Achievement',
+        type: 'achievement_specific',
+        text: '[First Name] has demonstrated strong athletic ability through [his/her] success in competitive school sports, reflecting dedication, discipline, and a high standard of performance.'
+    },
+    {
+        id: 'competitive_excellence',
+        title: 'Competitive Excellence',
+        type: 'achievement_specific',
+        text: '[Possessive] achievements across multiple sporting events highlight [his/her] ability to perform under pressure and consistently strive for sporting excellence.'
+    },
+    {
+        id: 'leadership_sports',
+        title: 'Leadership in Sports',
+        type: 'sports_general',
+        text: 'Beyond individual performance, [First Name] has shown leadership within the sports environment by setting a positive example, motivating peers, and taking responsibility when required.'
+    },
+    {
+        id: 'training_discipline',
+        title: 'Training Discipline',
+        type: 'sports_general',
+        text: '[Subject] approaches training and preparation with discipline and determination, maintaining consistency while balancing academic and sporting commitments.'
+    },
+    {
+        id: 'teamwork_sportsmanship',
+        title: 'Teamwork & Sportsmanship',
+        type: 'sports_general',
+        text: '[First Name] works effectively within team settings, demonstrating respect, cooperation, and strong sportsmanship during both training and competitions.'
+    },
+    {
+        id: 'mental_strength',
+        title: 'Mental Strength',
+        type: 'sports_general',
+        text: '[Possessive] resilience and positive mindset enable [him/her] to face challenges in competitive sports with maturity and confidence.'
+    },
+    {
+        id: 'university_readiness',
+        title: 'University Sports Readiness',
+        type: 'sports_general',
+        text: 'These qualities collectively position [First Name] as a well-rounded student-athlete who is well-prepared for the demands of university-level sports and extracurricular involvement.'
+    }
+];
 
 const SportsRecommendationPortal: React.FC = () => {
     const { user } = useAuth();
@@ -40,107 +87,109 @@ const SportsRecommendationPortal: React.FC = () => {
         { label: 'Achievement 1', description: '', month: '', year: '' }
     ]);
 
+    const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
     const [generatedAppreciative, setGeneratedAppreciative] = useState('');
     const [isEditingStatement, setIsEditingStatement] = useState(false);
     const [addSignature, setAddSignature] = useState(false);
-    const [activeTab, setActiveTab] = useState<'generate' | 'history'>('generate');
-    const [historyRequests, setHistoryRequests] = useState<GeneratedDocument[]>([]);
+    const [activeTab, setActiveTab] = useState<'generate' | 'approvals' | 'history'>('generate');
+    const [historyRequests, setHistoryRequests] = useState<any[]>([]);
+    const [approvalRequests, setApprovalRequests] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
+    const [loadingApprovals, setLoadingApprovals] = useState(false);
+
+    // Preview States
+    const [showPreview, setShowPreview] = useState(false);
+    const [generatedPdfBlob, setGeneratedPdfBlob] = useState<Blob | null>(null);
+    const [generatedPdfUrl, setGeneratedPdfUrl] = useState('');
+    const [isSendingApproval, setIsSendingApproval] = useState(false);
 
     useEffect(() => {
-        if (!user || activeTab !== 'history') return;
-        setLoadingHistory(true);
+        if (!user) return;
 
-        const coll = collection(db, 'generated_documents');
-        // We use a specific document type for sports recommendation or just filter by referee email if needed
-        // But the requirement says "documentType: REFERENCE_LETTER" in the existing one.
-        // Let's stick to REFERENCE_LETTER but maybe we can add a metadata flag or just rely on the referee role.
-        // For now, I'll use REFERENCE_LETTER and show them in history.
-        const q = query(
-            coll,
-            where('documentType', '==', DocumentType.REFERENCE_LETTER),
-            where('generatedById', '==', user.id),
-            orderBy('createdAt', 'desc')
-        );
-
-        const unsubscribe = onSnapshot(q,
-            (snapshot) => {
-                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GeneratedDocument));
-                setHistoryRequests(docs);
+        if (activeTab === 'history') {
+            setLoadingHistory(true);
+            const q = query(
+                collection(db, 'generated_documents'),
+                where('documentType', '==', DocumentType.SPORTS_RECOMMENDATION),
+                where('generatedById', '==', user.id),
+                orderBy('createdAt', 'desc')
+            );
+            return onSnapshot(q, (snapshot) => {
+                setHistoryRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                 setLoadingHistory(false);
-            },
-            (error) => {
-                console.error("History fetch error:", error);
-                setLoadingHistory(false);
-            }
-        );
+            });
+        }
 
-        return () => unsubscribe();
+        if (activeTab === 'approvals') {
+            setLoadingApprovals(true);
+            const q = query(
+                collection(db, 'approval_requests'),
+                where('documentType', '==', DocumentType.SPORTS_RECOMMENDATION),
+                where('senderId', '==', user.id),
+                orderBy('createdAt', 'desc')
+            );
+            return onSnapshot(q, (snapshot) => {
+                setApprovalRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                setLoadingApprovals(false);
+            });
+        }
     }, [user, activeTab]);
 
     // Logic for auto-generating appreciative statement
-    useEffect(() => {
-        generateStatement();
-    }, [sportsAchievements, formData.firstName, formData.gender]);
-
-    const generateStatement = () => {
-        if (sportsAchievements.length === 0 || !sportsAchievements[0].description) {
-            setGeneratedAppreciative('');
-            return;
-        }
-
-        const count = sportsAchievements.filter(a => a.description.trim()).length;
-        if (count === 0) {
-            setGeneratedAppreciative('');
-            return;
-        }
-
+    const formatAppreciativeText = (text: string) => {
         const isFemale = formData.gender === 'Female';
         const name = formData.firstName || 'The student';
-        const pronoun = isFemale ? 'she' : 'he';
+        const subject = isFemale ? 'she' : 'he';
         const possessive = isFemale ? 'her' : 'his';
+        const object = isFemale ? 'her' : 'him';
 
-        // Rule 1: Tone based on count
-        let toneIntro = "";
-        if (count === 1) {
-            toneIntro = `${name} has demonstrated focused excellence in sports, specifically through ${possessive} achievement as `;
-        } else if (count >= 2 && count <= 3) {
-            toneIntro = `${name} is a well-rounded sports contributor who has consistently excelled across multiple disciplines, notably as `;
-        } else {
-            toneIntro = `${name} is a highly accomplished athlete with significant leadership experience, having achieved numerous milestones including `;
-        }
-
-        // Rule 2: Keyword Mapping
-        const descriptions = sportsAchievements.map(a => a.description.toLowerCase());
-        const hasLeadership = descriptions.some(d => d.includes('captain') || d.includes('leader'));
-        const hasCompetition = descriptions.some(d => d.includes('winner') || d.includes('champion') || d.includes('tournament') || d.includes('league'));
-        const hasHighLevel = descriptions.some(d => d.includes('national') || d.includes('inter-school'));
-
-        let achievementHighlights = sportsAchievements
-            .filter(a => a.description.trim())
-            .map(a => a.description)
-            .join(', and ');
-
-        let statement = toneIntro + achievementHighlights + ". ";
-
-        let extraTraits = [];
-        if (hasLeadership) extraTraits.push("leadership");
-        if (hasCompetition) extraTraits.push("competitive excellence");
-        if (hasHighLevel) extraTraits.push("high-level exposure and commitment");
-
-        let characterTrait = "";
-        if (extraTraits.length > 0) {
-            const traitsText = extraTraits.length > 1
-                ? extraTraits.slice(0, -1).join(', ') + ' and ' + extraTraits.slice(-1)
-                : extraTraits[0];
-            characterTrait = `${name}'s success reflects not only ${possessive} athletic ability but also ${possessive} discipline, ${traitsText}. `;
-        } else {
-            characterTrait = `${possessive.charAt(0).toUpperCase() + possessive.slice(1)} consistent involvement demonstrates a deep passion for sports and a commendable level of discipline. `;
-        }
-
-        statement += characterTrait;
-        setGeneratedAppreciative(statement);
+        return text
+            .replace(/\[First Name\]/g, name)
+            .replace(/\[Subject\]/g, subject.charAt(0).toUpperCase() + subject.slice(1))
+            .replace(/\[subject\]/g, subject)
+            .replace(/\[Possessive\]/g, possessive.charAt(0).toUpperCase() + possessive.slice(1))
+            .replace(/\[possessive\]/g, possessive)
+            .replace(/\[his\/her\]/g, possessive)
+            .replace(/\[him\/her\]/g, object);
     };
+
+    const handleOptionToggle = (id: string) => {
+        const option = SPORTS_APPRECIATIVE_OPTIONS.find(o => o.id === id);
+        if (!option) return;
+
+        if (selectedOptions.includes(id)) {
+            setSelectedOptions(selectedOptions.filter(o => o !== id));
+        } else {
+            // Cap Logic: N = number of sports achievements added
+            const achievementCount = sportsAchievements.filter(a => a.description.trim()).length;
+            const maxSpecific = achievementCount >= 3 ? 2 : 1;
+
+            const currentSpecificCount = selectedOptions.filter(optId => {
+                const opt = SPORTS_APPRECIATIVE_OPTIONS.find(o => o.id === optId);
+                return opt?.type === 'achievement_specific';
+            }).length;
+
+            if (option.type === 'achievement_specific' && currentSpecificCount >= maxSpecific) {
+                alert(`Based on having ${achievementCount} achievement(s), you can only select a maximum of ${maxSpecific} achievement-specific statement(s).`);
+                return;
+            }
+
+            setSelectedOptions([...selectedOptions, id]);
+        }
+    };
+
+    // Auto-update combined statement when selections change
+    useEffect(() => {
+        if (!isEditingStatement) {
+            const combinedText = selectedOptions
+                .map(id => {
+                    const opt = SPORTS_APPRECIATIVE_OPTIONS.find(o => o.id === id);
+                    return opt ? formatAppreciativeText(opt.text) : '';
+                })
+                .join(' ');
+            setGeneratedAppreciative(combinedText);
+        }
+    }, [selectedOptions, formData.firstName, formData.gender, isEditingStatement]);
 
     const handleAddAchievement = () => {
         const nextId = sportsAchievements.length + 1;
@@ -202,39 +251,108 @@ const SportsRecommendationPortal: React.FC = () => {
             }
 
             const blob = await response.blob();
+            setGeneratedPdfBlob(blob);
+            const url = URL.createObjectURL(blob);
+            setGeneratedPdfUrl(url);
+            setShowPreview(true);
 
-            // 1. Upload to Storage
+            // Save history record as "Generated"
             const fileName = `sports_recommendations/${Date.now()}_${formData.firstName}_${formData.lastName}.pdf`.replace(/\s+/g, '_');
             const pdfUrl = await uploadFile(blob, fileName);
 
-            // 2. Save history record
-            const historyDoc: any = {
+            const historyDoc = {
                 studentName: `${formData.firstName} ${formData.lastName}`,
-                documentType: DocumentType.REFERENCE_LETTER,
+                documentType: DocumentType.SPORTS_RECOMMENDATION,
                 pdfUrl: pdfUrl,
+                status: 'Sent for Approval', // Default state after send
                 generatedById: user!.id,
                 generatedByName: `${user!.firstName} ${user!.lastName}`,
                 refereeName: formData.refereeName,
                 sportsAchievements: validAchievements,
                 appreciativeStatement: generatedAppreciative,
+                formData,
                 createdAt: new Date().toISOString()
             };
-            await addDoc(collection(db, 'generated_documents'), historyDoc);
 
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Sports Recommendation - ${formData.firstName} ${formData.lastName}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-            alert("Sports recommendation letter generated and saved to history.");
+            // Note: We don't add to History yet, we wait for "Send for Approval" or "Download"? 
+            // spec: "Every generated letter must appear in History". 
+            // status before approval -> Draft PDF? No, spec says "Generated (not yet approved)". 
+            // wait, Change 2: Download Status Unchanged. Send for Approval -> Status Sent for Approval.
+            // Let's create a history record with status "Generated".
+            await addDoc(collection(db, 'generated_documents'), {
+                ...historyDoc,
+                status: 'Generated'
+            });
+
         } catch (error: any) {
             console.error(error);
             alert(error.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDownloadPreview = () => {
+        if (!generatedPdfBlob) return;
+        const a = document.createElement('a');
+        a.href = generatedPdfUrl;
+        a.download = `Draft_Sports_Recommendation_${formData.firstName}_${formData.lastName}.pdf`;
+        a.click();
+    };
+
+    const handleSendForApproval = async () => {
+        if (!generatedPdfBlob || !user) return;
+        setIsSendingApproval(true);
+        try {
+            // Upload the draft PDF
+            const fileName = `approval_drafts/${Date.now()}_SportsRec_${formData.firstName}.pdf`;
+            const pdfUrl = await uploadFile(generatedPdfBlob, fileName);
+
+            const approvalPayload = {
+                ...formData,
+                sportsAchievements: sportsAchievements.filter(a => a.description.trim()),
+                appreciativeStatement: generatedAppreciative,
+                signatureUrl: addSignature ? user.signatureUrl : undefined,
+                documentType: DocumentType.SPORTS_RECOMMENDATION
+            };
+
+            await addDoc(collection(db, 'approval_requests'), {
+                senderId: user.id,
+                senderName: `${user.firstName} ${user.lastName}`,
+                recipientEmail: PRINCIPAL_EMAIL,
+                studentName: `${formData.firstName} ${formData.lastName}`,
+                documentType: DocumentType.SPORTS_RECOMMENDATION,
+                pdfUrl: pdfUrl,
+                status: 'Sent for Approval',
+                payload: approvalPayload,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+
+            // Update history record status to "Sent for Approval"
+            const q = query(collection(db, 'generated_documents'),
+                where('studentName', '==', `${formData.firstName} ${formData.lastName}`),
+                where('documentType', '==', DocumentType.SPORTS_RECOMMENDATION),
+                where('generatedById', '==', user.id));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                await updateDoc(doc(db, 'generated_documents', snap.docs[0].id), {
+                    status: 'Sent for Approval'
+                });
+            }
+
+            // Notify Principal and Self (Sports Coordinator)
+            const notifMsg = `Sports Recommendation Letter for ${formData.firstName} ${formData.lastName} has been sent for approval.`;
+            await sendNotification("PRINCIPAL", notifMsg, "/approvals");
+            await sendNotification(user.id, notifMsg, "/sports-recommendation");
+
+            alert("Letter sent to Principal for approval.");
+            setShowPreview(false);
+            setActiveTab('approvals');
+        } catch (error: any) {
+            alert("Failed to send for approval: " + error.message);
+        } finally {
+            setIsSendingApproval(false);
         }
     };
 
@@ -248,6 +366,13 @@ const SportsRecommendationPortal: React.FC = () => {
                 >
                     <Pen className="w-4 h-4" />
                     GENERATE LETTER
+                </button>
+                <button
+                    onClick={() => setActiveTab('approvals')}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'approvals' ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                >
+                    <CheckCircle2 className="w-4 h-4" />
+                    APPROVALS
                 </button>
                 <button
                     onClick={() => setActiveTab('history')}
@@ -419,10 +544,30 @@ const SportsRecommendationPortal: React.FC = () => {
                             </div>
 
                             <p className="text-sm text-slate-500 font-medium italic">
-                                This statement is auto-generated based on the achievements and tone rules.
+                                Select at least 3 statements to build the appreciative paragraph.
                             </p>
 
-                            <div className="relative">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {SPORTS_APPRECIATIVE_OPTIONS.map((opt) => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => handleOptionToggle(opt.id)}
+                                        className={`flex flex-col text-left p-4 rounded-2xl border transition-all ${selectedOptions.includes(opt.id) ? 'bg-brand-600 border-brand-600 shadow-lg shadow-brand-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-brand-500/50'}`}
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className={`text-[10px] font-black uppercase tracking-widest ${selectedOptions.includes(opt.id) ? 'text-brand-100' : 'text-slate-400'}`}>
+                                                {opt.title}
+                                            </span>
+                                            {selectedOptions.includes(opt.id) && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                        </div>
+                                        <p className={`text-xs leading-relaxed line-clamp-2 ${selectedOptions.includes(opt.id) ? 'text-white font-medium' : 'text-slate-600 dark:text-slate-400'}`}>
+                                            {formatAppreciativeText(opt.text)}
+                                        </p>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="relative mt-6">
                                 {isEditingStatement ? (
                                     <textarea
                                         value={generatedAppreciative}
@@ -430,9 +575,22 @@ const SportsRecommendationPortal: React.FC = () => {
                                         className="w-full px-6 py-6 bg-white dark:bg-white/5 border-2 border-brand-500/20 rounded-3xl focus:ring-4 focus:ring-brand-500/10 outline-none transition-all font-medium text-slate-900 dark:text-white min-h-[160px] leading-relaxed shadow-inner"
                                     />
                                 ) : (
-                                    <div className="p-8 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-3xl">
+                                    <div className={`p-8 rounded-3xl border transition-all ${selectedOptions.length < 3 ? 'bg-orange-50 dark:bg-orange-900/5 border-orange-200 dark:border-orange-500/20' : 'bg-emerald-50 dark:bg-emerald-900/5 border-emerald-200 dark:border-emerald-500/20'}`}>
+                                        <div className="flex items-center gap-2 mb-4">
+                                            {selectedOptions.length < 3 ? (
+                                                <>
+                                                    <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                                    <span className="text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Incomplete: Select {3 - selectedOptions.length} more</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Ready to Generate</span>
+                                                </>
+                                            )}
+                                        </div>
                                         <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                                            {generatedAppreciative || <span className="text-slate-400">Enter achievements above to see the generated statement...</span>}
+                                            {generatedAppreciative || <span className="text-slate-400 italic">Select statements from the pool above...</span>}
                                         </p>
                                     </div>
                                 )}
@@ -518,8 +676,8 @@ const SportsRecommendationPortal: React.FC = () => {
                             <Button
                                 onClick={handleGenerate}
                                 isLoading={loading}
-                                disabled={!generatedAppreciative || sportsAchievements.some(a => !a.description || !a.month || !a.year)}
-                                className={`w-full max-w-md py-5 text-lg shadow-2xl transition-all ${generatedAppreciative && !sportsAchievements.some(a => !a.description || !a.month || !a.year) ? 'shadow-brand-500/40' : 'opacity-50 grayscale cursor-not-allowed'}`}
+                                disabled={selectedOptions.length < 3 || sportsAchievements.some(a => !a.description || !a.month || !a.year)}
+                                className={`w-full max-w-md py-5 text-lg shadow-2xl transition-all ${selectedOptions.length >= 3 && !sportsAchievements.some(a => !a.description || !a.month || !a.year) ? 'shadow-brand-500/40' : 'opacity-50 grayscale cursor-not-allowed'}`}
                             >
                                 {loading ? (
                                     <>
@@ -535,6 +693,112 @@ const SportsRecommendationPortal: React.FC = () => {
                             </Button>
                             <p className="text-xs text-slate-500 font-bold mt-4 uppercase tracking-[0.2em]">PDF will be rendered on official SLISR letterhead</p>
                         </div>
+                    </div>
+
+                    {showPreview && (
+                        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+                            <div className="bg-white dark:bg-[#070708] w-full max-w-5xl h-[90vh] rounded-[2.5rem] overflow-hidden border border-white/10 flex flex-col animate-scale-in">
+                                <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white">Letter Preview</h3>
+                                        <p className="text-sm text-slate-500">Status: <span className="text-brand-400 font-bold uppercase tracking-widest text-xs ml-1">Generated</span></p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            onClick={handleDownloadPreview}
+                                            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2 border border-white/10"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            Download
+                                        </button>
+                                        <button
+                                            onClick={handleSendForApproval}
+                                            disabled={isSendingApproval}
+                                            className="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-xl shadow-brand-500/20"
+                                        >
+                                            {isSendingApproval ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                            Send for Approval
+                                        </button>
+                                        <button
+                                            onClick={() => setShowPreview(false)}
+                                            className="p-2 text-slate-400 hover:text-white transition-colors"
+                                        >
+                                            <Minus className="w-6 h-6 rotate-45" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex-1 bg-slate-900 relative">
+                                    <iframe src={generatedPdfUrl} className="w-full h-full border-none" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : activeTab === 'approvals' ? (
+                /* Approvals Tracker Tab */
+                <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden text-white min-h-[500px]">
+                    <div className="p-8 border-b border-white/5 bg-white/[0.01]">
+                        <h2 className="text-xl font-bold">Approval Tracker</h2>
+                        <p className="text-sm text-slate-500">
+                            Monitor the status of letters sent to the Principal
+                        </p>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 dark:bg-white/[0.02]">
+                                <tr className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                                    <th className="px-8 py-5">Student Name</th>
+                                    <th className="px-8 py-5">Letter Type</th>
+                                    <th className="px-8 py-5 text-center">Date Sent</th>
+                                    <th className="px-8 py-5 text-center">Status</th>
+                                    <th className="px-8 py-5 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                {loadingApprovals ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-8 py-20 text-center">
+                                            <Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-500 opacity-50" />
+                                        </td>
+                                    </tr>
+                                ) : approvalRequests.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-8 py-20 text-center text-slate-500 italic">
+                                            <Search className="w-12 h-12 mb-4 mx-auto opacity-10" />
+                                            No approval requests found
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    approvalRequests.map(req => (
+                                        <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors font-medium">
+                                            <td className="px-8 py-5 font-bold text-slate-900 dark:text-white">{req.studentName}</td>
+                                            <td className="px-8 py-5 text-xs text-slate-500">Sports Recommendation</td>
+                                            <td className="px-8 py-5 text-center text-xs text-slate-500">{new Date(req.createdAt).toLocaleDateString()}</td>
+                                            <td className="px-8 py-5 text-center">
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${req.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                                                    {req.status === 'Pending Approval' ? 'Sent for Approval' : req.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <button
+                                                    onClick={() => {
+                                                        const a = document.createElement('a');
+                                                        a.href = req.finalPdfUrl || req.pdfUrl;
+                                                        a.target = "_blank";
+                                                        a.click();
+                                                    }}
+                                                    className="px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-xs font-bold text-brand-600 dark:text-brand-400 hover:bg-brand-600 hover:text-white transition-all inline-flex items-center gap-2"
+                                                >
+                                                    <FileText className="w-3.5 h-3.5" />
+                                                    View Letter
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             ) : (
@@ -552,8 +816,8 @@ const SportsRecommendationPortal: React.FC = () => {
                             <thead className="bg-brand-600">
                                 <tr className="text-white text-xs uppercase tracking-widest">
                                     <th className="px-8 py-4">Student Name</th>
-                                    <th className="px-8 py-4">Referee Name</th>
                                     <th className="px-8 py-4 text-center">Date Generated</th>
+                                    <th className="px-8 py-4 text-center">Status</th>
                                     <th className="px-8 py-4 text-right">Action</th>
                                 </tr>
                             </thead>
@@ -575,14 +839,18 @@ const SportsRecommendationPortal: React.FC = () => {
                                     historyRequests.map(req => (
                                         <tr key={req.id} className="hover:bg-white/[0.02] transition-colors font-medium">
                                             <td className="px-8 py-5 font-bold">{req.studentName}</td>
-                                            <td className="px-8 py-5 text-sm text-slate-400">{req.refereeName}</td>
                                             <td className="px-8 py-5 text-center text-xs text-slate-500">{new Date(req.createdAt).toLocaleDateString()}</td>
+                                            <td className="px-8 py-5 text-center">
+                                                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest ${req.status === 'Approved' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
+                                                    {req.status || 'Generated'}
+                                                </span>
+                                            </td>
                                             <td className="px-8 py-5 text-right">
                                                 <button
                                                     onClick={() => {
                                                         const a = document.createElement('a');
                                                         a.href = req.pdfUrl;
-                                                        a.download = `Sports_Recommendation_${req.studentName.replace(/\s+/g, '_')}.pdf`;
+                                                        a.download = `Sports_Rec_${req.studentName.replace(/\s+/g, '_')}.pdf`;
                                                         a.click();
                                                     }}
                                                     className="px-4 py-2 bg-brand-600 rounded-xl text-xs font-bold hover:bg-brand-500 transition-all inline-flex items-center gap-2 shadow-lg shadow-brand-500/20"

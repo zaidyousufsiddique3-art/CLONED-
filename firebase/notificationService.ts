@@ -3,20 +3,23 @@ import { collection, addDoc, updateDoc, doc, query, where, onSnapshot, orderBy, 
 import { db } from './firebaseConfig';
 import { Notification } from '../types';
 
+import { PRINCIPAL_EMAIL, SPORTS_COORDINATOR_EMAIL } from '../constants';
+
 const NOTIFS_COLLECTION = 'notifications';
 
 export const sendNotification = async (userId: string, message: string, link?: string) => {
   let targetId = userId;
 
-  if (userId === "COORDINATOR") {
-    // Try lowercase first (standard) then formal case
-    const q1 = query(collection(db, 'users'), where('email', '==', 'chandana.kulathunga@slisr.org'));
+  if (userId === "COORDINATOR" || userId === "PRINCIPAL" || userId === "SPORTS_COORDINATOR") {
+    const email = userId === "PRINCIPAL" ? PRINCIPAL_EMAIL : SPORTS_COORDINATOR_EMAIL;
+    const q1 = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
     const snap1 = await getDocs(q1);
 
     if (!snap1.empty) {
       targetId = snap1.docs[0].id;
     } else {
-      const q2 = query(collection(db, 'users'), where('email', '==', 'Chandana.kulathunga@slisr.org'));
+      // Fallback for case sensitivity or exact match if lowercase failed
+      const q2 = query(collection(db, 'users'), where('email', '==', email));
       const snap2 = await getDocs(q2);
       if (!snap2.empty) targetId = snap2.docs[0].id;
     }

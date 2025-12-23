@@ -27,6 +27,7 @@ export enum DocumentType {
   LEAVING_CERTIFICATE = 'School Leaving Certificate',
   AWARDS_CERTIFICATE = 'Awards Ceremony Certificate',
   SPORTS_CAPTAIN = 'Sports Captain Application',
+  SPORTS_RECOMMENDATION = 'Sports Recommendation Letter',
   OTHER = 'Other',
 }
 
@@ -45,6 +46,7 @@ export interface User {
   password?: string; // In a real app, this would be hashed. Storing plain for demo localStorage.
   profileImage?: string; // Base64 or URL
   signatureUrl?: string; // URL to signature image
+  principalStampUrl?: string; // Principal's official stamp
   hasRecommendationAccess?: boolean;
   createdAt: string;
 }
