@@ -55,13 +55,13 @@ const Dashboard: React.FC = () => {
 
     if (user.role === UserRole.STUDENT) {
       unsubscribe = subscribeToStudentRequests(user.id, handleData);
-    } else if (user.role === UserRole.SUPER_ADMIN) {
+    } else if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) {
       unsubscribe = subscribeToAllRequests(handleData);
     } else if (isSportsCoordinator) {
       // Sports Coordinator sees ONLY Sports Recommendation requests in dashboard
       unsubscribe = subscribeToSportsRecommendationRequests(handleData);
     } else {
-      // Staff/Admin ONLY see assigned
+      // Staff ONLY see assigned
       unsubscribe = subscribeToAssignedRequests(user.id, handleData);
     }
 
@@ -79,7 +79,7 @@ const Dashboard: React.FC = () => {
       }));
 
       // Strict Role-based filtering for Password Requests
-      if (user.role === UserRole.STAFF || user.role === UserRole.ADMIN) {
+      if (user.role === UserRole.STAFF) {
         pwdData = pwdData.filter((r: any) => r.assignedToId === user.id);
       } else if (user.role === UserRole.STUDENT) {
         pwdData = pwdData.filter((r: any) => r.email === user.email);
@@ -222,16 +222,21 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Get Top 5 Recent
+  const isWithin24Hours = (dateString: string) => {
+    const requestDate = new Date(dateString).getTime();
+    const now = new Date().getTime();
+    const hoursDiff = (now - requestDate) / (1000 * 60 * 60);
+    return hoursDiff <= 24;
+  };
+
+  // Get Recent (Last 24 Hours)
   const recentDocs = requests
-    .filter(r => !r.dashboardHidden && !r.hiddenFromUsers?.includes(user?.id || ''))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
+    .filter(r => !r.dashboardHidden && !r.hiddenFromUsers?.includes(user?.id || '') && isWithin24Hours(r.createdAt))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const recentPwds = passwordRequests
-    .filter(r => !r.dashboardHidden)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
+    .filter(r => !r.dashboardHidden && isWithin24Hours(r.createdAt))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
     <div className="space-y-8">
@@ -329,13 +334,16 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-6">
+          <Link to="/all-requests" className="text-sm font-black text-brand-600 dark:text-brand-500 hover:text-brand-700 dark:hover:text-brand-400 flex items-center group transition-colors">
+            View All <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
+          </Link>
           {(activeTab === 'documents' ? recentDocs.length > 0 : recentPwds.length > 0) && (
             <button
               onClick={() => handleClearDashboard(activeTab === 'documents' ? 'doc' : 'pwd')}
               className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
             >
-              Clear Dashboard Requests
+              Clear Dashboard
             </button>
           )}
         </div>

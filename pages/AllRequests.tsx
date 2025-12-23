@@ -30,13 +30,13 @@ const AllRequests: React.FC = () => {
 
         if (user.role === UserRole.STUDENT) {
             unsubscribe = subscribeToStudentRequests(user.id, handleData);
-        } else if (user.role === UserRole.SUPER_ADMIN) {
+        } else if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) {
             unsubscribe = subscribeToAllRequests(handleData);
         } else if (isSportsCoordinator) {
             // Sports Coordinator sees ONLY Sports Recommendation requests
             unsubscribe = subscribeToSportsRecommendationRequests(handleData);
         } else {
-            // Staff/Admin ONLY see assigned
+            // Staff ONLY see assigned
             unsubscribe = subscribeToAssignedRequests(user.id, handleData);
         }
 
@@ -60,11 +60,12 @@ const AllRequests: React.FC = () => {
             }));
 
             // Role-based filtering for Password Requests
-            if (user.role === UserRole.STAFF || user.role === UserRole.ADMIN) {
+            if (user.role === UserRole.STAFF) {
                 pwdData = pwdData.filter((r: any) => r.assignedToId === user.id);
             } else if (user.role === UserRole.STUDENT) {
                 pwdData = pwdData.filter((r: any) => r.email === user.email);
             }
+            // SuperAdmin and Admin see all password requests
 
             // Sort newest first
             pwdData.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -98,8 +99,15 @@ const AllRequests: React.FC = () => {
         return hoursDiff <= 24;
     });
 
+    const recentPasswords = passwordRequests.filter(r => {
+        const timeDiff = new Date().getTime() - new Date(r.createdAt).getTime();
+        const hoursDiff = timeDiff / (1000 * 60 * 60);
+        return hoursDiff <= 24;
+    });
+
     // Determine which requests to display based on active tab
     const displayRequests = activeTab === 'all' ? requests : recentRequests;
+    const displayPasswords = recentPasswords;
     const visibleRequests = displayRequests.filter(r => !r.hiddenFromUsers?.includes(user?.id || ''));
 
     return (
@@ -145,7 +153,7 @@ const AllRequests: React.FC = () => {
                         }`}
                 >
                     <Key className="w-4 h-4 mr-2" />
-                    Recent Passwords ({passwordRequests.length})
+                    Recent Passwords ({displayPasswords.length})
                 </button>
             </div>
 
@@ -231,9 +239,9 @@ const AllRequests: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                                        {passwordRequests.length === 0 ? (
-                                            <tr><td colSpan={5} className="px-8 py-12 text-center text-slate-500">No password requests found.</td></tr>
-                                        ) : passwordRequests.map((req: any) => (
+                                        {displayPasswords.length === 0 ? (
+                                            <tr><td colSpan={5} className="px-8 py-12 text-center text-slate-500">No recent password requests found (24h).</td></tr>
+                                        ) : displayPasswords.map((req: any) => (
                                             <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                                 <td className="px-8 py-5 text-sm">
                                                     <div className="font-bold text-slate-900 dark:text-white">{req.firstName} {req.lastName}</div>
