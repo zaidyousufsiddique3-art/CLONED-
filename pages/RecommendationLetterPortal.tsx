@@ -456,16 +456,11 @@ const RecommendationLetterPortal: React.FC = () => {
                                             {user.role === UserRole.SUPER_ADMIN && <td className="px-8 py-5 text-xs text-slate-400 font-medium">{req.generatedByName}</td>}
                                             <td className="px-8 py-5 text-right">
                                                 <button
-                                                    onClick={() => {
-                                                        const a = document.createElement('a');
-                                                        a.href = req.pdfUrl;
-                                                        a.download = `Recommendation_${req.studentName.replace(/\s+/g, '_')}.pdf`;
-                                                        a.click();
-                                                    }}
+                                                    onClick={() => window.open(req.pdfUrl, '_blank')}
                                                     className="px-4 py-2 bg-brand-600 rounded-xl text-xs font-bold hover:bg-brand-500 transition-all inline-flex items-center gap-2 shadow-lg shadow-brand-500/20"
                                                 >
-                                                    <Download className="w-3.5 h-3.5" />
-                                                    Download PDF
+                                                    <Eye className="w-3.5 h-3.5" />
+                                                    View PDF
                                                 </button>
                                             </td>
                                         </tr>

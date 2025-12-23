@@ -486,7 +486,7 @@ const PredictedGradesPortal: React.FC = () => {
                                             <td className="px-8 py-5 text-center"><span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${req.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-500' : req.status === 'Rejected' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>{req.status}</span></td>
                                             <td className="px-8 py-5 text-right">
                                                 {req.status === 'Approved' ? (
-                                                    <button onClick={() => { const a = document.createElement('a'); a.href = req.finalPdfUrl || req.pdfUrl; a.download = `Signed_${req.studentName}.pdf`; a.click(); }} className="px-4 py-2 bg-brand-600 rounded-xl text-xs font-bold hover:bg-brand-500 transition-all flex items-center gap-2 ml-auto shadow-lg shadow-brand-500/20"><Eye className="w-3.5 h-3.5" /> View PDF</button>
+                                                    <button onClick={() => window.open(req.finalPdfUrl || req.pdfUrl, '_blank')} className="px-4 py-2 bg-brand-600 rounded-xl text-xs font-bold hover:bg-brand-500 transition-all flex items-center gap-2 ml-auto shadow-lg shadow-brand-500/20"><Eye className="w-3.5 h-3.5" /> View PDF</button>
                                                 ) : req.status === 'Rejected' && (
                                                     <div className="group relative inline-block">
                                                         <AlertCircle className="text-red-500 cursor-help" />
@@ -535,15 +535,10 @@ const PredictedGradesPortal: React.FC = () => {
                                             </td>
                                             <td className="px-8 py-5 text-right">
                                                 <button
-                                                    onClick={() => {
-                                                        const a = document.createElement('a');
-                                                        a.href = req.finalPdfUrl || req.pdfUrl;
-                                                        a.download = `${req.status === 'Approved' ? 'Signed_' : ''}${req.studentName}.pdf`;
-                                                        a.click();
-                                                    }}
+                                                    onClick={() => window.open(req.finalPdfUrl || req.pdfUrl, '_blank')}
                                                     className="px-4 py-2 bg-brand-600 rounded-xl text-xs font-bold hover:bg-brand-500 transition-all flex items-center gap-2 ml-auto shadow-lg shadow-brand-500/20"
                                                 >
-                                                    <Download className="w-3.5 h-3.5" /> Download
+                                                    <Eye className="w-3.5 h-3.5" /> View PDF
                                                 </button>
                                             </td>
                                         </tr>

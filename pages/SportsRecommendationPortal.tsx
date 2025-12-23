@@ -6,7 +6,7 @@ import { db } from '../firebase/firebaseConfig';
 import { uploadFile } from '../firebase/storage';
 import { DocumentType, UserRole, GeneratedDocument } from '../types';
 import Button from '../components/Button';
-import { FileText, Send, CheckCircle2, AlertCircle, Loader2, Pen, Clock, Download, Search, Plus, Minus, Trophy } from 'lucide-react';
+import { FileText, Send, CheckCircle2, AlertCircle, Loader2, Pen, Clock, Download, Search, Plus, Minus, Trophy, Eye } from 'lucide-react';
 import { sendNotification } from '../firebase/notificationService';
 import { PRINCIPAL_EMAIL } from '../constants';
 
@@ -817,16 +817,11 @@ const SportsRecommendationPortal: React.FC = () => {
                                             </td>
                                             <td className="px-8 py-5 text-right">
                                                 <button
-                                                    onClick={() => {
-                                                        const a = document.createElement('a');
-                                                        a.href = req.finalPdfUrl || req.pdfUrl;
-                                                        a.target = "_blank";
-                                                        a.click();
-                                                    }}
+                                                    onClick={() => window.open(req.finalPdfUrl || req.pdfUrl, '_blank')}
                                                     className="px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-xs font-bold text-brand-600 dark:text-brand-400 hover:bg-brand-600 hover:text-white transition-all inline-flex items-center gap-2"
                                                 >
-                                                    <FileText className="w-3.5 h-3.5" />
-                                                    View Letter
+                                                    <Eye className="w-3.5 h-3.5" />
+                                                    View PDF
                                                 </button>
                                             </td>
                                         </tr>
@@ -882,16 +877,11 @@ const SportsRecommendationPortal: React.FC = () => {
                                             </td>
                                             <td className="px-8 py-5 text-right">
                                                 <button
-                                                    onClick={() => {
-                                                        const a = document.createElement('a');
-                                                        a.href = req.pdfUrl;
-                                                        a.download = `Sports_Rec_${req.studentName.replace(/\s+/g, '_')}.pdf`;
-                                                        a.click();
-                                                    }}
+                                                    onClick={() => window.open(req.pdfUrl, '_blank')}
                                                     className="px-4 py-2 bg-brand-600 rounded-xl text-xs font-bold hover:bg-brand-500 transition-all inline-flex items-center gap-2 shadow-lg shadow-brand-500/20"
                                                 >
-                                                    <Download className="w-3.5 h-3.5" />
-                                                    Download PDF
+                                                    <Eye className="w-3.5 h-3.5" />
+                                                    View PDF
                                                 </button>
                                             </td>
                                         </tr>
