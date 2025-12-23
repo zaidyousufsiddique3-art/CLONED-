@@ -107,13 +107,13 @@ export default async function handler(req: any, res: any) {
         const details = [
             `Facility Booked: ${payload.facility}`,
             `Date: ${payload.date}`,
-            `Time: ${payload.time}`,
+            `Time: ${payload.time}`, // Expecting "Start - End" passed from payload
             `Person-in-Charge: ${payload.personInCharge}`,
             `Booking Reference: ${payload.bookingRef || 'N/A'}`
         ];
 
         for (const det of details) {
-            page.drawText(det, { x: leftX + 10, y: currentY, size: 10, font: font });
+            page.drawText(det, { x: leftX, y: currentY, size: 10, font: font }); // Removed extra indent
             currentY -= 15;
         }
         currentY -= 20;
@@ -131,16 +131,18 @@ export default async function handler(req: any, res: any) {
         page.drawText("Terms & Conditions", { x: leftX, y: currentY, size: 12, font: fontBold });
         currentY -= 20;
 
+        // Strict Word-for-Word T&Cs (No numbers)
         const terms = [
-            "1. The person-in-charge must arrive within 20 minutes of the scheduled start time.",
-            "2. Failure to do so will result in automatic cancellation of the booking.",
-            "3. The facility must be used strictly for its intended purpose.",
-            "4. Any damage to the facility or equipment will be the responsibility of the booking party.",
-            "5. The facility must be vacated immediately at the end of the approved booking time."
+            "The person-in-charge must arrive within 20 minutes of the scheduled start time.",
+            "Failure to do so will result in automatic cancellation of the booking.",
+            "The facility must be used strictly for its intended purpose.",
+            "Any damage to the facility or equipment will be the responsibility of the booking party.",
+            "The facility must be vacated immediately at the end of the approved booking time."
         ];
 
         for (const t of terms) {
-            currentY = drawWrappedText(t, leftX + 10, currentY, boxWidth - 10, font, fontSize);
+            currentY = drawWrappedText(t, leftX, currentY, boxWidth, font, fontSize); // Removed extra indent
+            currentY -= 5; // Tighter spacing for list feel
         }
         currentY -= 30;
 
@@ -149,19 +151,23 @@ export default async function handler(req: any, res: any) {
         currentY -= 20;
         page.drawText("Authorized by Sports Coordinator", { x: leftX, y: currentY, size: 10, font: font });
         currentY -= 15;
-        page.drawText("This is a system-generated confirmation document. No physical signature or stamp is required.", { x: leftX, y: currentY, size: 10, font: font, color: rgb(0.5, 0.5, 0.5) });
+        page.drawText("This is a system-generated confirmation document. No physical signature or stamp is required.", { x: leftX, y: currentY, size: 10, font: font }); // Removed color to ensure no 'restyling' complaints
 
         // Footer (Bottom of page)
         const footerY = 50;
-        page.drawText("Generated automatically by the Facilities Booking System", { x: leftX, y: footerY + 20, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
-        page.drawText("This document is valid only for the approved date and time", { x: leftX, y: footerY + 10, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
+        page.drawText("Generated automatically by the Facilities Booking System", { x: leftX, y: footerY + 24, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
+        page.drawText("This document is valid only for the approved date and time", { x: leftX, y: footerY + 12, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
         page.drawText("A downloaded copy is considered an official confirmation", { x: leftX, y: footerY, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
 
         const pdfBytes = await pdfDoc.save();
 
+        // Format Date to DD-MM-YYYY for filename
+        const dateParts = payload.date.split('-'); // Assumes YYYY-MM-DD from HTML input
+        const formattedDate = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : payload.date;
+
         res.writeHead(200, {
             'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="Facility_Booking_Confirmation_${payload.date}.pdf"`,
+            'Content-Disposition': `attachment; filename="Facility_Booking_Confirmation_${formattedDate}.pdf"`,
             'Content-Length': pdfBytes.length
         });
         res.end(Buffer.from(pdfBytes));

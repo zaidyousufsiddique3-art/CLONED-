@@ -81,7 +81,7 @@ const UserFacilitiesBooking: React.FC = () => {
                 body: JSON.stringify({
                     facility: booking.facility,
                     date: booking.date,
-                    time: `${booking.timeSlot} - ${calculateEndTime(booking.timeSlot, parseInt(booking.duration)).label}`,
+                    time: `${booking.timeSlot} – ${calculateEndTime(booking.timeSlot, parseInt(booking.duration)).label}`, // En-dash
                     personInCharge: booking.personInCharge,
                     bookingRef: booking.id,
                     personName: booking.requesterName
@@ -94,7 +94,7 @@ const UserFacilitiesBooking: React.FC = () => {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Facility_Booking_Confirmation_${booking.date}.pdf`;
+            a.download = `Facility_Booking_Confirmation_${booking.date.split('-').reverse().join('-')}.pdf`; // Client side fallback name
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -124,8 +124,6 @@ const UserFacilitiesBooking: React.FC = () => {
         }
 
         // 3. Conflict Check
-        // Query existing Approved OR Pending bookings for the same facility & date
-        // Note: Rejection doesn't block blocks.
         const q = query(
             collection(db, 'sports_facility_bookings'),
             where('facility', '==', facility),
@@ -162,7 +160,7 @@ const UserFacilitiesBooking: React.FC = () => {
                 const bookingData = {
                     userId: user?.id,
                     userEmail: user?.email,
-                    requesterType: user?.role === 'STUDENT' ? 'Student' : 'Staff', // Simplify for now
+                    requesterType: user?.role === 'STUDENT' ? 'Student' : 'Staff',
                     requesterName: `${user?.firstName} ${user?.lastName}`,
                     facility,
                     date,
@@ -175,13 +173,7 @@ const UserFacilitiesBooking: React.FC = () => {
 
                 const docRef = await addDoc(collection(db, 'sports_facility_bookings'), bookingData);
 
-                // Notify Sports Coordinator
-                // Need to find ID or just send to known email/ID pattern? 
-                // sendNotification uses userID. We need the Coordinator's User ID. 
-                // For this implementation, I will skip finding the ID dynamically to keep it simple or assume we have it. 
-                // Actually, `sendNotification` needs a `userId`. 
-                // I'll query the use with the coordinator email.
-
+                // Notify Sports Coordinator - STRICT EXACT TEXT
                 const coordQuery = query(collection(db, 'users'), where('email', '==', SPORTS_COORDINATOR_EMAIL));
                 const coordSnap = await getDocs(coordQuery);
                 if (!coordSnap.empty) {
@@ -319,60 +311,65 @@ const UserFacilitiesBooking: React.FC = () => {
                     </div>
                 </div>
             ) : (
-                <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden">
-                    <table className="w-full text-left">
-                        <thead className="bg-slate-50/50 dark:bg-white/[0.02] border-b border-slate-100 dark:border-white/5">
-                            <tr>
-                                <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Facility</th>
-                                <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Date & Time</th>
-                                <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                            {myBookings.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="p-10 text-center text-slate-500">No bookings found.</td>
+                <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden min-h-[500px]">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
+                                    <th className="p-6 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">FACILITY</th>
+                                    <th className="p-6 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">DATE & TIME</th>
+                                    <th className="p-6 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">STATUS</th>
+                                    <th className="p-6 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">ACTIONS</th>
                                 </tr>
-                            ) : myBookings.map(b => (
-                                <tr key={b.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.01]">
-                                    <td className="p-6">
-                                        <p className="font-bold text-slate-900 dark:text-white">{b.facility}</p>
-                                        <p className="text-xs text-slate-500 mt-1 flex items-center"><User className="w-3 h-3 mr-1" /> {b.personInCharge}</p>
-                                    </td>
-                                    <td className="p-6">
-                                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center"><Calendar className="w-3 h-3 mr-2" /> {b.date}</p>
-                                        <p className="text-xs text-slate-500 mt-1 flex items-center"><Clock className="w-3 h-3 mr-2" /> {b.timeSlot} ({b.duration} mins)</p>
-                                    </td>
-                                    <td className="p-6">
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${b.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
-                                                b.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
-                                                    b.status === 'Rejected' ? 'bg-red-100 text-red-700' :
-                                                        'bg-amber-100 text-amber-700'
-                                            }`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${b.status === 'Approved' ? 'bg-emerald-500' :
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                {myBookings.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="p-20 text-center">
+                                            <p className="text-slate-500 font-medium text-lg">No bookings found.</p>
+                                        </td>
+                                    </tr>
+                                ) : myBookings.map(b => (
+                                    <tr key={b.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.01]">
+                                        <td className="p-6">
+                                            <span className="font-bold text-slate-900 dark:text-white">{b.facility}</span>
+                                        </td>
+                                        <td className="p-6">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{b.date}</span>
+                                                <span className="text-xs text-slate-500">{b.timeSlot} ({b.duration} mins)</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-6">
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${b.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' :
+                                                b.status === 'Completed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' :
+                                                    b.status === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' :
+                                                        'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+                                                }`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${b.status === 'Approved' ? 'bg-emerald-500' :
                                                     b.status === 'Completed' ? 'bg-blue-500' :
                                                         b.status === 'Rejected' ? 'bg-red-500' :
                                                             'bg-amber-500'
-                                                }`}></span>
-                                            {b.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-6 text-right">
-                                        {(b.status === 'Approved' || b.status === 'Completed') && (
-                                            <button
-                                                onClick={() => handleDownloadPDF(b)}
-                                                className="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                                                title="Download Confirmation"
-                                            >
-                                                <Download className="w-5 h-5" />
-                                            </button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                                    }`}></span>
+                                                {b.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-6 text-right">
+                                            {(b.status === 'Approved' || b.status === 'Completed') && (
+                                                <button
+                                                    onClick={() => handleDownloadPDF(b)}
+                                                    className="p-2 text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-lg transition-colors"
+                                                    title="Download Confirmation"
+                                                >
+                                                    <Download className="w-5 h-5" />
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>
