@@ -5,6 +5,8 @@ import { Camera, User, Lock, Mail, Phone, Pen, Upload } from 'lucide-react';
 import { fileToBase64 } from '../services/mockDb';
 import { UserRole } from '../types';
 import { PRINCIPAL_EMAIL, SPORTS_COORDINATOR_EMAIL } from '../constants';
+import { uploadFile } from '../firebase/storage';
+import { Loader2, CheckCircle2 } from 'lucide-react';
 
 // Reusable Input Component (Local)
 const InputGroup = ({ label, type = "text", value, onChange, icon: Icon, disabled = false }: any) => (
@@ -29,6 +31,7 @@ const Profile: React.FC = () => {
   const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [uploadState, setUploadState] = useState<{ field: string; status: 'idle' | 'uploading' | 'success' | 'error' }>({ field: '', status: 'idle' });
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -44,11 +47,16 @@ const Profile: React.FC = () => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setUploadState({ field: 'photo', status: 'uploading' });
       try {
-        const base64 = await fileToBase64(file);
-        updateUser({ ...user, profileImage: base64 });
+        const path = `profile_photos/${user.id}_${Date.now()}`;
+        const url = await uploadFile(file, path);
+        await updateUser({ ...user, profileImage: url });
+        setUploadState({ field: 'photo', status: 'success' });
+        setTimeout(() => setUploadState({ field: '', status: 'idle' }), 3000);
       } catch (err) {
         console.error("Failed to upload image", err);
+        setUploadState({ field: 'photo', status: 'error' });
       }
     }
   };
@@ -57,14 +65,19 @@ const Profile: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.type !== 'image/png') {
-        alert("Only PNG files are accepted for signatures to ensure transparency.");
+        alert("Only PNG files are accepted for signatures.");
         return;
       }
+      setUploadState({ field: 'signature', status: 'uploading' });
       try {
-        const base64 = await fileToBase64(file);
-        updateUser({ ...user, signatureUrl: base64 });
+        const path = `signatures/${user.id}_${Date.now()}.png`;
+        const url = await uploadFile(file, path);
+        await updateUser({ ...user, signatureUrl: url });
+        setUploadState({ field: 'signature', status: 'success' });
+        setTimeout(() => setUploadState({ field: '', status: 'idle' }), 3000);
       } catch (err) {
         console.error("Failed to upload signature", err);
+        setUploadState({ field: 'signature', status: 'error' });
       }
     }
   };
@@ -103,12 +116,19 @@ const Profile: React.FC = () => {
           {/* Left Col: Photo */}
           <div className="flex flex-col items-center space-y-4">
             <div className="relative group">
-              <div className="w-32 h-32 rounded-full bg-slate-100 dark:bg-[#070708] overflow-hidden border-4 border-white dark:border-white/10 shadow-xl">
-                {user.profileImage ? (
+              <div className="w-32 h-32 rounded-full bg-slate-100 dark:bg-[#070708] overflow-hidden border-4 border-white dark:border-white/10 shadow-xl flex items-center justify-center relative">
+                {uploadState.field === 'photo' && uploadState.status === 'uploading' ? (
+                  <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
+                ) : user.profileImage ? (
                   <img src={user.profileImage} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-slate-400 dark:text-slate-500">
                     {user.firstName[0]}{user.lastName[0]}
+                  </div>
+                )}
+                {uploadState.field === 'photo' && uploadState.status === 'success' && (
+                  <div className="absolute inset-0 bg-emerald-500/20 backdrop-blur-sm flex items-center justify-center">
+                    <CheckCircle2 className="w-10 h-10 text-emerald-500 animate-bounce" />
                   </div>
                 )}
               </div>
@@ -197,10 +217,18 @@ const Profile: React.FC = () => {
                       <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">🖊️ Default Signature</h3>
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-100 dark:border-white/10 mb-6">
+                    <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-100 dark:border-white/10 mb-6 relative">
+                      {uploadState.field === 'signature' && uploadState.status === 'success' && (
+                        <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-lg text-xs font-bold animate-in fade-in slide-in-from-right-2">
+                          <CheckCircle2 size={14} /> Signature Uploaded Successfully!
+                        </div>
+                      )}
+
                       <div className="flex flex-col md:flex-row items-center gap-6">
-                        <div className="w-48 h-24 bg-white dark:bg-[#070708] rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center overflow-hidden">
-                          {user.signatureUrl ? (
+                        <div className="w-48 h-24 bg-white dark:bg-[#070708] rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center overflow-hidden relative">
+                          {uploadState.field === 'signature' && uploadState.status === 'uploading' ? (
+                            <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
+                          ) : user.signatureUrl ? (
                             <img src={user.signatureUrl} alt="Signature" className="max-w-full max-h-full object-contain" />
                           ) : (
                             <div className="text-center p-4">
@@ -217,14 +245,19 @@ const Profile: React.FC = () => {
 
                           <div className="flex flex-col sm:flex-row gap-3">
                             <label className="flex-1">
-                              <div className="flex items-center justify-center px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl cursor-pointer transition-colors text-sm font-bold">
-                                <Upload className="w-4 h-4 mr-2" />
-                                Select PNG Signature
+                              <div className={`flex items-center justify-center px-4 py-2 text-white rounded-xl cursor-pointer transition-colors text-sm font-bold ${uploadState.field === 'signature' && uploadState.status === 'uploading' ? 'bg-slate-600 cursor-wait' : 'bg-brand-600 hover:bg-brand-700'}`}>
+                                {uploadState.field === 'signature' && uploadState.status === 'uploading' ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Upload className="w-4 h-4 mr-2" />
+                                )}
+                                {uploadState.field === 'signature' && uploadState.status === 'uploading' ? 'Uploading...' : 'Select PNG Signature'}
                               </div>
                               <input
                                 type="file"
                                 className="hidden"
                                 accept="image/png"
+                                disabled={uploadState.field === 'signature' && uploadState.status === 'uploading'}
                                 onChange={handleSignatureUpload}
                               />
                             </label>
@@ -246,15 +279,23 @@ const Profile: React.FC = () => {
 
                     {/* Stamp Section for Principal */}
                     {user.email.toLowerCase() === PRINCIPAL_EMAIL.toLowerCase() && (
-                      <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-100 dark:border-white/10">
+                      <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-100 dark:border-white/10 relative">
+                        {uploadState.field === 'stamp' && uploadState.status === 'success' && (
+                          <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-lg text-xs font-bold animate-in fade-in slide-in-from-right-2">
+                            <CheckCircle2 size={14} /> Stamp Uploaded Successfully!
+                          </div>
+                        )}
+
                         <div className="flex items-center space-x-2 mb-4">
                           <Camera className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                           <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">🏛️ Default Stamp</h3>
                         </div>
 
                         <div className="flex flex-col md:flex-row items-center gap-6">
-                          <div className="w-32 h-32 bg-white dark:bg-[#070708] rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center overflow-hidden p-2">
-                            {user.principalStampUrl ? (
+                          <div className="w-32 h-32 bg-white dark:bg-[#070708] rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center overflow-hidden p-2 relative">
+                            {uploadState.field === 'stamp' && uploadState.status === 'uploading' ? (
+                              <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
+                            ) : user.principalStampUrl ? (
                               <img src={user.principalStampUrl} alt="Official Stamp" className="max-w-full max-h-full object-contain" />
                             ) : (
                               <div className="text-center p-4">
@@ -271,14 +312,19 @@ const Profile: React.FC = () => {
 
                             <div className="flex flex-col sm:flex-row gap-3">
                               <label className="flex-1">
-                                <div className="flex items-center justify-center px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl cursor-pointer transition-colors text-sm font-bold">
-                                  <Upload className="w-4 h-4 mr-2" />
-                                  Select PNG Stamp
+                                <div className={`flex items-center justify-center px-4 py-2 text-white rounded-xl cursor-pointer transition-colors text-sm font-bold ${uploadState.field === 'stamp' && uploadState.status === 'uploading' ? 'bg-slate-600 cursor-wait' : 'bg-brand-600 hover:bg-brand-700'}`}>
+                                  {uploadState.field === 'stamp' && uploadState.status === 'uploading' ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <Upload className="w-4 h-4 mr-2" />
+                                  )}
+                                  {uploadState.field === 'stamp' && uploadState.status === 'uploading' ? 'Uploading...' : 'Select PNG Stamp'}
                                 </div>
                                 <input
                                   type="file"
                                   className="hidden"
                                   accept="image/png"
+                                  disabled={uploadState.field === 'stamp' && uploadState.status === 'uploading'}
                                   onChange={async (e) => {
                                     if (e.target.files && e.target.files[0]) {
                                       const file = e.target.files[0];
@@ -286,8 +332,17 @@ const Profile: React.FC = () => {
                                         alert("Only PNG files are accepted for stamps.");
                                         return;
                                       }
-                                      const base64 = await fileToBase64(file);
-                                      updateUser({ ...user, principalStampUrl: base64 });
+                                      setUploadState({ field: 'stamp', status: 'uploading' });
+                                      try {
+                                        const path = `stamps/${user.id}_${Date.now()}.png`;
+                                        const url = await uploadFile(file, path);
+                                        await updateUser({ ...user, principalStampUrl: url });
+                                        setUploadState({ field: 'stamp', status: 'success' });
+                                        setTimeout(() => setUploadState({ field: '', status: 'idle' }), 3000);
+                                      } catch (err) {
+                                        console.error("Failed to upload stamp", err);
+                                        setUploadState({ field: 'stamp', status: 'error' });
+                                      }
                                     }
                                   }}
                                 />

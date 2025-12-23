@@ -256,7 +256,7 @@ export default async function handler(req: any, res: any) {
         currentY -= lineSpacing;
         page.drawText('Yours sincerely,', { x: SAFE_AREA.LEFT, y: currentY, size: fontSize, font });
 
-        if (signatureUrl && signatureUrl.trim() !== '') {
+        if (signatureUrl && typeof signatureUrl === 'string' && signatureUrl.trim() !== '') {
             // --- SIGNATURE SECTION (ON) ---
             const signatureGap = 60; // Extra vertical spacing for signature
             currentY -= signatureGap;

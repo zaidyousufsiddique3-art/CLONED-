@@ -370,7 +370,7 @@ export default async function handler(req: any, res: any) {
         }
 
         // --- SIGNATURE OVERLAY (Superadmin / Coordinator) ---
-        if (payload.SIGNATURE_URL) {
+        if (payload.SIGNATURE_URL && typeof payload.SIGNATURE_URL === 'string') {
             try {
                 let sigImage;
                 if (payload.SIGNATURE_URL.startsWith('data:image/png;base64,')) {
@@ -401,7 +401,7 @@ export default async function handler(req: any, res: any) {
         }
 
         // --- PRINCIPAL SIGNATURE OVERLAY ---
-        if (payload.PRINCIPAL_SIGNATURE_URL) {
+        if (payload.PRINCIPAL_SIGNATURE_URL && typeof payload.PRINCIPAL_SIGNATURE_URL === 'string') {
             try {
                 let pSigImage;
                 if (payload.PRINCIPAL_SIGNATURE_URL.startsWith('data:image/png;base64,')) {
@@ -432,7 +432,7 @@ export default async function handler(req: any, res: any) {
         }
 
         // --- PRINCIPAL STAMP OVERLAY ---
-        if (payload.PRINCIPAL_STAMP_URL) {
+        if (payload.PRINCIPAL_STAMP_URL && typeof payload.PRINCIPAL_STAMP_URL === 'string') {
             try {
                 let stampImage;
                 if (payload.PRINCIPAL_STAMP_URL.startsWith('data:image/png;base64,')) {

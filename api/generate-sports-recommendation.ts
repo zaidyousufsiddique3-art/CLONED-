@@ -254,7 +254,7 @@ export default async function handler(req: any, res: any) {
         }
 
         // 1. Referee Signature (Signature URL)
-        if (signatureUrl && signatureUrl.trim() !== '') {
+        if (signatureUrl && typeof signatureUrl === 'string' && signatureUrl.trim() !== '') {
             try {
                 let sigImage;
                 if (signatureUrl.startsWith('data:image/png;base64,')) {
@@ -270,7 +270,7 @@ export default async function handler(req: any, res: any) {
         }
 
         // 2. Principal Signature (if approved)
-        if (PRINCIPAL_SIGNATURE_URL) {
+        if (PRINCIPAL_SIGNATURE_URL && typeof PRINCIPAL_SIGNATURE_URL === 'string') {
             try {
                 let pSigImage;
                 if (PRINCIPAL_SIGNATURE_URL.startsWith('data:image/png;base64,')) {
@@ -287,7 +287,7 @@ export default async function handler(req: any, res: any) {
         }
 
         // 3. Principal Stamp (if approved)
-        if (PRINCIPAL_STAMP_URL) {
+        if (PRINCIPAL_STAMP_URL && typeof PRINCIPAL_STAMP_URL === 'string') {
             try {
                 let stampImage;
                 if (PRINCIPAL_STAMP_URL.startsWith('data:image/png;base64,')) {

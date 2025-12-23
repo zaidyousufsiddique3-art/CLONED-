@@ -312,7 +312,7 @@ const SportsRecommendationPortal: React.FC = () => {
                 ...formData,
                 sportsAchievements: sportsAchievements.filter(a => a.description.trim()),
                 appreciativeStatement: generatedAppreciative,
-                signatureUrl: addSignature ? user.signatureUrl : undefined,
+                signatureUrl: (addSignature && user.signatureUrl) ? user.signatureUrl : null,
                 documentType: DocumentType.SPORTS_RECOMMENDATION
             };
 

@@ -247,7 +247,7 @@ const PredictedGradesPortal: React.FC = () => {
                 IAS_SESSION_MONTH_YEAR: iasSession,
                 IAL_SESSION_MONTH_YEAR: ialSession,
                 GENDER: gender,
-                SIGNATURE_URL: addSignature ? user.signatureUrl : undefined,
+                SIGNATURE_URL: (addSignature && user.signatureUrl) ? user.signatureUrl : null,
             };
             results.slice(0, 4).forEach((r, idx) => {
                 const i = idx + 1;
