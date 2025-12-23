@@ -56,6 +56,7 @@ const SportsCaptainPortal: React.FC = () => {
     const [resolvingRequestId, setResolvingRequestId] = useState<string | null>(null);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [requestRejectionReason, setRequestRejectionReason] = useState('');
+    const [actionSuccessMessage, setActionSuccessMessage] = useState('');
 
     useEffect(() => {
         if (!user) return;
@@ -185,7 +186,10 @@ const SportsCaptainPortal: React.FC = () => {
             setIsRejectModalOpen(false);
             setViewingRequest(null);
             setRequestRejectionReason('');
-            alert("Request rejected.");
+
+            // Show success message
+            setActionSuccessMessage('Request rejected successfully');
+            setTimeout(() => setActionSuccessMessage(''), 5000);
         } catch (error) {
             console.error("Rejection failed", error);
             alert("Failed to reject request.");
@@ -193,9 +197,23 @@ const SportsCaptainPortal: React.FC = () => {
     };
 
     const handleAcceptAndInvite = async (req: any) => {
-        setResolvingRequestId(req.id);
-
         try {
+            // First update the request status to ASSIGNED
+            await updateDoc(doc(db, 'requests', req.id), {
+                status: RequestStatus.ASSIGNED,
+                updatedAt: new Date().toISOString()
+            });
+
+            // Send notification to student
+            await sendNotification(
+                req.studentId,
+                `Your ${req.type} request has been accepted! You will receive an invitation soon.`,
+                `/requests/${req.id}`
+            );
+
+            setResolvingRequestId(req.id);
+
+            // Fetch student details for gender
             const userRef = doc(db, 'users', req.studentId);
             const userSnap = await getDoc(userRef);
 
@@ -210,9 +228,14 @@ const SportsCaptainPortal: React.FC = () => {
 
                 setActiveTab('send-request');
                 setViewingRequest(null);
+
+                // Show success message
+                setActionSuccessMessage('Student accepted! Please complete the invitation.');
+                setTimeout(() => setActionSuccessMessage(''), 5000);
             }
         } catch (e) {
             console.error("Error setting up invite", e);
+            alert("Failed to accept request.");
         }
     };
 
@@ -341,6 +364,22 @@ const SportsCaptainPortal: React.FC = () => {
                 </div>
             </div>
 
+            {/* Success Message Toast */}
+            {successMessage && (
+                <div className="fixed top-6 right-6 z-50 bg-emerald-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <CheckCircle2 className="w-6 h-6" />
+                    <span className="font-bold text-sm">{successMessage}</span>
+                </div>
+            )}
+
+            {/* Action Success Message Toast */}
+            {actionSuccessMessage && (
+                <div className="fixed top-6 right-6 z-50 bg-emerald-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <CheckCircle2 className="w-6 h-6" />
+                    <span className="font-bold text-sm">{actionSuccessMessage}</span>
+                </div>
+            )}
+
             {activeTab === 'send-request' ? (
                 /* PAGE 1: SEND APPLICATION REQUEST */
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -399,13 +438,6 @@ const SportsCaptainPortal: React.FC = () => {
                                         <Calendar className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
                                     </div>
                                 </div>
-
-                                {successMessage && (
-                                    <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 p-4 rounded-2xl text-xs font-bold flex items-center animate-scale-in">
-                                        <CheckCircle2 className="w-4 h-4 mr-3" />
-                                        {successMessage}
-                                    </div>
-                                )}
 
                                 <Button
                                     onClick={handleSendInvitation}
@@ -488,8 +520,8 @@ const SportsCaptainPortal: React.FC = () => {
                                                     }`}>
                                                     {invit.status === RequestStatus.APPLICATION_RECEIVED ? 'Assigned' : invit.status}
                                                 </span>
-                                                {/* NEW tag for requests less than 24 hours old */}
-                                                {new Date().getTime() - new Date(invit.createdAt).getTime() < 24 * 60 * 60 * 1000 && (
+                                                {/* NEW tag for requests less than 24 hours old AND pending */}
+                                                {invit.status === RequestStatus.PENDING && new Date().getTime() - new Date(invit.createdAt).getTime() < 24 * 60 * 60 * 1000 && (
                                                     <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-brand-500 text-white animate-pulse">NEW</span>
                                                 )}
                                             </div>

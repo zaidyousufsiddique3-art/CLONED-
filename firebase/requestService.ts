@@ -43,7 +43,9 @@ export const deleteRequest = async (id: string) => {
 export const subscribeToAllRequests = (callback: (reqs: DocRequest[]) => void) => {
   const q = query(collection(db, REQUESTS_COLLECTION), orderBy('createdAt', 'desc'));
   return onSnapshot(q, (snapshot) => {
-    const reqs = snapshot.docs.map(doc => doc.data() as DocRequest);
+    const reqs = snapshot.docs.map(doc => doc.data() as DocRequest)
+      // Filter out sports-related requests - they should only appear in Sports Coordinator portal
+      .filter(req => req.type !== DocumentType.SPORTS_CAPTAIN && req.type !== DocumentType.SPORTS_RECOMMENDATION);
     callback(reqs);
   });
 };
