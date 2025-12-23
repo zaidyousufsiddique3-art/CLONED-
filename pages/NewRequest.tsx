@@ -4,11 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { DocumentType, RequestStatus, DocRequest, Attachment } from '../types';
 import { createRequest, generateRequestId } from '../firebase/requestService';
 import { sendNotification } from '../firebase/notificationService';
-import { getSuperAdmins } from '../firebase/userService';
+import { getSuperAdmins, getUserByEmail } from '../firebase/userService';
 import { uploadFile } from '../firebase/storage';
 import { generateId } from '../services/mockDb';
 import Button from '../components/Button';
 import { ArrowLeft, Upload, File, X, CheckCircle, Plus, Minus } from 'lucide-react';
+import { SPORTS_COORDINATOR_EMAIL } from '../constants';
 
 // Subject options for IAS Results multi-select
 const IAS_SUBJECTS = [
@@ -370,11 +371,24 @@ const NewRequest: React.FC = () => {
 
       await createRequest(newReq);
 
-      // Notify Super Admins
-      const superAdmins = await getSuperAdmins();
-      superAdmins.forEach(admin => {
-        sendNotification(admin.id, `New request ${requestId} from ${newReq.studentName}`, `/requests/${requestId}`);
-      });
+      await createRequest(newReq);
+
+      // Notification Logic
+      if (type === DocumentType.SPORTS_CAPTAIN || type === DocumentType.SPORTS_RECOMMENDATION) {
+        // Notify Sports Coordinator ONLY
+        const sportsCoordinator = await getUserByEmail(SPORTS_COORDINATOR_EMAIL);
+        if (sportsCoordinator) {
+          await sendNotification(sportsCoordinator.id, `New sports request ${requestId} from ${newReq.studentName}`, `/sports-captain?req=${requestId}`);
+        } else {
+          console.warn("Sports Coordinator not found for notification.");
+        }
+      } else {
+        // Notify Super Admins
+        const superAdmins = await getSuperAdmins();
+        superAdmins.forEach(admin => {
+          sendNotification(admin.id, `New request ${requestId} from ${newReq.studentName}`, `/requests/${requestId}`);
+        });
+      }
 
       setLoading(false);
       setSuccessMessage('Request sent successfully');
