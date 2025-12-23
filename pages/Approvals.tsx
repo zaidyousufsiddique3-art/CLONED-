@@ -82,8 +82,8 @@ const Approvals: React.FC = () => {
 
             const payload = {
                 ...selectedRequest.payload,
-                PRINCIPAL_SIGNATURE_URL: (isSportsRec || includeSignature) ? user.signatureUrl : undefined,
-                PRINCIPAL_STAMP_URL: (isSportsRec || includeStamp) ? user.principalStampUrl : undefined,
+                PRINCIPAL_SIGNATURE_URL: includeSignature ? user.signatureUrl : undefined,
+                PRINCIPAL_STAMP_URL: includeStamp ? user.principalStampUrl : undefined,
             };
 
             console.log("[Approvals] Sending payload to API...");
@@ -111,8 +111,8 @@ const Approvals: React.FC = () => {
             await updateDoc(doc(db, 'approval_requests', selectedRequest.id), {
                 status: 'Approved',
                 finalPdfUrl: finalPdfUrl,
-                includeSignature: isSportsRec ? true : includeSignature,
-                includeStamp: isSportsRec ? true : includeStamp,
+                includeSignature: includeSignature,
+                includeStamp: includeStamp,
                 updatedAt: new Date().toISOString()
             });
 
@@ -339,64 +339,79 @@ const Approvals: React.FC = () => {
                                 </button>
                             </div>
 
-                            <div className="space-y-4">
-                                {/* Option 1: Signature */}
+                            <div className="grid grid-cols-1 gap-4">
+                                {/* Option 1: Signature Only */}
                                 <button
-                                    onClick={() => setIncludeSignature(!includeSignature)}
-                                    disabled={!user.signatureUrl}
-                                    className={`w-full flex items-center justify-between p-6 rounded-[1.5rem] border transition-all ${includeSignature ? 'bg-brand-600/10 border-brand-500/50' : 'bg-white/5 border-white/5 opacity-50'}`}
+                                    onClick={() => { setIncludeSignature(true); setIncludeStamp(false); }}
+                                    className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${includeSignature && !includeStamp ? 'bg-brand-600 border-brand-500 shadow-xl shadow-brand-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-brand-500/30'}`}
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className={`p-3 rounded-xl ${includeSignature ? 'bg-brand-600 text-white' : 'bg-slate-800 text-slate-500'}`}>
-                                            <Pen className="w-5 h-5" />
+                                        <div className={`p-3 rounded-xl ${includeSignature && !includeStamp ? 'bg-white/20' : 'bg-brand-600/10 text-brand-500'}`}>
+                                            <Pen className="w-5 h-5 text-white" />
                                         </div>
                                         <div className="text-left">
-                                            <p className="font-bold text-white">Principal Signature</p>
-                                            <p className="text-xs text-slate-500">Append your digital signature</p>
+                                            <p className={`font-bold ${includeSignature && !includeStamp ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Signature Only</p>
+                                            <p className={`text-xs ${includeSignature && !includeStamp ? 'text-brand-100' : 'text-slate-500'}`}>Principal signature, no stamp</p>
                                         </div>
                                     </div>
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${includeSignature ? 'border-brand-500 bg-brand-500' : 'border-slate-700'}`}>
-                                        {includeSignature && <CheckCircle className="w-4 h-4 text-white" />}
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${includeSignature && !includeStamp ? 'border-white bg-white/20' : 'border-slate-300 dark:border-slate-700'}`}>
+                                        {includeSignature && !includeStamp && <CheckCircle className="w-4 h-4 text-white" />}
                                     </div>
                                 </button>
 
-                                {/* Option 2: Stamp */}
+                                {/* Option 2: Stamp Only */}
                                 <button
-                                    onClick={() => setIncludeStamp(!includeStamp)}
-                                    disabled={!user.principalStampUrl}
-                                    className={`w-full flex items-center justify-between p-6 rounded-[1.5rem] border transition-all ${includeStamp ? 'bg-brand-600/10 border-brand-500/50' : 'bg-white/5 border-white/5 opacity-50'}`}
+                                    onClick={() => { setIncludeSignature(false); setIncludeStamp(true); }}
+                                    className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${!includeSignature && includeStamp ? 'bg-brand-600 border-brand-500 shadow-xl shadow-brand-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-brand-500/30'}`}
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className={`p-3 rounded-xl ${includeStamp ? 'bg-brand-600 text-white' : 'bg-slate-800 text-slate-500'}`}>
-                                            <Stamp className="w-5 h-5" />
+                                        <div className={`p-3 rounded-xl ${!includeSignature && includeStamp ? 'bg-white/20' : 'bg-brand-600/10 text-brand-500'}`}>
+                                            <Stamp className="w-5 h-5 text-white" />
                                         </div>
                                         <div className="text-left">
-                                            <p className="font-bold text-white">Institutional Stamp</p>
-                                            <p className="text-xs text-slate-500">Apply official principal stamp</p>
+                                            <p className={`font-bold ${!includeSignature && includeStamp ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Stamp Only</p>
+                                            <p className={`text-xs ${!includeSignature && includeStamp ? 'text-brand-100' : 'text-slate-500'}`}>Official seal, no signature</p>
                                         </div>
                                     </div>
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${includeStamp ? 'border-brand-500 bg-brand-500' : 'border-slate-700'}`}>
-                                        {includeStamp && <CheckCircle className="w-4 h-4 text-white" />}
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${!includeSignature && includeStamp ? 'border-white bg-white/20' : 'border-slate-300 dark:border-slate-700'}`}>
+                                        {!includeSignature && includeStamp && <CheckCircle className="w-4 h-4 text-white" />}
                                     </div>
                                 </button>
 
-                                {/* Option 3: Both is implicitly covered by selecting both */}
+                                {/* Option 3: Both */}
+                                <button
+                                    onClick={() => { setIncludeSignature(true); setIncludeStamp(true); }}
+                                    className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${includeSignature && includeStamp ? 'bg-emerald-600 border-emerald-500 shadow-xl shadow-emerald-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-brand-500/30'}`}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={`p-3 rounded-xl ${includeSignature && includeStamp ? 'bg-white/20' : 'bg-brand-600/10 text-brand-500'}`}>
+                                            <CheckCircle className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className={`font-bold ${includeSignature && includeStamp ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Signature + Stamp</p>
+                                            <p className={`text-xs ${includeSignature && includeStamp ? 'text-brand-100' : 'text-slate-500'}`}>Full authorization (Both)</p>
+                                        </div>
+                                    </div>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${includeSignature && includeStamp ? 'border-white bg-white/20' : 'border-slate-300 dark:border-slate-700'}`}>
+                                        {includeSignature && includeStamp && <CheckCircle className="w-4 h-4 text-white" />}
+                                    </div>
+                                </button>
                             </div>
 
                             <button
                                 onClick={handleApproveFinal}
                                 disabled={processing || (!includeSignature && !includeStamp)}
-                                className="w-full mt-8 py-5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
+                                className="w-full mt-10 py-5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
                             >
                                 {processing ? (
                                     <>
                                         <Loader2 className="w-5 h-5 animate-spin" />
-                                        GENERATING SIGNED PDF...
+                                        FINALIZING PDF...
                                     </>
                                 ) : (
                                     <>
                                         <MousePointer2 className="w-5 h-5" />
-                                        FINALIZE & APPROVE
+                                        CONFIRM APPROVAL
                                     </>
                                 )}
                             </button>

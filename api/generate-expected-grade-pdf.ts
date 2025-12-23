@@ -324,35 +324,42 @@ export default async function handler(req: any, res: any) {
         const footerText = `This letter is issued on ${pronouns.possessive} request to be reviewed by Universities for admission and scholarship.`;
         currentY = drawJustifiedText(page, footerText, currentY, font, fontSize, maxWidth, lineSpacing);
 
-        currentY -= 85; // Increased space before signatures (Match Screenshot 1 Y-position)
+        currentY -= 65; // Increased space before signatures (Match Screenshot 1 Y-position)
+
+        // "Yours sincerely," on the LEFT
+        page.drawText('Yours sincerely,', {
+            x: SAFE_AREA.LEFT,
+            y: currentY + 45,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+        });
 
 
         // Signatures section (two columns)
         const sigY = currentY;
         const sigLineLength = 120;
-        const leftSigX = SAFE_AREA.LEFT; // Aligned with left margin
+        const leftSigX = SAFE_AREA.LEFT;
         const rightSigX = SAFE_AREA.RIGHT - 170;
 
-        // Left signature - Principal
-        // Dotted line (ONLY if signature is provided)
-        if (payload.PRINCIPAL_SIGNATURE_URL) {
-            for (let x = leftSigX; x < leftSigX + sigLineLength; x += 4) {
-                page.drawLine({
-                    start: { x, y: sigY },
-                    end: { x: x + 2, y: sigY },
-                    thickness: 0.5,
-                    color: rgb(0, 0, 0),
-                });
-            }
+        // LEFT COLUMN: Coordinator (Sender)
+        // Dotted line
+        for (let x = leftSigX; x < leftSigX + sigLineLength; x += 4) {
+            page.drawLine({
+                start: { x, y: sigY },
+                end: { x: x + 2, y: sigY },
+                thickness: 0.5,
+                color: rgb(0, 0, 0),
+            });
         }
-        page.drawText('Ruxshan Razak', {
+        page.drawText('S.M.M. Hajath', {
             x: leftSigX,
             y: sigY - 15,
             size: fontSize,
             font,
             color: rgb(0, 0, 0),
         });
-        page.drawText('Principal', {
+        page.drawText('Academic & Public Exams Coordinator', {
             x: leftSigX,
             y: sigY - 30,
             size: fontSize,
@@ -360,15 +367,33 @@ export default async function handler(req: any, res: any) {
             color: rgb(0, 0, 0),
         });
 
-        // Right signature - Coordinator
-        // Dotted line
-        for (let x = rightSigX; x < rightSigX + sigLineLength; x += 4) {
-            page.drawLine({
-                start: { x, y: sigY },
-                end: { x: x + 2, y: sigY },
-                thickness: 0.5,
-                color: rgb(0, 0, 0),
-            });
+        // RIGHT COLUMN: Principal (Approver)
+        page.drawText('Ruxshan Razak', {
+            x: rightSigX,
+            y: sigY - 15,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+        });
+        page.drawText('Principal', {
+            x: rightSigX,
+            y: sigY - 30,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+        });
+
+        // ONLY show line if signature is explicitly selected
+        if (payload.PRINCIPAL_SIGNATURE_URL) {
+            // Dotted line for Principal
+            for (let x = rightSigX; x < rightSigX + sigLineLength; x += 4) {
+                page.drawLine({
+                    start: { x, y: sigY },
+                    end: { x: x + 2, y: sigY },
+                    thickness: 0.5,
+                    color: rgb(0, 0, 0),
+                });
+            }
         }
 
         // --- SIGNATURE OVERLAY (Superadmin / Coordinator) ---
@@ -390,9 +415,10 @@ export default async function handler(req: any, res: any) {
                     const targetWidth = 100; // Optimal width for signature area
                     const targetHeight = (sigDims.height / sigDims.width) * targetWidth;
 
+                    // COORDINATOR SIGNATURE ON THE LEFT
                     page.drawImage(sigImage, {
-                        x: rightSigX + (sigLineLength / 2) - (targetWidth / 2),
-                        y: sigY - 12, // Rest it on the line for a natural 'hand-signed' feel
+                        x: leftSigX + (sigLineLength / 2) - (targetWidth / 2),
+                        y: sigY - 12,
                         width: targetWidth,
                         height: targetHeight,
                     });
@@ -421,8 +447,9 @@ export default async function handler(req: any, res: any) {
                     const targetWidth = 100;
                     const targetHeight = (sigDims.height / sigDims.width) * targetWidth;
 
+                    // PRINCIPAL SIGNATURE ON THE RIGHT
                     page.drawImage(pSigImage, {
-                        x: leftSigX + (sigLineLength / 2) - (targetWidth / 2),
+                        x: rightSigX + (sigLineLength / 2) - (targetWidth / 2),
                         y: sigY - 8,
                         width: targetWidth,
                         height: targetHeight,
@@ -448,19 +475,19 @@ export default async function handler(req: any, res: any) {
                 }
 
                 if (stampImage) {
-                    const stampWidth = 180; // Larger institutional seal
+                    const stampWidth = 120; // User requested 120px
                     const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
 
-                    // Positioned on the right-hand side, naturally aligned in lower section
-                    const stampX = SAFE_AREA.RIGHT - stampWidth - 10;
-                    const stampY = sigY - 50; // Lowered to avoid designations but stay in lower section
-
+                    // Absolute positioning based on user request: right 80px, bottom 90px
+                    // A4 Width: 595, A4 Height: 842.
+                    // x = 595 - 80 - 120 = 395
+                    // y = 90
                     page.drawImage(stampImage, {
-                        x: stampX,
-                        y: stampY,
+                        x: 395,
+                        y: 90,
                         width: stampWidth,
                         height: stampHeight,
-                        opacity: 0.35, // Lighter for official seal feel
+                        opacity: 0.85, // Sharp but official validation feel
                     });
                 }
             } catch (stampErr) {
@@ -468,20 +495,7 @@ export default async function handler(req: any, res: any) {
             }
         }
 
-        page.drawText('S.M.M. Hajath', {
-            x: rightSigX,
-            y: sigY - 15,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
-        });
-        page.drawText('Academic & Public Exams Coordinator', {
-            x: rightSigX,
-            y: sigY - 30,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
-        });
+        // End of document signatures
 
         // Check if we're within safe area
         const finalY = sigY - 30;

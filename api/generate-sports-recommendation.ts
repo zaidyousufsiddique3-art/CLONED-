@@ -198,7 +198,7 @@ export default async function handler(req: any, res: any) {
         currentY -= lineSpacing * 1.5;
 
         // Paragraph 1: Introduction (Static)
-        const p1 = `I am writing this letter in my capacity as the Sports Coordinator at Sri Lankan International School, Riyadh, to formally recommend ${firstName} ${lastName}. Having observed ${pronouns.possessive} athletic journey over the years, I have seen ${pronouns.possessive} grow into a dedicated and highly disciplined individual. ${pronouns.Subject} has been an integral part of our school’s sporting community, consistently demonstrating a passion for excellence.`;
+        const p1 = `I am writing this letter in my capacity as the Sports Coordinator at Sri Lankan International School, Riyadh, to formally recommend ${firstName} ${lastName}. Having observed ${pronouns.possessive} athletic journey over the years, I have seen ${pronouns.object} grow into a dedicated and highly disciplined individual. ${pronouns.Subject} has been an integral part of our school’s sporting community, consistently demonstrating a passion for excellence.`;
         currentY = drawJustifiedText(page, p1, currentY, font, fontSize, SAFE_AREA.RIGHT - SAFE_AREA.LEFT, lineSpacing);
         currentY -= paragraphGap;
 
@@ -209,7 +209,7 @@ export default async function handler(req: any, res: any) {
             sportsAchievements.some((a: any) => a.description.toLowerCase().includes(sport))
         );
 
-        let p2 = `During ${pronouns.possessive} time at the school, ${firstName} has actively represented the institution in `;
+        let p2 = `During ${pronouns.possessive} time at the school, ${pronouns.subject} has actively represented the institution in `;
         if (mentionedSports.length > 0) {
             p2 += mentionedSports.join(' and ') + ", ";
         } else {
@@ -238,7 +238,7 @@ export default async function handler(req: any, res: any) {
         currentY -= paragraphGap;
 
         // Paragraph 4: Character & Recommendation (Semi-dynamic)
-        const p4 = `${firstName}’s success is a direct result of ${pronouns.possessive} discipline, teamwork, and perseverance. ${pronouns.Subject} possesses the resilience required to succeed in competitive environments, and I am confident that ${pronouns.subject} will be a valuable asset to your university. ${pronouns.Subject} carries my highest recommendation for future endeavors. If you require further information, please feel free to contact me at ${refereeEmail}.`;
+        const p4 = `This success is a direct result of ${pronouns.possessive} discipline, teamwork, and perseverance. ${pronouns.Subject} possesses the resilience required to succeed in competitive environments, and I am confident that ${pronouns.subject} will be a valuable asset to your university. ${pronouns.Subject} carries my highest recommendation for future endeavors. If you require further information, please feel free to contact me at ${refereeEmail}.`;
         currentY = drawJustifiedText(page, p4, currentY, font, fontSize, SAFE_AREA.RIGHT - SAFE_AREA.LEFT, lineSpacing);
         currentY -= lineSpacing;
 
@@ -296,14 +296,17 @@ export default async function handler(req: any, res: any) {
                     const resp = await fetch(PRINCIPAL_STAMP_URL);
                     stampImage = await pdfDoc.embedPng(new Uint8Array(await resp.arrayBuffer()));
                 }
-                const stampWidth = 110;
+                const stampWidth = 120;
                 const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
+
+                // Positioned bottom-right as per user request (80px from right, 90px from bottom)
+                // x = 595 - 80 - 120 = 395
                 page.drawImage(stampImage, {
-                    x: SAFE_AREA.LEFT + 120,
-                    y: lineY - 40,
+                    x: 395,
+                    y: 90,
                     width: stampWidth,
                     height: stampHeight,
-                    opacity: 0.8
+                    opacity: 0.85
                 });
             } catch (err) { console.error('Stamp fail:', err); }
         }

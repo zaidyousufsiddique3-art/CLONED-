@@ -243,7 +243,7 @@ export default async function handler(req: any, res: any) {
         currentY -= paragraphGap;
 
         // Closing Paragraph - Fixed wording
-        const closingParagraph = `Based on my observation and reports from the teaching staff, I am confident that ${firstName} will be a valuable asset to your academic community. ${pronouns.Subject} carries our highest recommendation for ${pronouns.possessive} future endeavors. If you require any further information, please do not hesitate to contact me at ${refereeEmail}.`;
+        const closingParagraph = `Based on my observation and reports from the teaching staff, I am confident that ${pronouns.subject} will be a valuable asset to your academic community. ${pronouns.Subject} carries our highest recommendation for ${pronouns.possessive} future endeavors. If you require any further information, please do not hesitate to contact me at ${refereeEmail}.`;
         currentY = drawJustifiedText(page, closingParagraph, currentY, font, fontSize, SAFE_AREA.RIGHT - SAFE_AREA.LEFT, lineSpacing);
         currentY -= lineSpacing;
 
