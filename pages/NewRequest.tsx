@@ -376,11 +376,17 @@ const NewRequest: React.FC = () => {
       // Notification Logic
       if (type === DocumentType.SPORTS_CAPTAIN || type === DocumentType.SPORTS_RECOMMENDATION) {
         // Notify Sports Coordinator ONLY
-        const sportsCoordinator = await getUserByEmail(SPORTS_COORDINATOR_EMAIL);
+        let sportsCoordinator = await getUserByEmail(SPORTS_COORDINATOR_EMAIL);
+
+        // Fallback to lowercase if not found (handle case sensitivity)
+        if (!sportsCoordinator) {
+          sportsCoordinator = await getUserByEmail(SPORTS_COORDINATOR_EMAIL.toLowerCase());
+        }
+
         if (sportsCoordinator) {
-          await sendNotification(sportsCoordinator.id, `New sports request ${requestId} from ${newReq.studentName}`, `/sports-captain?req=${requestId}`);
+          await sendNotification(sportsCoordinator.id, `New sports request ${requestId} from ${newReq.studentName}`, `/requests/${requestId}`);
         } else {
-          console.warn("Sports Coordinator not found for notification.");
+          console.warn(`Sports Coordinator not found for notification. Checked: ${SPORTS_COORDINATOR_EMAIL} and lowercase.`);
         }
       } else {
         // Notify Super Admins

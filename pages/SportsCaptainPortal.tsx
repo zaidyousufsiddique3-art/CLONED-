@@ -19,7 +19,7 @@ import {
     Trash2
 } from 'lucide-react';
 import { createRequest } from '../firebase/requestService';
-import { collection, query, where, getDocs, updateDoc, doc, orderBy, onSnapshot } from '@firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, orderBy, onSnapshot, getDoc } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 
 const SportsCaptainPortal: React.FC = () => {
@@ -51,6 +51,11 @@ const SportsCaptainPortal: React.FC = () => {
     const [newStatus, setNewStatus] = useState<SportsCaptainApplication['status']>('Pending');
     const [rejectionReason, setRejectionReason] = useState('');
     const [updatingStatus, setUpdatingStatus] = useState(false);
+
+    // Request Resolution State
+    const [resolvingRequestId, setResolvingRequestId] = useState<string | null>(null);
+    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+    const [requestRejectionReason, setRequestRejectionReason] = useState('');
 
     useEffect(() => {
         if (!user) return;
@@ -149,13 +154,72 @@ const SportsCaptainPortal: React.FC = () => {
             };
             await createRequest(requestData);
 
+            // Close the original request if this is a resolution
+            if (resolvingRequestId) {
+                await updateDoc(doc(db, 'requests', resolvingRequestId), {
+                    status: RequestStatus.COMPLETED,
+                    updatedAt: new Date().toISOString()
+                });
+                setResolvingRequestId(null);
+            }
+
             setSuccessMessage(`Invitation dispatched to ${student.firstName}.`);
             setDeadline('');
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
-            console.error(error);
+            console.error("Error sending invitation", error);
+            alert("Failed to send invitation.");
         } finally {
             setInviting(false);
+        }
+    };
+
+    const handleRejectRequest = async () => {
+        if (!viewingRequest || !requestRejectionReason) return;
+
+        try {
+            await updateDoc(doc(db, 'requests', viewingRequest.id), {
+                status: RequestStatus.REJECTED,
+                updatedAt: new Date().toISOString()
+            });
+
+            await sendNotification(
+                viewingRequest.studentId,
+                `Your request for ${viewingRequest.type} was rejected: ${requestRejectionReason}`,
+                `/requests/${viewingRequest.id}`
+            );
+
+            setIsRejectModalOpen(false);
+            setViewingRequest(null);
+            setRequestRejectionReason('');
+            alert("Request rejected.");
+        } catch (error) {
+            console.error("Rejection failed", error);
+            alert("Failed to reject request.");
+        }
+    };
+
+    const handleAcceptAndInvite = async (req: any) => {
+        setResolvingRequestId(req.id);
+
+        try {
+            const userRef = doc(db, 'users', req.studentId);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                const userData = userSnap.data() as User;
+                const userGender = userData.gender || 'Male';
+                setGender(userGender);
+
+                setTimeout(() => {
+                    setSelectedStudentId(req.studentId);
+                }, 500);
+
+                setActiveTab('send-request');
+                setViewingRequest(null);
+            }
+        } catch (e) {
+            console.error("Error setting up invite", e);
         }
     };
 
@@ -732,9 +796,45 @@ const SportsCaptainPortal: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="flex justify-end pt-2">
+                        <div className="flex justify-end pt-2 gap-3">
+                            {viewingRequest.status === 'Pending' && (
+                                <>
+                                    <Button onClick={() => setIsRejectModalOpen(true)} className="bg-red-500 hover:bg-red-600 text-white">
+                                        Reject
+                                    </Button>
+                                    <Button onClick={() => handleAcceptAndInvite(viewingRequest)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                                        Accept & Invite
+                                    </Button>
+                                </>
+                            )}
                             <Button onClick={() => setViewingRequest(null)} className="bg-slate-900 text-white hover:bg-slate-800">
                                 Close
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Rejection Modal */}
+            {isRejectModalOpen && (
+                <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+                    <div className="bg-white dark:bg-[#0A0A0C] w-full max-w-md rounded-3xl p-8 shadow-2xl border border-red-500/20">
+                        <h3 className="text-xl font-black text-slate-900 dark:text-white mb-4">Reject Request</h3>
+                        <p className="text-sm text-slate-500 mb-4">Please provide a reason for this rejection. The student will be notified.</p>
+
+                        <textarea
+                            value={requestRejectionReason}
+                            onChange={(e) => setRequestRejectionReason(e.target.value)}
+                            className="w-full p-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-red-500 mb-6 text-sm font-medium"
+                            placeholder="Reason for rejection..."
+                            rows={3}
+                            autoFocus
+                        />
+
+                        <div className="flex justify-end gap-3">
+                            <Button onClick={() => setIsRejectModalOpen(false)} variant="ghost">Cancel</Button>
+                            <Button onClick={handleRejectRequest} className="bg-red-500 hover:bg-red-600 text-white" disabled={!requestRejectionReason.trim()}>
+                                Confirm Rejection
                             </Button>
                         </div>
                     </div>
