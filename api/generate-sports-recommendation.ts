@@ -265,7 +265,7 @@ export default async function handler(req: any, res: any) {
                 }
                 const targetWidth = 90;
                 const targetHeight = (sigImage.height / sigImage.width) * targetWidth;
-                page.drawImage(sigImage, { x: SAFE_AREA.LEFT + 10, y: lineY - 5, width: targetWidth, height: targetHeight });
+                page.drawImage(sigImage, { x: SAFE_AREA.LEFT + 10, y: lineY - 12, width: targetWidth, height: targetHeight });
             } catch (err) { console.error('Referee Sig fail:', err); }
         }
 
@@ -282,7 +282,7 @@ export default async function handler(req: any, res: any) {
                 const targetWidth = 90;
                 const targetHeight = (pSigImage.height / pSigImage.width) * targetWidth;
                 // Offset slightly from referee signature
-                page.drawImage(pSigImage, { x: SAFE_AREA.LEFT + 60, y: lineY - 2, width: targetWidth, height: targetHeight });
+                page.drawImage(pSigImage, { x: SAFE_AREA.LEFT + 60, y: lineY - 12, width: targetWidth, height: targetHeight });
             } catch (err) { console.error('Principal Sig fail:', err); }
         }
 

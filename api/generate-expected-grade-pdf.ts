@@ -390,7 +390,7 @@ export default async function handler(req: any, res: any) {
 
                     page.drawImage(sigImage, {
                         x: rightSigX + (sigLineLength / 2) - (targetWidth / 2),
-                        y: sigY - 8, // Rest it on the line for a natural 'hand-signed' feel
+                        y: sigY - 12, // Rest it on the line for a natural 'hand-signed' feel
                         width: targetWidth,
                         height: targetHeight,
                     });

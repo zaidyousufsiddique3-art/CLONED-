@@ -294,7 +294,7 @@ export default async function handler(req: any, res: any) {
 
                     page.drawImage(sigImage, {
                         x: SAFE_AREA.LEFT + (lineLength / 2) - (targetWidth / 2),
-                        y: lineY - 8, // Sits on the line
+                        y: lineY - 12, // Sits on the line for natural feel
                         width: targetWidth,
                         height: targetHeight,
                     });
