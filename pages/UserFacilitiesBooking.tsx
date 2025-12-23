@@ -56,12 +56,15 @@ const UserFacilitiesBooking: React.FC = () => {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const downloadId = params.get('download_id');
-        if (downloadId && myBookings.length > 0) {
-            const booking = myBookings.find(b => b.id === downloadId);
-            if (booking && booking.status === 'Approved') {
-                handleDownloadPDF(booking);
-                // Clean URL
-                window.history.replaceState({}, '', '/facilities-booking');
+        if (downloadId) {
+            setActiveTab('my-bookings');
+            if (myBookings.length > 0) {
+                const booking = myBookings.find(b => b.id === downloadId);
+                if (booking && booking.status === 'Approved') {
+                    handleDownloadPDF(booking);
+                    // Clean URL
+                    window.history.replaceState({}, '', '/facilities-booking');
+                }
             }
         }
     }, [myBookings]);
@@ -365,7 +368,7 @@ const UserFacilitiesBooking: React.FC = () => {
                                                         b.status === 'Rejected' ? 'bg-red-500' :
                                                             'bg-amber-500'
                                                     }`}></span>
-                                                {b.status}
+                                                {b.status === 'Pending' ? 'Pending Approval' : b.status}
                                             </span>
                                         </td>
                                         <td className="p-6 text-right">
