@@ -338,7 +338,7 @@ const Dashboard: React.FC = () => {
               Clear Dashboard Requests
             </button>
           )}
-          <Link to="/requests" className="flex items-center text-sm text-brand-600 dark:text-brand-400 font-bold hover:text-brand-700 transition-colors group">
+          <Link to="/all-requests" className="flex items-center text-sm text-brand-600 dark:text-brand-400 font-bold hover:text-brand-700 transition-colors group">
             View All <ArrowRight className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>

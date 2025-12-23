@@ -18,6 +18,7 @@ import SportsCaptainApplicationForm from './pages/SportsCaptainApplicationForm';
 import RecommendationLetterPortal from './pages/RecommendationLetterPortal';
 import SportsRecommendationPortal from './pages/SportsRecommendationPortal';
 import Approvals from './pages/Approvals';
+import AllRequests from './pages/AllRequests';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { user } = useAuth();
@@ -54,6 +55,12 @@ const AppRoutes = () => {
       <Route path="/my-requests" element={
         <ProtectedRoute>
           <Layout><RequestsList /></Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/all-requests" element={
+        <ProtectedRoute>
+          <Layout><AllRequests /></Layout>
         </ProtectedRoute>
       } />
 
