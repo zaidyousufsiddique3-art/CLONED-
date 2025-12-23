@@ -340,53 +340,12 @@ export default async function handler(req: any, res: any) {
         const sigY = currentY;
         const sigLineLength = 120;
         const leftSigX = SAFE_AREA.LEFT;
-        const rightSigX = SAFE_AREA.RIGHT - 170;
+        const rightSigX = SAFE_AREA.RIGHT - sigLineLength;
 
-        // LEFT COLUMN: Coordinator (Sender)
-        // Dotted line
-        for (let x = leftSigX; x < leftSigX + sigLineLength; x += 4) {
-            page.drawLine({
-                start: { x, y: sigY },
-                end: { x: x + 2, y: sigY },
-                thickness: 0.5,
-                color: rgb(0, 0, 0),
-            });
-        }
-        page.drawText('S.M.M. Hajath', {
-            x: leftSigX,
-            y: sigY - 15,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
-        });
-        page.drawText('Academic & Public Exams Coordinator', {
-            x: leftSigX,
-            y: sigY - 30,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
-        });
-
-        // RIGHT COLUMN: Principal (Approver)
-        page.drawText('Ruxshan Razak', {
-            x: rightSigX,
-            y: sigY - 15,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
-        });
-        page.drawText('Principal', {
-            x: rightSigX,
-            y: sigY - 30,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
-        });
-
-        // ONLY show line if signature is explicitly selected
+        // LEFT COLUMN: Principal (Ruxshan Razak)
+        // Dotted line for Principal - Always show when approved
         if (payload.PRINCIPAL_SIGNATURE_URL) {
-            // Dotted line for Principal
-            for (let x = rightSigX; x < rightSigX + sigLineLength; x += 4) {
+            for (let x = leftSigX; x < leftSigX + sigLineLength; x += 4) {
                 page.drawLine({
                     start: { x, y: sigY },
                     end: { x: x + 2, y: sigY },
@@ -395,8 +354,47 @@ export default async function handler(req: any, res: any) {
                 });
             }
         }
+        page.drawText('Ruxshan Razak', {
+            x: leftSigX,
+            y: sigY - 15,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+        });
+        page.drawText('Principal', {
+            x: leftSigX,
+            y: sigY - 30,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+        });
 
-        // --- SIGNATURE OVERLAY (Superadmin / Coordinator) ---
+        // RIGHT COLUMN: S.M.M. Hajath (Coordinator)
+        // Dotted line for Coordinator
+        for (let x = rightSigX; x < rightSigX + sigLineLength; x += 4) {
+            page.drawLine({
+                start: { x, y: sigY },
+                end: { x: x + 2, y: sigY },
+                thickness: 0.5,
+                color: rgb(0, 0, 0),
+            });
+        }
+        page.drawText('S.M.M. Hajath', {
+            x: rightSigX,
+            y: sigY - 15,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+        });
+        page.drawText('Academic & Public Exams Coordinator', {
+            x: rightSigX,
+            y: sigY - 30,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+        });
+
+        // --- COORDINATOR SIGNATURE OVERLAY (Hajath - RIGHT) ---
         if (payload.SIGNATURE_URL && typeof payload.SIGNATURE_URL === 'string') {
             try {
                 let sigImage;
@@ -412,23 +410,23 @@ export default async function handler(req: any, res: any) {
 
                 if (sigImage) {
                     const sigDims = sigImage.scale(0.2);
-                    const targetWidth = 100; // Optimal width for signature area
+                    const targetWidth = 100;
                     const targetHeight = (sigDims.height / sigDims.width) * targetWidth;
 
-                    // COORDINATOR SIGNATURE ON THE LEFT
+                    // COORDINATOR SIGNATURE ON THE RIGHT
                     page.drawImage(sigImage, {
-                        x: leftSigX + (sigLineLength / 2) - (targetWidth / 2),
-                        y: sigY - 12,
+                        x: rightSigX + (sigLineLength / 2) - (targetWidth / 2),
+                        y: sigY - 12, // Normal alignment
                         width: targetWidth,
                         height: targetHeight,
                     });
                 }
             } catch (sigErr) {
-                console.error("Error embedding signature:", sigErr);
+                console.error("Error embedding coordinator signature:", sigErr);
             }
         }
 
-        // --- PRINCIPAL SIGNATURE OVERLAY ---
+        // --- PRINCIPAL SIGNATURE OVERLAY (LEFT) ---
         if (payload.PRINCIPAL_SIGNATURE_URL && typeof payload.PRINCIPAL_SIGNATURE_URL === 'string') {
             try {
                 let pSigImage;
@@ -447,10 +445,11 @@ export default async function handler(req: any, res: any) {
                     const targetWidth = 100;
                     const targetHeight = (sigDims.height / sigDims.width) * targetWidth;
 
-                    // PRINCIPAL SIGNATURE ON THE RIGHT
+                    // PRINCIPAL SIGNATURE ON THE LEFT
+                    // Slightly lower, touching or slightly overlapping dotted line
                     page.drawImage(pSigImage, {
-                        x: rightSigX + (sigLineLength / 2) - (targetWidth / 2),
-                        y: sigY - 8,
+                        x: leftSigX + (sigLineLength / 2) - (targetWidth / 2),
+                        y: sigY - 18,
                         width: targetWidth,
                         height: targetHeight,
                     });
@@ -460,7 +459,7 @@ export default async function handler(req: any, res: any) {
             }
         }
 
-        // --- PRINCIPAL STAMP OVERLAY ---
+        // --- PRINCIPAL STAMP OVERLAY (CENTERED) ---
         if (payload.PRINCIPAL_STAMP_URL && typeof payload.PRINCIPAL_STAMP_URL === 'string') {
             try {
                 let stampImage;
@@ -475,17 +474,19 @@ export default async function handler(req: any, res: any) {
                 }
 
                 if (stampImage) {
-                    const stampWidth = 120; // User requested 120px
+                    const stampWidth = 120;
                     const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
 
-                    // Bring stamp a little closer to the signature (to the left)
-                    // x = 335
+                    // Centered between both signatures horizontally
+                    // Vertical position sitting between dotted lines relative to sigY
+                    const centerX = SAFE_AREA.CENTER_X - (stampWidth / 2);
+
                     page.drawImage(stampImage, {
-                        x: 335,
-                        y: 90,
+                        x: centerX,
+                        y: sigY - (stampHeight / 2), // Balanced vertically on the sig line plane
                         width: stampWidth,
                         height: stampHeight,
-                        opacity: 0.85, // Sharp but official validation feel
+                        opacity: 0.85,
                     });
                 }
             } catch (stampErr) {
