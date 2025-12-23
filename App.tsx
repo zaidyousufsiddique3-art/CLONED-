@@ -16,6 +16,7 @@ import PredictedGradesPortal from './pages/PredictedGradesPortal';
 import SportsCaptainPortal from './pages/SportsCaptainPortal';
 import SportsCaptainApplicationForm from './pages/SportsCaptainApplicationForm';
 import RecommendationLetterPortal from './pages/RecommendationLetterPortal';
+import SportsRecommendationPortal from './pages/SportsRecommendationPortal';
 import Approvals from './pages/Approvals';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -107,6 +108,12 @@ const AppRoutes = () => {
       <Route path="/recommendation-letter" element={
         <ProtectedRoute>
           <Layout><RecommendationLetterPortal /></Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/sports-recommendation" element={
+        <ProtectedRoute>
+          <Layout><SportsRecommendationPortal /></Layout>
         </ProtectedRoute>
       } />
 

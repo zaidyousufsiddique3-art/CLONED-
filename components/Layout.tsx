@@ -160,7 +160,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
             {/* Sports Coordinator Specific Access */}
             {user.email.toLowerCase() === SPORTS_COORDINATOR_EMAIL.toLowerCase() && (
-              <NavItem to="/sports-captain" icon={Trophy} label="Sports Captain" />
+              <>
+                <NavItem to="/sports-captain" icon={Trophy} label="Sports Captain" />
+                <NavItem to="/sports-recommendation" icon={FileText} label="Sports Recommendation" />
+              </>
             )}
           </div>
 
