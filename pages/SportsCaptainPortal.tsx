@@ -198,41 +198,34 @@ const SportsCaptainPortal: React.FC = () => {
 
     const handleAcceptAndInvite = async (req: any) => {
         try {
-            // First update the request status to ASSIGNED
+            // Calculate a default deadline (7 days from now)
+            const deadlineDate = new Date();
+            deadlineDate.setDate(deadlineDate.getDate() + 7);
+            const deadlineISO = deadlineDate.toISOString();
+
+            // 1. Update the existing request to become a full "Invitation"
             await updateDoc(doc(db, 'requests', req.id), {
                 status: RequestStatus.ASSIGNED,
+                details: "Invitation for Sports Captain Application",
+                expectedCompletionDate: deadlineISO,
+                assignedToId: user?.id,
+                assignedToName: user ? `${user.firstName} ${user.lastName}` : 'Coordinator',
                 updatedAt: new Date().toISOString()
             });
 
-            // Send notification to student
+            // 2. Send the ACTUAL invitation notification (matching the manual invite flow)
             await sendNotification(
                 req.studentId,
-                `Your ${req.type} request has been accepted! You will receive an invitation soon.`,
-                `/requests/${req.id}`
+                `You are invited to apply for the position of Sports Captain. Please complete your application by ${deadlineDate.toLocaleDateString()}.`,
+                "/sports-captain/apply"
             );
 
-            setResolvingRequestId(req.id);
+            setViewingRequest(null);
+            setResolvingRequestId(null);
 
-            // Fetch student details for gender
-            const userRef = doc(db, 'users', req.studentId);
-            const userSnap = await getDoc(userRef);
-
-            if (userSnap.exists()) {
-                const userData = userSnap.data() as User;
-                const userGender = userData.gender || 'Male';
-                setGender(userGender);
-
-                setTimeout(() => {
-                    setSelectedStudentId(req.studentId);
-                }, 500);
-
-                setActiveTab('send-request');
-                setViewingRequest(null);
-
-                // Show success message
-                setActionSuccessMessage('Student accepted! Please complete the invitation.');
-                setTimeout(() => setActionSuccessMessage(''), 5000);
-            }
+            // Show success message
+            setActionSuccessMessage(`Student accepted! Invitation sent with a deadline of ${deadlineDate.toLocaleDateString()}.`);
+            setTimeout(() => setActionSuccessMessage(''), 5000);
         } catch (e) {
             console.error("Error setting up invite", e);
             alert("Failed to accept request.");
