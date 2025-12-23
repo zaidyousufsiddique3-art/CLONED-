@@ -72,6 +72,26 @@ const Approvals: React.FC = () => {
         return () => unsubscribe();
     }, [user]);
 
+    // Auto-select allowed options when modal opens
+    useEffect(() => {
+        if (showApproveModal && selectedRequest) {
+            const isPredictedGrades = selectedRequest.documentType === DocumentType.PREDICTED_GRADES;
+            const isSportsRec = selectedRequest.documentType === DocumentType.SPORTS_RECOMMENDATION;
+
+            if (isPredictedGrades) {
+                setIncludeSignature(true);
+                setIncludeStamp(true);
+            } else if (isSportsRec) {
+                setIncludeSignature(false);
+                setIncludeStamp(true);
+            } else {
+                // Default to Stamp Only for others (Reference Letter, etc.)
+                setIncludeSignature(false);
+                setIncludeStamp(true);
+            }
+        }
+    }, [showApproveModal, selectedRequest]);
+
     const handleApproveFinal = async () => {
         if (!selectedRequest || !user) return;
 
@@ -80,13 +100,35 @@ const Approvals: React.FC = () => {
             return;
         }
 
+        // VALIDATION: Strict Approval Rules
+        const isPredictedGrades = selectedRequest.documentType === DocumentType.PREDICTED_GRADES;
+        const isSportsRec = selectedRequest.documentType === DocumentType.SPORTS_RECOMMENDATION;
+
+        // 1. Predicted Grades: MUST have Both
+        if (isPredictedGrades && (!includeSignature || !includeStamp)) {
+            alert("Invalid approval mode. Predicted Grades require both Signature and Stamp.");
+            return;
+        }
+
+        // 2. Sports Recommendation: MUST have Stamp ONLY (No Signature)
+        if (isSportsRec && (includeSignature || !includeStamp)) {
+            alert("Invalid approval mode. Sports Recommendations must have Stamp ONLY (No Signature).");
+            return;
+        }
+
+        // 3. Other Recommendations: Must have Stamp (Signature is optional but Stamp is mandatory per 'Stamp Only' or 'Both' rules)
+        // If 'Both' -> Sig + Stamp. If 'Stamp Only' -> Stamp.
+        // So Stamp MUST be true in all valid cases for Other. 
+        if (!isPredictedGrades && !isSportsRec && !includeStamp) {
+            alert("Invalid approval mode. Approval must include at least the official stamp.");
+            return;
+        }
+
         setProcessing(true);
         console.log("[Approvals] Starting approval for request:", selectedRequest.id);
 
         try {
             // 1. Regenerate PDF with Principal assets
-            const isSportsRec = selectedRequest.documentType === DocumentType.SPORTS_RECOMMENDATION;
-
             const payload = {
                 ...selectedRequest.payload,
                 PRINCIPAL_SIGNATURE_URL: includeSignature ? user.signatureUrl : undefined,
@@ -192,6 +234,11 @@ const Approvals: React.FC = () => {
     const filteredRequests = activeTab === 'pending'
         ? requests.filter(r => r.status === 'Pending Approval' || r.status === 'Sent for Approval')
         : requests.filter(r => r.status === 'Approved');
+
+    // Helper to check valid options for UI
+    const isPredictedGrades = selectedRequest?.documentType === DocumentType.PREDICTED_GRADES;
+    const isSportsRec = selectedRequest?.documentType === DocumentType.SPORTS_RECOMMENDATION;
+    const isOther = !isPredictedGrades && !isSportsRec;
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -336,14 +383,16 @@ const Approvals: React.FC = () => {
             </div>
 
             {/* Approval Options Modal */}
-            {showApproveModal && (
+            {showApproveModal && selectedRequest && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl w-full max-w-lg border border-white/10 animate-in zoom-in-95">
                         <div className="p-8">
                             <div className="flex items-center justify-between mb-8">
                                 <div>
                                     <h3 className="text-2xl font-black text-white tracking-tight">Approve Document</h3>
-                                    <p className="text-slate-500 text-sm mt-1">Select authorization assets to include</p>
+                                    <p className="text-slate-500 text-sm mt-1">
+                                        Type: <span className="text-brand-400 font-bold">{selectedRequest.documentType}</span>
+                                    </p>
                                 </div>
                                 <button onClick={() => setShowApproveModal(false)} className="p-2 text-slate-400 hover:text-white transition-colors">
                                     <X size={24} />
@@ -351,62 +400,49 @@ const Approvals: React.FC = () => {
                             </div>
 
                             <div className="grid grid-cols-1 gap-4">
-                                {/* Option 1: Signature Only */}
-                                <button
-                                    onClick={() => { setIncludeSignature(true); setIncludeStamp(false); }}
-                                    className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${includeSignature && !includeStamp ? 'bg-brand-600 border-brand-500 shadow-xl shadow-brand-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-brand-500/30'}`}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`p-3 rounded-xl ${includeSignature && !includeStamp ? 'bg-white/20' : 'bg-brand-600/10 text-brand-500'}`}>
-                                            <Pen className="w-5 h-5 text-white" />
+                                {/* Option: Stamp Only (Allowed for Sports Rec + Other) */}
+                                {(isSportsRec || isOther) && (
+                                    <button
+                                        onClick={() => { setIncludeSignature(false); setIncludeStamp(true); }}
+                                        disabled={isSportsRec} // Disabled if it's the only option
+                                        className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${!includeSignature && includeStamp ? 'bg-brand-600 border-brand-500 shadow-xl shadow-brand-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-brand-500/30'}`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-3 rounded-xl ${!includeSignature && includeStamp ? 'bg-white/20' : 'bg-brand-600/10 text-brand-500'}`}>
+                                                <Stamp className="w-5 h-5 text-white" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className={`font-bold ${!includeSignature && includeStamp ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Stamp Only</p>
+                                                <p className={`text-xs ${!includeSignature && includeStamp ? 'text-brand-100' : 'text-slate-500'}`}>Official seal{isSportsRec ? ' (Mandatory)' : ''}</p>
+                                            </div>
                                         </div>
-                                        <div className="text-left">
-                                            <p className={`font-bold ${includeSignature && !includeStamp ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Signature Only</p>
-                                            <p className={`text-xs ${includeSignature && !includeStamp ? 'text-brand-100' : 'text-slate-500'}`}>Principal signature, no stamp</p>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${!includeSignature && includeStamp ? 'border-white bg-white/20' : 'border-slate-300 dark:border-slate-700'}`}>
+                                            {!includeSignature && includeStamp && <CheckCircle className="w-4 h-4 text-white" />}
                                         </div>
-                                    </div>
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${includeSignature && !includeStamp ? 'border-white bg-white/20' : 'border-slate-300 dark:border-slate-700'}`}>
-                                        {includeSignature && !includeStamp && <CheckCircle className="w-4 h-4 text-white" />}
-                                    </div>
-                                </button>
+                                    </button>
+                                )}
 
-                                {/* Option 2: Stamp Only */}
-                                <button
-                                    onClick={() => { setIncludeSignature(false); setIncludeStamp(true); }}
-                                    className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${!includeSignature && includeStamp ? 'bg-brand-600 border-brand-500 shadow-xl shadow-brand-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-brand-500/30'}`}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`p-3 rounded-xl ${!includeSignature && includeStamp ? 'bg-white/20' : 'bg-brand-600/10 text-brand-500'}`}>
-                                            <Stamp className="w-5 h-5 text-white" />
+                                {/* Option: Both (Allowed for Predicted Grades + Other) */}
+                                {(isPredictedGrades || isOther) && (
+                                    <button
+                                        onClick={() => { setIncludeSignature(true); setIncludeStamp(true); }}
+                                        disabled={isPredictedGrades} // Disabled if it's the only option
+                                        className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${includeSignature && includeStamp ? 'bg-emerald-600 border-emerald-500 shadow-xl shadow-emerald-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-brand-500/30'}`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-3 rounded-xl ${includeSignature && includeStamp ? 'bg-white/20' : 'bg-brand-600/10 text-brand-500'}`}>
+                                                <CheckCircle className="w-5 h-5 text-white" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className={`font-bold ${includeSignature && includeStamp ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Signature + Stamp</p>
+                                                <p className={`text-xs ${includeSignature && includeStamp ? 'text-brand-100' : 'text-slate-500'}`}>{isPredictedGrades ? 'Full authorization (Mandatory)' : 'Full authorization'}</p>
+                                            </div>
                                         </div>
-                                        <div className="text-left">
-                                            <p className={`font-bold ${!includeSignature && includeStamp ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Stamp Only</p>
-                                            <p className={`text-xs ${!includeSignature && includeStamp ? 'text-brand-100' : 'text-slate-500'}`}>Official seal, no signature</p>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${includeSignature && includeStamp ? 'border-white bg-white/20' : 'border-slate-300 dark:border-slate-700'}`}>
+                                            {includeSignature && includeStamp && <CheckCircle className="w-4 h-4 text-white" />}
                                         </div>
-                                    </div>
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${!includeSignature && includeStamp ? 'border-white bg-white/20' : 'border-slate-300 dark:border-slate-700'}`}>
-                                        {!includeSignature && includeStamp && <CheckCircle className="w-4 h-4 text-white" />}
-                                    </div>
-                                </button>
-
-                                {/* Option 3: Both */}
-                                <button
-                                    onClick={() => { setIncludeSignature(true); setIncludeStamp(true); }}
-                                    className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all ${includeSignature && includeStamp ? 'bg-emerald-600 border-emerald-500 shadow-xl shadow-emerald-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-brand-500/30'}`}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`p-3 rounded-xl ${includeSignature && includeStamp ? 'bg-white/20' : 'bg-brand-600/10 text-brand-500'}`}>
-                                            <CheckCircle className="w-5 h-5 text-white" />
-                                        </div>
-                                        <div className="text-left">
-                                            <p className={`font-bold ${includeSignature && includeStamp ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Signature + Stamp</p>
-                                            <p className={`text-xs ${includeSignature && includeStamp ? 'text-brand-100' : 'text-slate-500'}`}>Full authorization (Both)</p>
-                                        </div>
-                                    </div>
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${includeSignature && includeStamp ? 'border-white bg-white/20' : 'border-slate-300 dark:border-slate-700'}`}>
-                                        {includeSignature && includeStamp && <CheckCircle className="w-4 h-4 text-white" />}
-                                    </div>
-                                </button>
+                                    </button>
+                                )}
                             </div>
 
                             <button
