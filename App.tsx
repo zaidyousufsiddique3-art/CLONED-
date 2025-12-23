@@ -17,6 +17,7 @@ import SportsCaptainPortal from './pages/SportsCaptainPortal';
 import SportsCaptainApplicationForm from './pages/SportsCaptainApplicationForm';
 import RecommendationLetterPortal from './pages/RecommendationLetterPortal';
 import SportsRecommendationPortal from './pages/SportsRecommendationPortal';
+import SportsFacilitiesBooking from './pages/SportsFacilitiesBooking';
 import Approvals from './pages/Approvals';
 import AllRequests from './pages/AllRequests';
 
@@ -121,6 +122,12 @@ const AppRoutes = () => {
       <Route path="/sports-recommendation" element={
         <ProtectedRoute>
           <Layout><SportsRecommendationPortal /></Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/sports-facilities" element={
+        <ProtectedRoute>
+          <Layout><SportsFacilitiesBooking /></Layout>
         </ProtectedRoute>
       } />
 

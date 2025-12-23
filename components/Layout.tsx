@@ -18,7 +18,8 @@ import {
   Bell,
   Folder,
   TrendingUp,
-  Trophy
+  Trophy,
+  Calendar
 } from 'lucide-react';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -167,6 +168,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <>
                 <NavItem to="/sports-captain" icon={Trophy} label="Sports Captain" />
                 <NavItem to="/sports-recommendation" icon={FileText} label="Sports Recommendation" />
+                <div className="relative">
+                  <NavItem to="/sports-facilities" icon={Calendar} label="Facilities Booking" />
+                  <span className="absolute top-2.5 right-4 bg-brand-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm">BETA</span>
+                </div>
               </>
             )}
           </div>
