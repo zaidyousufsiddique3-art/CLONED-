@@ -355,6 +355,11 @@ const UserFacilitiesBooking: React.FC = () => {
                                             <div className="flex flex-col gap-1">
                                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{b.date}</span>
                                                 <span className="text-xs text-slate-500">{b.timeSlot} ({b.duration} mins)</span>
+                                                {b.expectedCollectionDate && (
+                                                    <span className="text-[10px] uppercase font-bold text-brand-600 dark:text-brand-500 mt-1">
+                                                        Collect by: {b.expectedCollectionDate}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="p-6">

@@ -19,6 +19,7 @@ interface FacilityBooking {
     personInCharge: string;
     status: 'Pending' | 'Approved' | 'Rejected' | 'Completed';
     createdAt: string;
+    expectedCollectionDate?: string;
 }
 
 const SportsFacilitiesBooking: React.FC = () => {
@@ -67,6 +68,23 @@ const SportsFacilitiesBooking: React.FC = () => {
         } catch (error) {
             console.error("Error approving:", error);
             alert("Failed to approve.");
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleSetCollectionDate = async (booking: FacilityBooking) => {
+        const date = window.prompt("Enter Expected Collection Date (e.g., 2024-12-30):", booking.expectedCollectionDate || "");
+        if (date === null) return;
+
+        setActionLoading(booking.id);
+        try {
+            await updateDoc(doc(db, 'sports_facility_bookings', booking.id), {
+                expectedCollectionDate: date
+            });
+        } catch (error) {
+            console.error("Error setting date:", error);
+            alert("Failed to set date.");
         } finally {
             setActionLoading(null);
         }
@@ -247,14 +265,24 @@ const SportsFacilitiesBooking: React.FC = () => {
                                                     </>
                                                 )}
                                                 {booking.status === 'Approved' && (
-                                                    <button
-                                                        onClick={() => handleComplete(booking)}
-                                                        disabled={actionLoading === booking.id}
-                                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2"
-                                                    >
-                                                        {actionLoading === booking.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckSquare className="w-3 h-3" />}
-                                                        MARK COMPLETED
-                                                    </button>
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleSetCollectionDate(booking)}
+                                                            disabled={actionLoading === booking.id}
+                                                            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl transition-all flex items-center gap-2"
+                                                        >
+                                                            <Calendar className="w-3 h-3" />
+                                                            {booking.expectedCollectionDate ? 'EDIT DATE' : 'SET DATE'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleComplete(booking)}
+                                                            disabled={actionLoading === booking.id}
+                                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2"
+                                                        >
+                                                            {actionLoading === booking.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckSquare className="w-3 h-3" />}
+                                                            MARK COMPLETED
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </td>
