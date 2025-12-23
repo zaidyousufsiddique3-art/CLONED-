@@ -95,8 +95,8 @@ const SportsRecommendationPortal: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'generate' | 'approvals' | 'history'>('generate');
     const [historyRequests, setHistoryRequests] = useState<any[]>([]);
     const [approvalRequests, setApprovalRequests] = useState<any[]>([]);
-    const [loadingHistory, setLoadingHistory] = useState(false);
-    const [loadingApprovals, setLoadingApprovals] = useState(false);
+    const [loadingHistory, setLoadingHistory] = useState(true);
+    const [loadingApprovals, setLoadingApprovals] = useState(true);
 
     // Preview States
     const [showPreview, setShowPreview] = useState(false);
@@ -161,15 +161,6 @@ const SportsRecommendationPortal: React.FC = () => {
         };
     }, [user]);
 
-    // Initial loading state triggers
-    useEffect(() => {
-        if (activeTab === 'history' && historyRequests.length === 0) {
-            setLoadingHistory(true);
-        }
-        if (activeTab === 'approvals' && approvalRequests.length === 0) {
-            setLoadingApprovals(true);
-        }
-    }, [activeTab]);
 
     // Logic for auto-generating appreciative statement
     const formatAppreciativeText = (text: string) => {

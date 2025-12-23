@@ -34,11 +34,10 @@ const RecommendationLetterPortal: React.FC = () => {
     const [addSignature, setAddSignature] = useState(false);
     const [activeTab, setActiveTab] = useState<'generate' | 'history'>('generate');
     const [historyRequests, setHistoryRequests] = useState<GeneratedDocument[]>([]);
-    const [loadingHistory, setLoadingHistory] = useState(false);
+    const [loadingHistory, setLoadingHistory] = useState(true);
 
     useEffect(() => {
-        if (!user || activeTab !== 'history') return;
-        setLoadingHistory(true);
+        if (!user) return;
 
         const coll = collection(db, 'generated_documents');
         let q;
@@ -52,7 +51,8 @@ const RecommendationLetterPortal: React.FC = () => {
         const unsubscribe = onSnapshot(q,
             (snapshot) => {
                 const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GeneratedDocument));
-                setHistoryRequests(docs);
+                // Sort in memory to avoid index requirement
+                setHistoryRequests(docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
                 setLoadingHistory(false);
             },
             (error) => {
@@ -62,7 +62,7 @@ const RecommendationLetterPortal: React.FC = () => {
         );
 
         return () => unsubscribe();
-    }, [user, activeTab]);
+    }, [user]);
 
     if (user?.role !== UserRole.SUPER_ADMIN && !user?.hasRecommendationAccess) {
         return <div className="p-10 text-center text-red-500 font-bold">Access Denied</div>;

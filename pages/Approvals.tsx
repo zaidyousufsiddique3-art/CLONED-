@@ -50,10 +50,11 @@ const Approvals: React.FC = () => {
     useEffect(() => {
         if (!user || user.email.toLowerCase() !== PRINCIPAL_EMAIL.toLowerCase()) return;
 
+        // Fetch all relevant statuses at once to unify background loading
         const q = query(
             collection(db, 'approval_requests'),
             where('recipientEmail', '==', PRINCIPAL_EMAIL),
-            where('status', 'in', [activeTab === 'pending' ? 'Pending Approval' : 'Approved', activeTab === 'pending' ? 'Sent for Approval' : 'Approved'])
+            where('status', 'in', ['Pending Approval', 'Sent for Approval', 'Approved'])
         );
 
         const unsubscribe = onSnapshot(q,
@@ -69,7 +70,7 @@ const Approvals: React.FC = () => {
         );
 
         return () => unsubscribe();
-    }, [user, activeTab]);
+    }, [user]);
 
     const handleApproveFinal = async () => {
         if (!selectedRequest || !user) return;
@@ -188,6 +189,10 @@ const Approvals: React.FC = () => {
         return <div className="p-8 text-center text-slate-500">Access Denied.</div>;
     }
 
+    const filteredRequests = activeTab === 'pending'
+        ? requests.filter(r => r.status === 'Pending Approval' || r.status === 'Sent for Approval')
+        : requests.filter(r => r.status === 'Approved');
+
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Tab Navigation */}
@@ -212,20 +217,20 @@ const Approvals: React.FC = () => {
                 {/* List of Requests */}
                 <div className="lg:col-span-1 space-y-4">
                     <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">
-                        {activeTab === 'pending' ? 'Pending' : 'Approved'} Documents ({requests.length})
+                        {activeTab === 'pending' ? 'Pending' : 'Approved'} Documents ({filteredRequests.length})
                     </h3>
 
                     {loading ? (
                         <div className="flex items-center justify-center p-12">
                             <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
                         </div>
-                    ) : requests.length === 0 ? (
+                    ) : filteredRequests.length === 0 ? (
                         <div className="bg-white dark:bg-[#070708] p-8 rounded-[2rem] border border-dashed border-slate-200 dark:border-white/10 text-center text-white">
                             <CheckCircle className="w-12 h-12 text-slate-200 dark:text-slate-800 mx-auto mb-4" />
                             <p className="text-slate-500 font-medium">No {activeTab} requests</p>
                         </div>
                     ) : (
-                        requests.map(req => (
+                        filteredRequests.map(req => (
                             <button
                                 key={req.id}
                                 onClick={() => setSelectedRequest(req)}

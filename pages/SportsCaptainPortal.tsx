@@ -19,7 +19,7 @@ import {
     Trash2
 } from 'lucide-react';
 import { createRequest } from '../firebase/requestService';
-import { collection, query, where, getDocs, updateDoc, doc, orderBy } from '@firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, orderBy, onSnapshot } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 
 const SportsCaptainPortal: React.FC = () => {
@@ -38,7 +38,7 @@ const SportsCaptainPortal: React.FC = () => {
     // Received Tab State
     const [applications, setApplications] = useState<SportsCaptainApplication[]>([]);
     const [invitationsCount, setInvitationsCount] = useState(0);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [viewingApplication, setViewingApplication] = useState<SportsCaptainApplication | null>(null);
 
     // Sent List State
@@ -50,57 +50,45 @@ const SportsCaptainPortal: React.FC = () => {
     const [updatingStatus, setUpdatingStatus] = useState(false);
 
     useEffect(() => {
-        loadStudents();
-    }, [gender]);
+        if (!user) return;
+
+        // 1. Listen for Applications (Received)
+        const qApps = query(collection(db, 'sports_captain_applications'));
+        const unsubApps = onSnapshot(qApps,
+            (snapshot) => {
+                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SportsCaptainApplication));
+                // Sort in memory
+                setApplications(data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+                setLoading(false);
+            },
+            (error) => {
+                console.error("Apps fetch error:", error);
+                setLoading(false);
+            }
+        );
+
+        // 2. Listen for Requests (Sent Invitations + Count)
+        const qReqs = query(collection(db, 'requests'), where('type', '==', DocumentType.SPORTS_CAPTAIN));
+        const unsubReqs = onSnapshot(qReqs,
+            (snapshot) => {
+                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setSentInvitations(docs.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+                setInvitationsCount(snapshot.size);
+            },
+            (error) => {
+                console.error("Requests fetch error:", error);
+            }
+        );
+
+        return () => {
+            unsubApps();
+            unsubReqs();
+        };
+    }, [user]);
 
     useEffect(() => {
-        if (activeTab === 'received') {
-            loadApplications();
-        } else if (activeTab === 'sent-list') {
-            loadSentInvitations();
-        }
-
-        if (searchParams.get('studentId')) {
-            loadApplications();
-            // We'll set activeTab to received if we find it in the other useEffect
-        }
-
-        loadInvitationsCount();
-    }, [activeTab, searchParams]);
-
-    const loadInvitationsCount = async () => {
-        try {
-            const q = query(collection(db, 'requests'), where('type', '==', DocumentType.SPORTS_CAPTAIN));
-            const snapshot = await getDocs(q);
-            setInvitationsCount(snapshot.size);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const loadSentInvitations = async () => {
-        setLoading(true);
-        try {
-            // Remove orderBy to avoid requiring a composite index which might be missing
-            const q = query(
-                collection(db, 'requests'),
-                where('type', '==', DocumentType.SPORTS_CAPTAIN)
-            );
-            const snapshot = await getDocs(q);
-            const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Sort in-memory instead
-            const sortedDocs = docs.sort((a: any, b: any) =>
-                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            );
-
-            setSentInvitations(sortedDocs);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        loadStudents();
+    }, [gender]);
 
     useEffect(() => {
         const studentId = searchParams.get('studentId');
@@ -123,10 +111,7 @@ const SportsCaptainPortal: React.FC = () => {
     };
 
     const loadApplications = async () => {
-        setLoading(true);
-        const data = await getSportsCaptainApplications();
-        setApplications(data);
-        setLoading(false);
+        // No longer needed as we use onSnapshot, but keeping empty to avoid build breaks if called elsewhere
     };
 
     const handleSendInvitation = async () => {
@@ -163,9 +148,6 @@ const SportsCaptainPortal: React.FC = () => {
 
             setSuccessMessage(`Invitation dispatched to ${student.firstName}.`);
             setDeadline('');
-            loadInvitationsCount();
-            // Refresh sent list if we're on it
-            if (activeTab === 'sent-list') loadSentInvitations();
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
             console.error(error);
