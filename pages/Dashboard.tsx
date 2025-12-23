@@ -315,7 +315,7 @@ const Dashboard: React.FC = () => {
               }`}
           >
             <FileText className="w-4 h-4 mr-2" />
-            Recent Documents
+            Recent Requests
           </button>
           <button
             onClick={() => setActiveTab('password')}
