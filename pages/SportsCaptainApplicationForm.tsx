@@ -93,19 +93,37 @@ const SportsCaptainApplicationForm: React.FC = () => {
 
     const [existingApplication, setExistingApplication] = React.useState<SportsCaptainApplication | null>(null);
     const [checkingExisting, setCheckingExisting] = React.useState(true);
+    const [hasInvitation, setHasInvitation] = React.useState(false);
 
     React.useEffect(() => {
         if (user) {
+            // Check for existing application
             getSportsCaptainApplicationByStudent(user.id).then(app => {
                 if (app) {
                     setExistingApplication(app);
-                    // Pre-fill fields if needed, but we'll show a status view
                     setFullName(app.studentName);
                     setGrade(app.grade || '');
                     setGender(app.studentGender);
                 }
                 setCheckingExisting(false);
             });
+
+            // Check for invitation (ASSIGNED request)
+            const checkInvitation = async () => {
+                try {
+                    const q = query(
+                        collection(db, 'requests'),
+                        where('studentId', '==', user.id),
+                        where('type', '==', DocumentType.SPORTS_CAPTAIN),
+                        where('status', '==', RequestStatus.ASSIGNED)
+                    );
+                    const snapshot = await getDocs(q);
+                    setHasInvitation(!snapshot.empty);
+                } catch (error) {
+                    console.error('Error checking invitation:', error);
+                }
+            };
+            checkInvitation();
         }
     }, [user]);
 
@@ -265,6 +283,26 @@ const SportsCaptainApplicationForm: React.FC = () => {
                 Back to Portal
             </button>
 
+            {/* Show invitation status if student has been invited but hasn't applied yet */}
+            {!existingApplication && hasInvitation && (
+                <div className="p-8 rounded-[2.5rem] border bg-emerald-500/10 border-emerald-500/20 text-emerald-600 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex items-center gap-5">
+                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-emerald-500 text-white">
+                                <CheckCircle2 size={28} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black tracking-tight uppercase">Application Request Accepted</h3>
+                                <p className="text-xs font-bold opacity-80 uppercase tracking-widest mt-1">
+                                    You have been invited to submit your Sports Captain Application
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Show application status if student has already submitted */}
             {existingApplication && (
                 <div className={`p-8 rounded-[2.5rem] border ${existingApplication.status === 'Accepted' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' :
                     existingApplication.status === 'Rejected' ? 'bg-red-500/10 border-red-500/20 text-red-600' :
