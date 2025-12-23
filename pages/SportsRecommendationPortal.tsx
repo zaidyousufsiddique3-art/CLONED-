@@ -4,9 +4,9 @@ import { useSearchParams } from 'react-router-dom';
 import { collection, addDoc, query, where, onSnapshot, orderBy, getDocs, updateDoc, doc } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { uploadFile } from '../firebase/storage';
-import { DocumentType, UserRole, GeneratedDocument } from '../types';
+import { DocumentType, UserRole, GeneratedDocument, RequestStatus } from '../types';
 import Button from '../components/Button';
-import { FileText, Send, CheckCircle2, AlertCircle, Loader2, Pen, Clock, Download, Search, Plus, Minus, Trophy, Eye } from 'lucide-react';
+import { FileText, Send, CheckCircle2, AlertCircle, Loader2, Pen, Clock, Download, Search, Plus, Minus, Trophy, Eye, Upload } from 'lucide-react';
 import { sendNotification } from '../firebase/notificationService';
 import { PRINCIPAL_EMAIL } from '../constants';
 
@@ -92,11 +92,13 @@ const SportsRecommendationPortal: React.FC = () => {
     const [generatedAppreciative, setGeneratedAppreciative] = useState('');
     const [isEditingStatement, setIsEditingStatement] = useState(false);
     const [addSignature, setAddSignature] = useState(false);
-    const [activeTab, setActiveTab] = useState<'generate' | 'approvals' | 'history'>('generate');
+    const [activeTab, setActiveTab] = useState<'requests' | 'generate' | 'approvals' | 'history'>('requests');
     const [historyRequests, setHistoryRequests] = useState<any[]>([]);
     const [approvalRequests, setApprovalRequests] = useState<any[]>([]);
+    const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [loadingApprovals, setLoadingApprovals] = useState(true);
+    const [loadingRequests, setLoadingRequests] = useState(true);
 
     // Preview States
     const [showPreview, setShowPreview] = useState(false);
@@ -155,9 +157,28 @@ const SportsRecommendationPortal: React.FC = () => {
             }
         );
 
+        // 3. Fetch Incoming Requests
+        const qRequests = query(
+            collection(db, 'requests'),
+            where('type', '==', DocumentType.SPORTS_RECOMMENDATION),
+            where('status', '!=', RequestStatus.COMPLETED)
+        );
+        const unsubRequests = onSnapshot(qRequests,
+            (snapshot) => {
+                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+                setIncomingRequests(docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+                setLoadingRequests(false);
+            },
+            (error) => {
+                console.error("Requests query failed:", error);
+                setLoadingRequests(false);
+            }
+        );
+
         return () => {
             unsubHistory();
             unsubApprovals();
+            unsubRequests();
         };
     }, [user]);
 
@@ -382,10 +403,82 @@ const SportsRecommendationPortal: React.FC = () => {
         }
     };
 
+    const handleCompleteRequest = async (requestId: string, studentId: string, file: File) => {
+        if (!file || !user) return;
+
+        const confirmUpload = window.confirm(`Are you sure you want to upload "${file.name}" and complete this request? The student will be notified immediately.`);
+        if (!confirmUpload) return;
+
+        try {
+            // 1. Upload File
+            const fileName = `completed_requests/${requestId}_${file.name}`;
+            const url = await uploadFile(file, fileName);
+
+            // 2. Add Attachment & Update Status
+            const attachment = {
+                id: Date.now().toString(),
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                dataUrl: url,
+                uploadedBy: `${user.firstName} ${user.lastName}`,
+                status: 'Approved',
+                createdAt: new Date().toISOString()
+            };
+
+            const reqRef = doc(db, 'requests', requestId);
+            // We need to get the current attachments first to append, or use arrayUnion if possible but arrayUnion with objects is tricky if not exact match.
+            // Safer to just read-modify-write or assume we can just overwrite if we are the only ones completing.
+            // But let's try a safer update.
+            // Actually, let's just use arrayUnion? No, structure might vary.
+            // Let's rely on standard update.
+
+            // For simplicity in this specialized portal, we'll fetch-update.
+            // Or better, just append via dot notation if supported? Firestore doesn't support 'attachments.push'.
+            // Getting doc first is safer.
+
+            // Actually, let's use the pattern from specific portals.
+            // Using arrayUnion for attachments is standard if the object is identical, but ID is unique.
+            // So we'll use arrayUnion.
+            const { arrayUnion } = await import('@firebase/firestore');
+
+            await updateDoc(reqRef, {
+                status: RequestStatus.COMPLETED,
+                attachments: arrayUnion(attachment),
+                updatedAt: new Date().toISOString(),
+                completedAt: new Date().toISOString(),
+                completedBy: user.id
+            });
+
+            // 3. Notify Student
+            await sendNotification(
+                studentId,
+                "Your Sports Recommendation Letter is ready! You can view and download it now.",
+                `/requests/${requestId}`
+            );
+
+            alert("Request completed and student notified!");
+
+        } catch (error: any) {
+            console.error("Error completing request:", error);
+            alert("Failed to complete request: " + error.message);
+        }
+    };
+
     return (
         <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
             {/* Header / Tabs */}
             <div className="flex bg-white dark:bg-[#070708] p-1.5 rounded-2xl border border-slate-200 dark:border-white/10 w-fit">
+                <button
+                    onClick={() => setActiveTab('requests')}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'requests' ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                >
+                    <CheckCircle2 className="w-4 h-4" />
+                    REQUESTS
+                    {incomingRequests.length > 0 && (
+                        <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{incomingRequests.length}</span>
+                    )}
+                </button>
                 <button
                     onClick={() => setActiveTab('generate')}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'generate' ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
@@ -409,7 +502,87 @@ const SportsRecommendationPortal: React.FC = () => {
                 </button>
             </div>
 
-            {activeTab === 'generate' ? (
+            {activeTab === 'requests' ? (
+                <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden min-h-[500px]">
+                    <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Student Requests</h2>
+                        <p className="text-sm text-slate-500">
+                            Incoming requests for Sports Recommendation Letters. Upload the final document to complete the request.
+                        </p>
+                    </div>
+
+                    <div className="p-8 space-y-4">
+                        {loadingRequests ? (
+                            <div className="text-center py-20">
+                                <Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-500 opacity-50" />
+                                <p className="text-sm text-slate-400 mt-4">Loading requests...</p>
+                            </div>
+                        ) : incomingRequests.length === 0 ? (
+                            <div className="text-center py-20 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-3xl">
+                                <FileText className="w-12 h-12 mx-auto text-slate-200 dark:text-slate-700 mb-4" />
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">No Pending Requests</h3>
+                                <p className="text-slate-500 text-sm">You're all caught up!</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4">
+                                {incomingRequests.map(req => (
+                                    <div key={req.id} className="bg-white dark:bg-[#070708] p-6 rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row items-start md:items-center gap-6">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg">
+                                                    #{req.id.substring(0, 6)}
+                                                </span>
+                                                <span className="text-xs text-slate-400 font-medium">
+                                                    {new Date(req.createdAt).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{req.studentName}</h3>
+                                            <p className="text-sm text-slate-500 mb-4 line-clamp-2">{req.details}</p>
+
+                                            {/* Auto-fill Generator Button */}
+                                            <button
+                                                onClick={() => {
+                                                    const names = req.studentName.split(' ');
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        firstName: names[0] || '',
+                                                        lastName: names.slice(1).join(' ') || '',
+                                                        grade: req.grade || ''
+                                                    }));
+                                                    setActiveTab('generate');
+                                                }}
+                                                className="text-xs font-bold text-brand-600 hover:underline flex items-center gap-1"
+                                            >
+                                                <Pen className="w-3 h-3" /> Use Data to Generate Letter
+                                            </button>
+                                        </div>
+
+                                        <div className="shrink-0 w-full md:w-auto flex flex-col items-stretch md:items-end gap-3">
+                                            <div className="relative group">
+                                                <input
+                                                    type="file"
+                                                    accept=".pdf"
+                                                    onChange={(e) => {
+                                                        if (e.target.files?.[0]) {
+                                                            handleCompleteRequest(req.id, req.studentId, e.target.files[0]);
+                                                        }
+                                                    }}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                />
+                                                <button className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
+                                                    <Upload className="w-4 h-4" />
+                                                    Upload & Complete
+                                                </button>
+                                            </div>
+                                            <p className="text-[10px] text-slate-400 text-center">Upload final PDF to notify student</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ) : activeTab === 'generate' ? (
                 <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
                     <div className="bg-gradient-to-r from-brand-600 to-brand-800 p-8 text-white flex items-center justify-between">
                         <div>
