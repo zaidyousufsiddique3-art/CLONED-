@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -17,7 +18,7 @@ import SportsCaptainPortal from './pages/SportsCaptainPortal';
 import SportsCaptainApplicationForm from './pages/SportsCaptainApplicationForm';
 import RecommendationLetterPortal from './pages/RecommendationLetterPortal';
 import SportsRecommendationPortal from './pages/SportsRecommendationPortal';
-import SportsFacilitiesBooking from './pages/SportsFacilitiesBooking';
+import FacilitiesWrapper from './pages/FacilitiesWrapper';
 import Approvals from './pages/Approvals';
 import AllRequests from './pages/AllRequests';
 
@@ -125,9 +126,9 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
 
-      <Route path="/sports-facilities" element={
+      <Route path="/facilities-booking" element={
         <ProtectedRoute>
-          <Layout><SportsFacilitiesBooking /></Layout>
+          <Layout><FacilitiesWrapper /></Layout>
         </ProtectedRoute>
       } />
 

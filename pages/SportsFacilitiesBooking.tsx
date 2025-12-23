@@ -2,18 +2,22 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { SPORTS_COORDINATOR_EMAIL } from '../constants';
-import { collection, query, onSnapshot, updateDoc, doc, where, orderBy } from '@firebase/firestore';
+import { collection, query, onSnapshot, updateDoc, doc, orderBy } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
-import { Loader2, CheckCircle, XCircle, Calendar, Clock, User, ClipboardList } from 'lucide-react';
+import { sendNotification } from '../firebase/notificationService';
+import { Loader2, CheckCircle, XCircle, Calendar, Clock, ClipboardList, CheckSquare } from 'lucide-react';
 
 interface FacilityBooking {
     id: string;
-    requesterType: 'Student' | 'Parent';
+    requesterType: 'Student' | 'Parent' | 'Staff' | 'Admin';
     requesterName: string;
+    userId: string;
     facility: 'Badminton Courts' | 'Football Ground';
     date: string;
     timeSlot: string;
-    status: 'Pending' | 'Approved' | 'Rejected';
+    duration: string;
+    personInCharge: string;
+    status: 'Pending' | 'Approved' | 'Rejected' | 'Completed';
     createdAt: string;
 }
 
@@ -22,11 +26,12 @@ const SportsFacilitiesBooking: React.FC = () => {
     const [bookings, setBookings] = useState<FacilityBooking[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'approved' | 'pending'>('pending');
 
     useEffect(() => {
         if (!user || user.email.toLowerCase() !== SPORTS_COORDINATOR_EMAIL.toLowerCase()) return;
 
-        // Fetch bookings (isolated collection)
+        // Fetch all bookings
         const q = query(
             collection(db, 'sports_facility_bookings'),
             orderBy('createdAt', 'desc')
@@ -38,31 +43,74 @@ const SportsFacilitiesBooking: React.FC = () => {
             setLoading(false);
         }, (error) => {
             console.error("Error fetching bookings:", error);
-            setLoading(false); // Make sure to stop loading on error
+            setLoading(false);
         });
 
         return () => unsubscribe();
     }, [user]);
 
-    const handleAction = async (id: string, action: 'Approved' | 'Rejected') => {
-        if (!id || !action) return;
-
-        // Confirmation before action
-        const confirmMsg = action === 'Approved'
-            ? "Are you sure you want to APPROVE this booking?"
-            : "Are you sure you want to REJECT this booking?";
-
-        if (!window.confirm(confirmMsg)) return;
-
-        setActionLoading(id);
+    const handleApprove = async (booking: FacilityBooking) => {
+        if (!window.confirm("Approve this booking? User will be notified.")) return;
+        setActionLoading(booking.id);
         try {
-            await updateDoc(doc(db, 'sports_facility_bookings', id), {
-                status: action
+            await updateDoc(doc(db, 'sports_facility_bookings', booking.id), {
+                status: 'Approved'
             });
-            // No notifications per requirements
+            // Notify User with Download Link
+            if (booking.userId) {
+                await sendNotification(
+                    booking.userId,
+                    "Your booking request has been approved. Click here to download the confirmation document.",
+                    `/facilities-booking?download_id=${booking.id}`
+                );
+            }
         } catch (error) {
-            console.error(`Error ${action.toLowerCase()} booking:`, error);
-            alert(`Failed to ${action.toLowerCase()} booking.`);
+            console.error("Error approving:", error);
+            alert("Failed to approve.");
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleReject = async (booking: FacilityBooking) => {
+        if (!window.confirm("Reject this booking?")) return;
+        setActionLoading(booking.id);
+        try {
+            await updateDoc(doc(db, 'sports_facility_bookings', booking.id), {
+                status: 'Rejected'
+            });
+            if (booking.userId) {
+                await sendNotification(
+                    booking.userId,
+                    `Your booking for ${booking.facility} on ${booking.date} was rejected.`,
+                    `/facilities-booking`
+                );
+            }
+        } catch (error) {
+            console.error("Error rejecting:", error);
+            alert("Failed to reject.");
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleComplete = async (booking: FacilityBooking) => {
+        if (!window.confirm("Mark this booking as Completed?")) return;
+        setActionLoading(booking.id);
+        try {
+            await updateDoc(doc(db, 'sports_facility_bookings', booking.id), {
+                status: 'Completed'
+            });
+            if (booking.userId) {
+                await sendNotification(
+                    booking.userId,
+                    `Your booking for ${booking.facility} is now marked as Completed.`,
+                    `/facilities-booking`
+                );
+            }
+        } catch (error) {
+            console.error("Error completing:", error);
+            alert("Failed to complete.");
         } finally {
             setActionLoading(null);
         }
@@ -72,14 +120,38 @@ const SportsFacilitiesBooking: React.FC = () => {
         return <div className="p-10 text-center text-slate-500">Access Denied: Sports Coordinator Only.</div>;
     }
 
+    // Filter Bookings
+    const approvedBookings = bookings.filter(b => b.status === 'Approved');
+    const pendingAndHistoryBookings = bookings.filter(b => b.status !== 'Approved');
+
+    const displayedBookings = activeTab === 'approved' ? approvedBookings : pendingAndHistoryBookings;
+
     return (
         <div className="max-w-6xl mx-auto animate-fade-in pb-20">
             <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Sports Facilities Booking</h1>
-                    <span className="bg-brand-600 text-white text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wider">Beta</span>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Facilities Management</h1>
                 </div>
-                <p className="text-slate-500 dark:text-slate-400 font-medium">Manage incoming facility booking requests.</p>
+                <p className="text-slate-500 dark:text-slate-400 font-medium">Manage facility bookings and approvals.</p>
+            </div>
+
+            <div className="flex gap-4 mb-8 border-b border-slate-200 dark:border-white/10">
+                <button
+                    onClick={() => setActiveTab('approved')}
+                    className={`pb-4 px-4 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${activeTab === 'approved' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                    <CheckSquare className="w-4 h-4" />
+                    APPROVED / ONGOING
+                    <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full">{approvedBookings.length}</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('pending')}
+                    className={`pb-4 px-4 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${activeTab === 'pending' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                    <ClipboardList className="w-4 h-4" />
+                    PENDING & HISTORY
+                    <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-full">{pendingAndHistoryBookings.length}</span>
+                </button>
             </div>
 
             <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden min-h-[500px]">
@@ -99,24 +171,22 @@ const SportsFacilitiesBooking: React.FC = () => {
                                 <tr>
                                     <td colSpan={5} className="p-20 text-center">
                                         <Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-500 opacity-50 block" />
-                                        <span className="text-slate-400 text-sm mt-4 block">Loading bookings...</span>
                                     </td>
                                 </tr>
-                            ) : bookings.length === 0 ? (
+                            ) : displayedBookings.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="p-20 text-center">
-                                        <ClipboardList className="w-12 h-12 text-slate-200 dark:text-slate-800 mx-auto mb-4" />
-                                        <p className="text-slate-500 font-medium text-lg">No booking requests found</p>
+                                        <p className="text-slate-500 font-medium text-lg">No bookings in this category</p>
                                     </td>
                                 </tr>
                             ) : (
-                                bookings.map(booking => (
+                                displayedBookings.map(booking => (
                                     <tr key={booking.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                         <td className="p-6">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-slate-900 dark:text-white">{booking.requesterName}</span>
-                                                <span className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                                                    <User className="w-3 h-3" /> {booking.requesterType}
+                                                <span className="text-xs text-slate-500 mt-1">
+                                                    {booking.personInCharge}
                                                 </span>
                                             </div>
                                         </td>
@@ -136,43 +206,57 @@ const SportsFacilitiesBooking: React.FC = () => {
                                                 </span>
                                                 <span className="flex items-center text-xs text-slate-500">
                                                     <Clock className="w-3.5 h-3.5 mr-2 text-slate-400" />
-                                                    {booking.timeSlot}
+                                                    {booking.timeSlot} ({booking.duration}m)
                                                 </span>
                                             </div>
                                         </td>
                                         <td className="p-6">
                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${booking.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' :
                                                     booking.status === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' :
-                                                        'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+                                                        booking.status === 'Completed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' :
+                                                            'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
                                                 }`}>
                                                 <span className={`w-1.5 h-1.5 rounded-full ${booking.status === 'Approved' ? 'bg-emerald-500' :
                                                         booking.status === 'Rejected' ? 'bg-red-500' :
-                                                            'bg-amber-500'
+                                                            booking.status === 'Completed' ? 'bg-blue-500' :
+                                                                'bg-amber-500'
                                                     }`}></span>
                                                 {booking.status}
                                             </span>
                                         </td>
                                         <td className="p-6 text-right">
-                                            {booking.status === 'Pending' && (
-                                                <div className="flex items-center justify-end gap-2">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {booking.status === 'Pending' && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleApprove(booking)}
+                                                            disabled={actionLoading === booking.id}
+                                                            className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-colors disabled:opacity-50"
+                                                            title="Approve"
+                                                        >
+                                                            {actionLoading === booking.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleReject(booking)}
+                                                            disabled={actionLoading === booking.id}
+                                                            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors disabled:opacity-50"
+                                                            title="Reject"
+                                                        >
+                                                            {actionLoading === booking.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <XCircle className="w-5 h-5" />}
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {booking.status === 'Approved' && (
                                                     <button
-                                                        onClick={() => handleAction(booking.id, 'Approved')}
+                                                        onClick={() => handleComplete(booking)}
                                                         disabled={actionLoading === booking.id}
-                                                        className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-colors disabled:opacity-50"
-                                                        title="Approve"
+                                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2"
                                                     >
-                                                        {actionLoading === booking.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                                                        {actionLoading === booking.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckSquare className="w-3 h-3" />}
+                                                        MARK COMPLETED
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleAction(booking.id, 'Rejected')}
-                                                        disabled={actionLoading === booking.id}
-                                                        className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors disabled:opacity-50"
-                                                        title="Reject"
-                                                    >
-                                                        {actionLoading === booking.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <XCircle className="w-5 h-5" />}
-                                                    </button>
-                                                </div>
-                                            )}
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
