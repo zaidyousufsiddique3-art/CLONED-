@@ -141,7 +141,7 @@ const Approvals: React.FC = () => {
                 ? `Sports Recommendation Letter for ${selectedRequest.studentName} has been approved.`
                 : `Predicted Grades for ${selectedRequest.studentName} has been approved.`;
 
-            await sendNotification(selectedRequest.senderId, msg, isSportsRec ? "/sports-recommendation" : "/predicted-grades");
+            await sendNotification(selectedRequest.senderId, msg, isSportsRec ? "/sports-recommendation?tab=approvals" : "/predicted-grades?tab=approvals");
 
             setShowApproveModal(false);
             setSelectedRequest(null);

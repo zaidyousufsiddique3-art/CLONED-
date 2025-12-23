@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { collection, addDoc, onSnapshot, query, where, orderBy } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { getUserByEmail } from '../firebase/userService';
@@ -60,7 +61,16 @@ const PredictedGradesPortal: React.FC = () => {
     const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
     const [lastPayload, setLastPayload] = useState<any>(null);
+    const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState<'generate' | 'approvals' | 'history'>('generate');
+
+    // Handle Tab Redirection
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab === 'approvals' || tab === 'history') {
+            setActiveTab(tab as any);
+        }
+    }, [searchParams]);
     const [myApprovalRequests, setMyApprovalRequests] = useState<ApprovalRequest[]>([]);
     const [allHistoryRequests, setAllHistoryRequests] = useState<ApprovalRequest[]>([]);
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { collection, addDoc, query, where, onSnapshot, orderBy, getDocs, updateDoc, doc } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { uploadFile } from '../firebase/storage';
@@ -101,7 +102,16 @@ const SportsRecommendationPortal: React.FC = () => {
     const [showPreview, setShowPreview] = useState(false);
     const [generatedPdfBlob, setGeneratedPdfBlob] = useState<Blob | null>(null);
     const [generatedPdfUrl, setGeneratedPdfUrl] = useState('');
+    const [searchParams] = useSearchParams();
     const [isSendingApproval, setIsSendingApproval] = useState(false);
+
+    // Initial Tab handling from query params
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab === 'approvals' || tab === 'history') {
+            setActiveTab(tab as any);
+        }
+    }, [searchParams]);
 
     // Unified data fetching for History and Approvals (Background Loading)
     useEffect(() => {
