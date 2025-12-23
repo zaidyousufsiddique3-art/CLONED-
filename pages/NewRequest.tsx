@@ -8,7 +8,7 @@ import { getSuperAdmins } from '../firebase/userService';
 import { uploadFile } from '../firebase/storage';
 import { generateId } from '../services/mockDb';
 import Button from '../components/Button';
-import { ArrowLeft, Upload, File, X } from 'lucide-react';
+import { ArrowLeft, Upload, File, X, CheckCircle } from 'lucide-react';
 
 // Subject options for IAS Results multi-select
 const IAS_SUBJECTS = [
@@ -41,6 +41,8 @@ interface FormData {
   // Predicted Grades
   letterOfRequest: File | null;
   iasResults: SubjectGrade[];
+  iasSessionYear: string;
+  ialSessionYear: string;
 
   // Edexcel
   subjects: string;
@@ -74,6 +76,7 @@ const NewRequest: React.FC = () => {
   const navigate = useNavigate();
   const [type, setType] = useState<DocumentType>(DocumentType.ACADEMIC_REPORT);
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Initialize form data
   const [formData, setFormData] = useState<FormData>({
@@ -86,6 +89,8 @@ const NewRequest: React.FC = () => {
     expectedDateOfCollection: '',
     letterOfRequest: null,
     iasResults: [],
+    iasSessionYear: '',
+    ialSessionYear: '',
     subjects: '',
     level: 'Edexcel IGCSE',
     paymentReceipt: null,
@@ -157,7 +162,8 @@ const NewRequest: React.FC = () => {
           detailsText += `Full Name: ${formData.fullName}\n`;
           detailsText += `Admission Number: ${formData.admissionNumber}\n`;
           detailsText += `UCI Number: ${formData.uciNumber}\n`;
-          detailsText += `Grade: ${formData.grade}\n`;
+          detailsText += `IAS Session Year: ${formData.iasSessionYear}\n`;
+          detailsText += `IAL Session Year: ${formData.ialSessionYear}\n`;
           detailsText += `Expected Collection: ${formData.expectedDateOfCollection}\n`;
           if (formData.iasResults.length > 0) {
             detailsText += `\nIAS Results:\n`;
@@ -313,7 +319,8 @@ const NewRequest: React.FC = () => {
       });
 
       setLoading(false);
-      navigate('/dashboard');
+      setSuccessMessage('Request sent successfully');
+      setTimeout(() => navigate('/dashboard'), 2000);
     } catch (error) {
       console.error("Error creating request", error);
       setLoading(false);
@@ -342,7 +349,10 @@ const NewRequest: React.FC = () => {
             <FormInput label="Full Name" value={formData.fullName} onChange={(v) => handleInputChange('fullName', v)} required />
             <FormInput label="Admission Number" value={formData.admissionNumber} onChange={(v) => handleInputChange('admissionNumber', v)} required />
             <FormInput label="UCI Number" value={formData.uciNumber} onChange={(v) => handleInputChange('uciNumber', v)} required />
-            <FormInput label="Grade" value={formData.grade} onChange={(v) => handleInputChange('grade', v)} required />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormInput label="IAS Session Year" value={formData.iasSessionYear} onChange={(v) => handleInputChange('iasSessionYear', v)} required placeholder="e.g., Oct/Nov 2024" />
+              <FormInput label="IAL Session Year" value={formData.ialSessionYear} onChange={(v) => handleInputChange('ialSessionYear', v)} required placeholder="e.g., May/June 2025" />
+            </div>
             <FormFileUpload label="Letter of Request" file={formData.letterOfRequest} onChange={(f) => handleFileChange('letterOfRequest', f)} accept=".pdf,.png" required />
 
             <div className="space-y-3">
@@ -459,6 +469,12 @@ const NewRequest: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto">
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-emerald-500 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+          <CheckCircle className="w-6 h-6" />
+          <span className="font-bold">{successMessage}</span>
+        </div>
+      )}
       <button onClick={() => navigate(-1)} className="flex items-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white mb-8 transition-colors">
         <ArrowLeft className="w-5 h-5 mr-2" />
         Back to Dashboard
