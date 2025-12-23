@@ -103,37 +103,63 @@ const SportsRecommendationPortal: React.FC = () => {
     const [generatedPdfUrl, setGeneratedPdfUrl] = useState('');
     const [isSendingApproval, setIsSendingApproval] = useState(false);
 
+    // Unified data fetching for History and Approvals (Background Loading)
     useEffect(() => {
         if (!user) return;
 
-        if (activeTab === 'history') {
-            setLoadingHistory(true);
-            const q = query(
-                collection(db, 'generated_documents'),
-                where('documentType', '==', DocumentType.SPORTS_RECOMMENDATION),
-                where('generatedById', '==', user.id),
-                orderBy('createdAt', 'desc')
-            );
-            return onSnapshot(q, (snapshot) => {
-                setHistoryRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        // 1. Fetch History
+        const qHistory = query(
+            collection(db, 'generated_documents'),
+            where('documentType', '==', DocumentType.SPORTS_RECOMMENDATION),
+            where('generatedById', '==', user.id)
+        );
+        const unsubHistory = onSnapshot(qHistory,
+            (snapshot) => {
+                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+                // Sort in memory to avoid index requirement
+                setHistoryRequests(docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
                 setLoadingHistory(false);
-            });
-        }
+            },
+            (error) => {
+                console.error("History query failed:", error);
+                setLoadingHistory(false);
+            }
+        );
 
-        if (activeTab === 'approvals') {
-            setLoadingApprovals(true);
-            const q = query(
-                collection(db, 'approval_requests'),
-                where('documentType', '==', DocumentType.SPORTS_RECOMMENDATION),
-                where('senderId', '==', user.id),
-                orderBy('createdAt', 'desc')
-            );
-            return onSnapshot(q, (snapshot) => {
-                setApprovalRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        // 2. Fetch Approvals
+        const qApprovals = query(
+            collection(db, 'approval_requests'),
+            where('documentType', '==', DocumentType.SPORTS_RECOMMENDATION),
+            where('senderId', '==', user.id)
+        );
+        const unsubApprovals = onSnapshot(qApprovals,
+            (snapshot) => {
+                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+                // Sort in memory to avoid index requirement
+                setApprovalRequests(docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
                 setLoadingApprovals(false);
-            });
+            },
+            (error) => {
+                console.error("Approvals query failed:", error);
+                setLoadingApprovals(false);
+            }
+        );
+
+        return () => {
+            unsubHistory();
+            unsubApprovals();
+        };
+    }, [user]);
+
+    // Initial loading state triggers
+    useEffect(() => {
+        if (activeTab === 'history' && historyRequests.length === 0) {
+            setLoadingHistory(true);
         }
-    }, [user, activeTab]);
+        if (activeTab === 'approvals' && approvalRequests.length === 0) {
+            setLoadingApprovals(true);
+        }
+    }, [activeTab]);
 
     // Logic for auto-generating appreciative statement
     const formatAppreciativeText = (text: string) => {

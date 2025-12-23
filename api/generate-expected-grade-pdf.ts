@@ -478,12 +478,10 @@ export default async function handler(req: any, res: any) {
                     const stampWidth = 120; // User requested 120px
                     const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
 
-                    // Absolute positioning based on user request: right 80px, bottom 90px
-                    // A4 Width: 595, A4 Height: 842.
-                    // x = 595 - 80 - 120 = 395
-                    // y = 90
+                    // Bring stamp a little closer to the signature (to the left)
+                    // x = 335
                     page.drawImage(stampImage, {
-                        x: 395,
+                        x: 335,
                         y: 90,
                         width: stampWidth,
                         height: stampHeight,

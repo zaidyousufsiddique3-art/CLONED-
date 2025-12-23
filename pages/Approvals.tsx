@@ -56,11 +56,17 @@ const Approvals: React.FC = () => {
             where('status', 'in', [activeTab === 'pending' ? 'Pending Approval' : 'Approved', activeTab === 'pending' ? 'Sent for Approval' : 'Approved'])
         );
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const reqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApprovalRequest));
-            setRequests(reqs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-            setLoading(false);
-        });
+        const unsubscribe = onSnapshot(q,
+            (snapshot) => {
+                const reqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApprovalRequest));
+                setRequests(reqs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+                setLoading(false);
+            },
+            (error) => {
+                console.error("Approvals query failed:", error);
+                setLoading(false);
+            }
+        );
 
         return () => unsubscribe();
     }, [user, activeTab]);

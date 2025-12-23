@@ -299,10 +299,10 @@ export default async function handler(req: any, res: any) {
                 const stampWidth = 120;
                 const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
 
-                // Positioned bottom-right as per user request (80px from right, 90px from bottom)
-                // x = 595 - 80 - 120 = 395
+                // Bring stamp a little closer to the signature (to the left)
+                // x = 335
                 page.drawImage(stampImage, {
-                    x: 395,
+                    x: 335,
                     y: 90,
                     width: stampWidth,
                     height: stampHeight,
