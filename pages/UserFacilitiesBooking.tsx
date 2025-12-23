@@ -175,15 +175,28 @@ const UserFacilitiesBooking: React.FC = () => {
                 const docRef = await addDoc(collection(db, 'sports_facility_bookings'), bookingData);
 
                 // Notify Sports Coordinator - STRICT EXACT TEXT
-                const coordQuery = query(collection(db, 'users'), where('email', '==', SPORTS_COORDINATOR_EMAIL));
+                // Notify Sports Coordinator - STRICT EXACT TEXT
+                const coordQuery = query(
+                    collection(db, 'users'),
+                    where('email', 'in', [
+                        SPORTS_COORDINATOR_EMAIL,
+                        SPORTS_COORDINATOR_EMAIL.toLowerCase(),
+                        SPORTS_COORDINATOR_EMAIL.toUpperCase()
+                    ])
+                );
+
                 const coordSnap = await getDocs(coordQuery);
                 if (!coordSnap.empty) {
-                    const coordId = coordSnap.docs[0].id;
-                    await sendNotification(
-                        coordId,
-                        `New booking request by ${bookingData.requesterName} for ${facility} on ${date} at ${startTime}.`,
-                        '/sports-facilities'
-                    );
+                    const uniqueIds = Array.from(new Set(coordSnap.docs.map(d => d.id)));
+                    for (const id of uniqueIds) {
+                        await sendNotification(
+                            id,
+                            `New booking request by ${bookingData.requesterName} for ${facility} on ${date} at ${startTime}.`,
+                            '/facilities-booking'
+                        );
+                    }
+                } else {
+                    console.warn("Sports Coordinator not found for notification");
                 }
 
                 setSuccessMsg("Booking request submitted successfully!");
