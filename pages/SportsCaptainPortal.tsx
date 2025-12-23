@@ -18,7 +18,7 @@ import {
     Calendar,
     Trash2
 } from 'lucide-react';
-import { createRequest } from '../firebase/requestService';
+import { createRequest, subscribeToSportsCaptainRequests } from '../firebase/requestService';
 import { collection, query, where, getDocs, updateDoc, doc, orderBy, onSnapshot, getDoc } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 
@@ -75,18 +75,11 @@ const SportsCaptainPortal: React.FC = () => {
             }
         );
 
-        // 2. Listen for Requests (Sent Invitations + Received Requests)
-        const qReqs = query(collection(db, 'requests'), where('type', 'in', [DocumentType.SPORTS_CAPTAIN, DocumentType.SPORTS_RECOMMENDATION]));
-        const unsubReqs = onSnapshot(qReqs,
-            (snapshot) => {
-                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                setSentInvitations(docs.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-                setInvitationsCount(snapshot.size);
-            },
-            (error) => {
-                console.error("Requests fetch error:", error);
-            }
-        );
+        // 2. Listen for Requests (Sports Captain ONLY - NOT Recommendations)
+        const unsubReqs = subscribeToSportsCaptainRequests((docs) => {
+            setSentInvitations(docs);
+            setInvitationsCount(docs.length);
+        });
 
         return () => {
             unsubApps();
@@ -481,7 +474,6 @@ const SportsCaptainPortal: React.FC = () => {
                                     <tr key={invit.id} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-all border-b border-slate-50 dark:border-white/5 cursor-pointer" onClick={() => setViewingRequest(invit)}>
                                         <td className="px-8 py-6 font-bold text-slate-900 dark:text-white">
                                             {invit.studentName}
-                                            {invit.status === 'Pending' && <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">New</span>}
                                         </td>
                                         <td className="px-8 py-6 text-xs font-bold text-slate-500">{invit.type}</td>
                                         <td className="px-8 py-6 font-mono text-sm text-slate-500 dark:text-slate-400">{invit.studentAdmissionNo}</td>
@@ -489,12 +481,18 @@ const SportsCaptainPortal: React.FC = () => {
                                             {invit.expectedCompletionDate ? new Date(invit.expectedCompletionDate).toLocaleDateString() : 'View Details'}
                                         </td>
                                         <td className="px-8 py-6">
-                                            <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${invit.status === RequestStatus.COMPLETED ? 'bg-emerald-500/10 text-emerald-500' :
-                                                invit.status === RequestStatus.REJECTED ? 'bg-red-500/10 text-red-500' :
-                                                    'bg-brand-500/10 text-brand-500'
-                                                }`}>
-                                                {invit.status === RequestStatus.APPLICATION_RECEIVED ? 'Assigned' : invit.status}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${invit.status === RequestStatus.COMPLETED ? 'bg-emerald-500/10 text-emerald-500' :
+                                                    invit.status === RequestStatus.REJECTED ? 'bg-red-500/10 text-red-500' :
+                                                        'bg-brand-500/10 text-brand-500'
+                                                    }`}>
+                                                    {invit.status === RequestStatus.APPLICATION_RECEIVED ? 'Assigned' : invit.status}
+                                                </span>
+                                                {/* NEW tag for requests less than 24 hours old */}
+                                                {new Date().getTime() - new Date(invit.createdAt).getTime() < 24 * 60 * 60 * 1000 && (
+                                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-brand-500 text-white animate-pulse">NEW</span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-8 py-6 text-slate-400 text-sm font-medium">{new Date(invit.createdAt).toLocaleDateString()}</td>
                                     </tr>

@@ -83,10 +83,22 @@ export const subscribeToRequest = (id: string, callback: (req: DocRequest | null
   });
 };
 
-export const subscribeToSportsRequests = (callback: (reqs: DocRequest[]) => void) => {
+export const subscribeToSportsCaptainRequests = (callback: (reqs: DocRequest[]) => void) => {
   const q = query(
     collection(db, REQUESTS_COLLECTION),
-    where('type', 'in', [DocumentType.SPORTS_CAPTAIN, DocumentType.SPORTS_RECOMMENDATION])
+    where('type', '==', DocumentType.SPORTS_CAPTAIN)
+  );
+  return onSnapshot(q, (snapshot) => {
+    const reqs = snapshot.docs.map(doc => doc.data() as DocRequest);
+    reqs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    callback(reqs);
+  });
+};
+
+export const subscribeToSportsRecommendationRequests = (callback: (reqs: DocRequest[]) => void) => {
+  const q = query(
+    collection(db, REQUESTS_COLLECTION),
+    where('type', '==', DocumentType.SPORTS_RECOMMENDATION)
   );
   return onSnapshot(q, (snapshot) => {
     const reqs = snapshot.docs.map(doc => doc.data() as DocRequest);

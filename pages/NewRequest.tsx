@@ -384,7 +384,16 @@ const NewRequest: React.FC = () => {
         }
 
         if (sportsCoordinator) {
-          await sendNotification(sportsCoordinator.id, `New sports request ${requestId} from ${newReq.studentName}`, `/requests/${requestId}`);
+          // Different links for different request types
+          const notificationLink = type === DocumentType.SPORTS_CAPTAIN
+            ? '/sports-captain' // Goes to Sports Captain Portal
+            : `/requests/${requestId}`; // Goes to standard request view
+
+          await sendNotification(
+            sportsCoordinator.id,
+            `New sports request ${requestId} from ${newReq.studentName}`,
+            notificationLink
+          );
         } else {
           console.warn(`Sports Coordinator not found for notification. Checked: ${SPORTS_COORDINATOR_EMAIL} and lowercase.`);
         }

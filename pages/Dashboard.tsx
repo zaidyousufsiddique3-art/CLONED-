@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole, RequestStatus, DocRequest, User, DocumentType } from '../types';
-import { subscribeToAllRequests, subscribeToAssignedRequests, subscribeToStudentRequests, subscribeToSportsRequests } from '../firebase/requestService';
+import { subscribeToAllRequests, subscribeToAssignedRequests, subscribeToStudentRequests, subscribeToSportsRecommendationRequests } from '../firebase/requestService';
 import { getPotentialAssignees } from '../firebase/userService';
 import { sendNotification } from '../firebase/notificationService';
 import { Link, useNavigate } from 'react-router-dom';
@@ -58,7 +58,8 @@ const Dashboard: React.FC = () => {
     } else if (user.role === UserRole.SUPER_ADMIN) {
       unsubscribe = subscribeToAllRequests(handleData);
     } else if (isSportsCoordinator) {
-      unsubscribe = subscribeToSportsRequests(handleData);
+      // Sports Coordinator sees ONLY Sports Recommendation requests in dashboard
+      unsubscribe = subscribeToSportsRecommendationRequests(handleData);
     } else {
       // Staff/Admin ONLY see assigned
       unsubscribe = subscribeToAssignedRequests(user.id, handleData);
@@ -381,11 +382,17 @@ const Dashboard: React.FC = () => {
                       ) : <span className="text-slate-400 text-xs italic">Not set</span>}
                     </td>
                     <td className="px-8 py-5">
-                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusStyle(req.status)}`}>
-                        {req.type === DocumentType.SPORTS_CAPTAIN && req.status === RequestStatus.ASSIGNED && user?.role === UserRole.STUDENT
-                          ? 'Pending Action'
-                          : (req.status === RequestStatus.APPLICATION_RECEIVED ? 'Assigned' : req.status)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusStyle(req.status)}`}>
+                          {req.type === DocumentType.SPORTS_CAPTAIN && req.status === RequestStatus.ASSIGNED && user?.role === UserRole.STUDENT
+                            ? 'Pending Action'
+                            : (req.status === RequestStatus.APPLICATION_RECEIVED ? 'Assigned' : req.status)}
+                        </span>
+                        {/* NEW tag for requests less than 24 hours old */}
+                        {new Date().getTime() - new Date(req.createdAt).getTime() < 24 * 60 * 60 * 1000 && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-brand-500 text-white animate-pulse">NEW</span>
+                        )}
+                      </div>
                     </td>
                     {user?.role !== UserRole.STUDENT && (
                       <td className="px-8 py-5 text-sm text-slate-800 dark:text-white">{req.assignedToName || 'Unassigned'}</td>
