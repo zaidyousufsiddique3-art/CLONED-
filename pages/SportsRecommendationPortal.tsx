@@ -208,20 +208,8 @@ const SportsRecommendationPortal: React.FC = () => {
         if (selectedOptions.includes(id)) {
             setSelectedOptions(selectedOptions.filter(o => o !== id));
         } else {
-            // Cap Logic: N = number of sports achievements added
-            const achievementCount = sportsAchievements.filter(a => a.description.trim()).length;
-            const maxSpecific = achievementCount >= 3 ? 2 : 1;
-
-            const currentSpecificCount = selectedOptions.filter(optId => {
-                const opt = SPORTS_APPRECIATIVE_OPTIONS.find(o => o.id === optId);
-                return opt?.type === 'achievement_specific';
-            }).length;
-
-            if (option.type === 'achievement_specific' && currentSpecificCount >= maxSpecific) {
-                alert(`Based on having ${achievementCount} achievement(s), you can only select a maximum of ${maxSpecific} achievement-specific statement(s).`);
-                return;
-            }
-
+            // Restriction removed per user request: regardless of achievement count, 
+            // the coordinator should be able to select options freely.
             setSelectedOptions([...selectedOptions, id]);
         }
     };
