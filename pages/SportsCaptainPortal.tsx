@@ -216,7 +216,7 @@ const SportsCaptainPortal: React.FC = () => {
             // 2. Send the ACTUAL invitation notification (matching the manual invite flow)
             await sendNotification(
                 req.studentId,
-                `You are invited to apply for the position of Sports Captain. Please complete your application by ${deadlineDate.toLocaleDateString()}.`,
+                `OFFICIAL INVITATION: You have been selected to apply for Sports Captain. Click here to fill your portfolio.`,
                 "/sports-captain/apply"
             );
 
@@ -383,9 +383,6 @@ const SportsCaptainPortal: React.FC = () => {
                             <div>
                                 <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">Draft Invitation</h3>
                                 <p className="text-slate-500 text-sm mt-1 font-medium">Select a student to invite for the Sports Captaincy.</p>
-                            </div>
-
-                            <div className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Student Gender</label>
                                     <div className="grid grid-cols-2 gap-4">

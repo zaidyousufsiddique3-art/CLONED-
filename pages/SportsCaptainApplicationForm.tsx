@@ -283,8 +283,8 @@ const SportsCaptainApplicationForm: React.FC = () => {
                 Back to Portal
             </button>
 
-            {/* Show invitation status if student has been invited but hasn't applied yet */}
-            {!existingApplication && hasInvitation && (
+            {/* Show invitation status if student has been invited - Always show this if invited, even if they have old applications */}
+            {hasInvitation && (
                 <div className="p-8 rounded-[2.5rem] border bg-emerald-500/10 border-emerald-500/20 text-emerald-600 animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                         <div className="flex items-center gap-5">
@@ -302,8 +302,8 @@ const SportsCaptainApplicationForm: React.FC = () => {
                 </div>
             )}
 
-            {/* Show application status if student has already submitted */}
-            {existingApplication && (
+            {/* Show application status if student has submitted and NO new invitation exists */}
+            {existingApplication && !hasInvitation && (
                 <div className={`p-8 rounded-[2.5rem] border ${existingApplication.status === 'Accepted' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' :
                     existingApplication.status === 'Rejected' ? 'bg-red-500/10 border-red-500/20 text-red-600' :
                         'bg-amber-500/10 border-amber-500/20 text-amber-600'
@@ -335,7 +335,7 @@ const SportsCaptainApplicationForm: React.FC = () => {
                 </div>
             )}
 
-            <div className={`bg-white dark:bg-[#070708] rounded-[3rem] p-10 md:p-16 shadow-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden ${existingApplication && existingApplication.status !== 'Pending' ? 'opacity-70 pointer-events-none' : ''}`}>
+            <div className={`bg-white dark:bg-[#070708] rounded-[3rem] p-10 md:p-16 shadow-2xl border border-slate-200 dark:border-white/10 relative overflow-hidden ${(existingApplication && existingApplication.status !== 'Pending' && !hasInvitation) ? 'opacity-70 pointer-events-none' : ''}`}>
                 <div className="absolute -top-32 -right-32 w-64 h-64 bg-brand-600/5 rounded-full blur-[100px]"></div>
 
                 <div className="relative z-10 space-y-12">
