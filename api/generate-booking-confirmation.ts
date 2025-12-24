@@ -102,9 +102,9 @@ export default async function handler(req: any, res: any) {
         currentY = drawWrappedText(introText, leftX, currentY, boxWidth, font, fontSize);
 
         // Section: Booking Details
-        currentY -= 24; // 24px above title
-        page.drawText("Booking Details", { x: leftX, y: currentY, size: 12, font: fontBold });
-        currentY -= 12; // 12px below title
+        currentY -= 24;
+        page.drawText("Booking Details", { x: leftX, y: currentY, size: 11, font: fontBold });
+        currentY -= 4; // 1pt-like spacing
 
         // Bullet point details
         const details = [
@@ -127,8 +127,8 @@ export default async function handler(req: any, res: any) {
 
         // Section: Approval Status
         currentY -= 24;
-        page.drawText("Approval Status", { x: leftX, y: currentY, size: 12, font: fontBold });
-        currentY -= 12;
+        page.drawText("Approval Status", { x: leftX, y: currentY, size: 11, font: fontBold });
+        currentY -= 4; // 1pt-like spacing
 
         // Line 1: Bold keywords
         const line1Part1 = "This booking has been officially ";
@@ -148,8 +148,8 @@ export default async function handler(req: any, res: any) {
 
         // Terms Header
         currentY -= 24;
-        page.drawText("Terms & Conditions", { x: leftX, y: currentY, size: 12, font: fontBold });
-        currentY -= 12;
+        page.drawText("Terms & Conditions", { x: leftX, y: currentY, size: 11, font: fontBold });
+        currentY -= 4; // 1pt-like spacing
 
         const terms = [
             "1. The person-in-charge must arrive within 20 minutes of the scheduled start time.",
@@ -164,47 +164,12 @@ export default async function handler(req: any, res: any) {
             currentY -= 5;
         }
 
-        // Section: Authorized By
-        currentY -= 35; // Positioned upward
-        page.drawText("Authorized by", { x: leftX, y: currentY, size: 12, font: fontBold });
-        currentY -= 10;
+        // Section: Authorized by
+        currentY -= 35;
+        page.drawText("Authorized by", { x: leftX, y: currentY, size: 11, font: fontBold });
+        currentY -= 15;
 
-        // 1. Signature Image (Above Line)
-        const sigPath = path.join(process.cwd(), "assets", "sports-coordinator-sig.png");
-        let sigH = 40;
-        if (fs.existsSync(sigPath)) {
-            try {
-                const sigBytes = fs.readFileSync(sigPath);
-                const sigImage = await pdfDoc.embedPng(sigBytes);
-                const targetW = 100;
-                sigH = (sigImage.height / sigImage.width) * targetW;
-
-                page.drawImage(sigImage, {
-                    x: leftX + 10,
-                    y: currentY - sigH + 10, // Slight overlap
-                    width: targetW,
-                    height: sigH,
-                });
-            } catch (err) {
-                console.error("Sig embed error:", err);
-            }
-        }
-        currentY -= (sigH - 5);
-
-        // 2. Dotted Line
-        const sigLineLength = 200;
-        const lineY = currentY;
-        for (let x = leftX; x < leftX + sigLineLength; x += 4) {
-            page.drawLine({
-                start: { x, y: lineY },
-                end: { x: x + 2, y: lineY },
-                thickness: 0.5,
-                color: rgb(0, 0, 0),
-            });
-        }
-
-        // 3. Credentials (Below Line)
-        currentY = lineY - 15;
+        // Credentials Only (Removed signature and dotted line)
         page.drawText("Chandana Kulathunga", { x: leftX, y: currentY, size: 10, font: fontBold });
         currentY -= 12;
         page.drawText("Sports Coordinator", { x: leftX, y: currentY, size: 10, font: font });
@@ -213,16 +178,16 @@ export default async function handler(req: any, res: any) {
         currentY -= 12;
         page.drawText("Riyadh, KSA", { x: leftX, y: currentY, size: 10, font: font });
 
-        // Footer: Centered, small, two lines
-        const footerY = 60;
-        const fLine1 = "Generated automatically by the Facilities Booking System.";
-        const fLine2 = "This confirmation is valid only for the approved date and time.";
+        // Footer: Centered, two lines, avoiding overlap
+        const footerY = 40;
+        const footer1 = "Generated automatically by the Facilities Booking System.";
+        const footer2 = "This confirmation is valid only for the approved date and time.";
 
-        const f1W = font.widthOfTextAtSize(fLine1, 8);
-        const f2W = font.widthOfTextAtSize(fLine2, 8);
+        const f1W = font.widthOfTextAtSize(footer1, 8);
+        const f2W = font.widthOfTextAtSize(footer2, 8);
 
-        page.drawText(fLine1, { x: centerX - (f1W / 2), y: footerY + 12, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
-        page.drawText(fLine2, { x: centerX - (f2W / 2), y: footerY, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
+        page.drawText(footer1, { x: centerX - (f1W / 2), y: footerY + 12, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
+        page.drawText(footer2, { x: centerX - (f2W / 2), y: footerY, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
 
         const pdfBytes = await pdfDoc.save();
 
