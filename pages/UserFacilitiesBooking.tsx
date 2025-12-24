@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { collection, addDoc, query, where, getDocs, orderBy, onSnapshot } from '@firebase/firestore';
+import { collection, addDoc, query, where, getDocs, orderBy, onSnapshot, doc, updateDoc } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { sendNotification } from '../firebase/notificationService';
 import { SPORTS_COORDINATOR_EMAIL } from '../constants';
@@ -14,9 +14,53 @@ const TIME_SLOTS = [
     '22:00', '22:30', '23:00'
 ];
 
+const MembershipOption = ({ type, hours, rate, total, validity, rules, onPurchase, loading }: any) => (
+    <div className="bg-white dark:bg-[#070708] p-8 rounded-[2.5rem] border border-emerald-500/20 shadow-xl flex flex-col items-center text-center space-y-6">
+        <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500">
+            <User className="w-8 h-8" />
+        </div>
+        <div>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{type}</h3>
+            <p className="text-emerald-500 font-bold uppercase tracking-widest text-xs mt-1">{rate} SAR / Hour</p>
+        </div>
+        <div className="w-full bg-slate-50 dark:bg-white/5 p-6 rounded-2xl space-y-4">
+            <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Total Hours</span>
+                <span className="text-slate-900 dark:text-white font-black">{hours} Hours</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Validity</span>
+                <span className="text-slate-900 dark:text-white font-black">{validity}</span>
+            </div>
+            <div className="h-px bg-slate-200 dark:bg-white/10" />
+            <div className="text-left space-y-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Membership Rules:</p>
+                {rules.map((r: string, idx: number) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400 font-medium">
+                        <div className="min-w-[4px] h-[4px] bg-emerald-500 rounded-full mt-1.5" />
+                        <span>{r}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+        <div className="w-full">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Total Price</p>
+            <h4 className="text-4xl font-black text-slate-900 dark:text-white">{total} <span className="text-sm">SAR</span></h4>
+        </div>
+        <button
+            onClick={onPurchase}
+            disabled={loading}
+            className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+        >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "PAY NOW"}
+        </button>
+    </div>
+);
+
 const UserFacilitiesBooking: React.FC = () => {
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState<'new' | 'my-bookings'>('new');
+    const [activeTab, setActiveTab] = useState<'new' | 'my-bookings' | 'memberships'>('new');
+    const [activeMembership, setActiveMembership] = useState<any>(null);
 
     // Form State
     const [facility, setFacility] = useState(FACILITIES[0]);
@@ -51,7 +95,31 @@ const UserFacilitiesBooking: React.FC = () => {
                 setMyBookings(docs);
                 setLoadingBookings(false);
             });
-            return () => unsubscribe();
+
+            // Listen to Active Membership
+            const memQ = query(
+                collection(db, 'badminton_memberships'),
+                where('userId', '==', user.id),
+                where('status', '==', 'Active')
+            );
+            const unsubscribeMem = onSnapshot(memQ, (snap) => {
+                if (!snap.empty) {
+                    const mem = { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
+                    // Check expiry date
+                    if (new Date(mem.expiryDate) < new Date()) {
+                        setActiveMembership(null);
+                    } else {
+                        setActiveMembership(mem);
+                    }
+                } else {
+                    setActiveMembership(null);
+                }
+            });
+
+            return () => {
+                unsubscribe();
+                unsubscribeMem();
+            };
         }
     }, [user]);
 
@@ -92,7 +160,7 @@ const UserFacilitiesBooking: React.FC = () => {
                     personInCharge: booking.personInCharge,
                     bookingRef: booking.id,
                     personName: booking.requesterName,
-                    price: booking.price,
+                    price: booking.membership ? "Membership" : booking.price,
                     gender: booking.gender
                 })
             });
@@ -118,6 +186,22 @@ const UserFacilitiesBooking: React.FC = () => {
         if (!date || !startTime || !personInCharge || (facility === 'Badminton Courts' && user?.role === 'STUDENT' && !numberOfStudents)) {
             alert("Please fill in all required fields.");
             return false;
+        }
+
+        // 2. Membership Specific Validation (Badminton)
+        if (facility === 'Badminton Courts' && activeMembership) {
+            if (parseInt(duration) > 60) {
+                alert("Membership bookings are limited to a maximum of 1 hour per session.");
+                return false;
+            }
+            if (activeMembership.remainingHours <= 0) {
+                alert("You have no remaining hours in your membership.");
+                return false;
+            }
+            if (new Date(activeMembership.expiryDate) < new Date()) {
+                alert("Your membership has expired.");
+                return false;
+            }
         }
 
         // 2. Time Logic
@@ -169,7 +253,10 @@ const UserFacilitiesBooking: React.FC = () => {
                 const hours = parseInt(duration) / 60;
                 const students = parseInt(numberOfStudents) || 1;
                 let price = 0;
-                if (facility === 'Badminton Courts') {
+
+                if (facility === 'Badminton Courts' && activeMembership) {
+                    price = 0; // Membership covers it
+                } else if (facility === 'Badminton Courts') {
                     price = user?.role === 'STUDENT' ? (10 * students * hours) : (60 * hours);
                 } else if (facility === 'Basketball Courts' || facility === 'Football Ground') {
                     price = user?.role === 'STUDENT' ? (100 * hours) : (120 * hours);
@@ -189,14 +276,14 @@ const UserFacilitiesBooking: React.FC = () => {
                     numberOfStudents: (facility === 'Badminton Courts' && user?.role === 'STUDENT') ? numberOfStudents : null,
                     gender,
                     price: price,
+                    membership: (facility === 'Badminton Courts' && activeMembership) ? true : false,
                     status: 'Pending',
                     createdAt: new Date().toISOString()
                 };
 
                 const docRef = await addDoc(collection(db, 'sports_facility_bookings'), bookingData);
 
-                // Notify Sports Coordinator - STRICT EXACT TEXT
-                // Notify Sports Coordinator - STRICT EXACT TEXT
+                // Notify Sports Coordinator
                 const coordQuery = query(
                     collection(db, 'users'),
                     where('email', 'in', [
@@ -216,8 +303,14 @@ const UserFacilitiesBooking: React.FC = () => {
                             '/facilities-booking'
                         );
                     }
-                } else {
-                    console.warn("Sports Coordinator not found for notification");
+                }
+
+                // Dedect hour if using membership
+                if (facility === 'Badminton Courts' && activeMembership) {
+                    const memDocRef = doc(db, 'badminton_memberships', activeMembership.id);
+                    await updateDoc(memDocRef, {
+                        remainingHours: activeMembership.remainingHours - 1
+                    });
                 }
 
                 setSuccessMsg("Booking Request Sent for Approval");
@@ -233,18 +326,63 @@ const UserFacilitiesBooking: React.FC = () => {
         setSubmitting(false);
     };
 
+    const handlePurchaseMembership = async (type: '12-Hour' | '24-Hour') => {
+        if (!user) return;
+        if (activeMembership) {
+            alert("You already have an active membership.");
+            return;
+        }
+        setSubmitting(true);
+        try {
+            const hours = type === '12-Hour' ? 12 : 24;
+            const months = type === '12-Hour' ? 3 : 6;
+            const expiryDate = new Date();
+            expiryDate.setMonth(expiryDate.getMonth() + months);
+
+            await addDoc(collection(db, 'badminton_memberships'), {
+                userId: user.id,
+                userEmail: user.email,
+                type,
+                totalHours: hours,
+                remainingHours: hours,
+                purchaseDate: new Date().toISOString(),
+                expiryDate: expiryDate.toISOString(),
+                status: 'Active'
+            });
+
+            alert(`Successfully purchased ${type}!`);
+            setActiveTab('new');
+        } catch (err) {
+            console.error(err);
+            alert("Failed to purchase membership.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
         <div className="max-w-5xl mx-auto animate-fade-in pb-20">
-            <div className="mb-8">
-                <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2">Facilities Booking</h1>
-                <p className="text-slate-500 text-sm">Book sports facilities pending coordinator approval.</p>
-                {successMsg && (
-                    <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-xl font-bold flex items-center">
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        {successMsg}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2">Facilities Booking</h1>
+                    <p className="text-slate-500 text-sm">Book sports facilities pending coordinator approval.</p>
+                </div>
+                {activeMembership && (
+                    <div className="flex items-center gap-3 px-6 py-3 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl animate-in zoom-in-95 duration-500">
+                        <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+                        <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex flex-col">
+                            <span className="opacity-60">{activeMembership.type}</span>
+                            <span>{activeMembership.remainingHours} HOURS LEFT</span>
+                        </span>
                     </div>
                 )}
             </div>
+            {successMsg && (
+                <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-xl font-bold flex items-center">
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    {successMsg}
+                </div>
+            )}
 
             <div className="flex gap-4 mb-8 border-b border-slate-200 dark:border-white/10">
                 <button
@@ -252,6 +390,12 @@ const UserFacilitiesBooking: React.FC = () => {
                     className={`pb-4 px-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'new' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                 >
                     NEW BOOKING
+                </button>
+                <button
+                    onClick={() => { setActiveTab('memberships'); setSuccessMsg(''); }}
+                    className={`pb-4 px-4 text-sm font-bold border-b-2 transition-all ${activeTab === 'memberships' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                    BADMINTON MEMBERSHIPS
                 </button>
                 <button
                     onClick={() => setActiveTab('my-bookings')}
@@ -369,6 +513,7 @@ const UserFacilitiesBooking: React.FC = () => {
                                 <p className="text-xs font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">Total Pricing</p>
                                 <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
                                     {(() => {
+                                        if (facility === 'Badminton Courts' && activeMembership) return "0.00";
                                         const hours = parseInt(duration) / 60;
                                         const students = parseInt(numberOfStudents) || 1;
                                         let price = 0;
@@ -381,6 +526,11 @@ const UserFacilitiesBooking: React.FC = () => {
                                     })()}
                                     <span className="text-lg ml-1 font-bold">SAR</span>
                                 </h2>
+                                {facility === 'Badminton Courts' && activeMembership && (
+                                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mt-2 animate-pulse">
+                                        Membership Applied (-1 Hour)
+                                    </p>
+                                )}
                             </div>
 
                             <div className="w-full pt-4 space-y-3">
@@ -410,6 +560,70 @@ const UserFacilitiesBooking: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            ) : activeTab === 'memberships' ? (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* 12-Hour Membership */}
+                        <MembershipOption
+                            type="12-Hour Membership"
+                            hours={12}
+                            rate={50}
+                            total={600}
+                            validity="3 Months"
+                            rules={[
+                                "Valid only for Badminton",
+                                "One court per member",
+                                "Maximum 1 hour per booking",
+                                "Court must be reserved in advance",
+                                "Membership hours are deducted per completed booking",
+                                "Unused hours do not carry forward after expiry",
+                                "Membership is non-transferable",
+                                "Membership validity: 3 months"
+                            ]}
+                            onPurchase={() => handlePurchaseMembership('12-Hour')}
+                            loading={submitting}
+                        />
+
+                        {/* 24-Hour Membership */}
+                        <MembershipOption
+                            type="24-Hour Membership"
+                            hours={24}
+                            rate={40}
+                            total={960}
+                            validity="6 Months"
+                            rules={[
+                                "Valid only for Badminton",
+                                "One court per member",
+                                "Maximum 1 hour per booking",
+                                "Court must be reserved in advance",
+                                "Membership hours are deducted per completed booking",
+                                "Unused hours do not carry forward after expiry",
+                                "Membership is non-transferable",
+                                "Membership validity: 6 months"
+                            ]}
+                            onPurchase={() => handlePurchaseMembership('24-Hour')}
+                            loading={submitting}
+                        />
+                    </div>
+                    {activeMembership && (
+                        <div className="mt-12 bg-emerald-500/5 border border-emerald-500/20 p-8 rounded-[2.5rem] flex flex-col md:flex-row justify-between items-center gap-6">
+                            <div>
+                                <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase">Your Active Membership</h4>
+                                <p className="text-slate-500 text-sm mt-1">You are currently on the {activeMembership.type}.</p>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="px-6 py-4 bg-white dark:bg-white/5 rounded-2xl border border-emerald-500/20 text-center">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hours Remaining</p>
+                                    <p className="text-2xl font-black text-emerald-500">{activeMembership.remainingHours} hrs</p>
+                                </div>
+                                <div className="px-6 py-4 bg-white dark:bg-white/5 rounded-2xl border border-emerald-500/20 text-center">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Expiry Date</p>
+                                    <p className="text-lg font-black text-slate-900 dark:text-white">{new Date(activeMembership.expiryDate).toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
             ) : (
                 <div className="bg-white dark:bg-[#070708] rounded-[2.5rem] shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden min-h-[500px]">
                     <div className="overflow-x-auto">
@@ -432,7 +646,12 @@ const UserFacilitiesBooking: React.FC = () => {
                                 ) : myBookings.map(b => (
                                     <tr key={b.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.01]">
                                         <td className="p-6">
-                                            <span className="font-bold text-slate-900 dark:text-white">{b.facility}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-slate-900 dark:text-white">{b.facility}</span>
+                                                {b.membership && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-emerald-500 text-white uppercase tracking-tighter">MEMBER</span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="p-6">
                                             <div className="flex flex-col gap-1">
