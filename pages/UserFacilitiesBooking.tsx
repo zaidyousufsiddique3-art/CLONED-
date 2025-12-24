@@ -4,8 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { collection, addDoc, query, where, getDocs, orderBy, onSnapshot, doc, updateDoc } from '@firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { sendNotification } from '../firebase/notificationService';
+import { getUserByEmail } from '../firebase/userService';
 import { SPORTS_COORDINATOR_EMAIL } from '../constants';
-import { Calendar, Clock, User, CheckCircle, AlertCircle, FileText, PlusCircle, Loader2, Download, Star } from 'lucide-react';
+import { Calendar, Clock, User, CheckCircle, AlertCircle, FileText, PlusCircle, Loader2, Download, Star, Save } from 'lucide-react';
 
 const FACILITIES = ['Badminton Courts', 'Football Ground', 'Basketball Courts'];
 const SCHEDULE: Record<string, Record<string, { start: number, startM?: number, end: number, gender?: string }>> = {
@@ -112,6 +113,7 @@ const UserFacilitiesBooking: React.FC = () => {
     const [submitting, setSubmitting] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
     const [paymentOption, setPaymentOption] = useState<'Pay Now' | 'Use Membership'>('Pay Now');
+    const [formStep, setFormStep] = useState<'editing' | 'saved'>('editing');
 
     // My Bookings State
     const [myBookings, setMyBookings] = useState<any[]>([]);
@@ -190,6 +192,14 @@ const UserFacilitiesBooking: React.FC = () => {
         }
     }, [myBookings]);
 
+    // Reset form step when inputs change
+    useEffect(() => {
+        if (formStep === 'saved') {
+            setFormStep('editing');
+            setSuccessMsg('');
+        }
+    }, [facility, date, startTime, duration, personInCharge, numberOfStudents, gender, paymentOption]);
+
     const calculateEndTime = (start: string, durationMinutes: number) => {
         const [h, m] = start.split(':').map(Number);
         const totalMinutes = h * 60 + m + durationMinutes;
@@ -200,6 +210,9 @@ const UserFacilitiesBooking: React.FC = () => {
 
     const handleDownloadPDF = async (booking: any) => {
         try {
+            // Fetch Sports Coordinator Details for Signature
+            const coord = await getUserByEmail(SPORTS_COORDINATOR_EMAIL);
+
             const response = await fetch('/api/generate-booking-confirmation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -212,7 +225,9 @@ const UserFacilitiesBooking: React.FC = () => {
                     personName: booking.requesterName,
                     price: booking.price,
                     paymentMethod: booking.membership ? "Membership" : "Direct",
-                    gender: booking.gender
+                    gender: booking.gender,
+                    signatureUrl: coord?.signatureUrl,
+                    coordinatorName: coord ? `${coord.firstName} ${coord.lastName}` : "Sports Coordinator"
                 })
             });
 
@@ -322,83 +337,89 @@ const UserFacilitiesBooking: React.FC = () => {
         return true;
     };
 
+    const handleSaveDetails = async () => {
+        if (await validateSubmission()) {
+            setFormStep('saved');
+            setSuccessMsg("Details saved successfully. You may now click 'Pay' to proceed with the payment.");
+        }
+    };
+
     const handleSubmit = async () => {
         setSubmitting(true);
-        if (await validateSubmission()) {
-            try {
-                // Calculate Price
-                const hours = parseInt(duration) / 60;
-                const students = parseInt(numberOfStudents) || 1;
-                let price = 0;
+        try {
+            // Calculate Price
+            const hours = parseInt(duration) / 60;
+            const students = parseInt(numberOfStudents) || 1;
+            let price = 0;
 
-                if (facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership') {
-                    price = 0; // Membership covers it
-                } else if (facility === 'Badminton Courts') {
-                    price = user?.role === 'STUDENT' ? (10 * students * hours) : (60 * hours);
-                } else if (facility === 'Basketball Courts' || facility === 'Football Ground') {
-                    price = user?.role === 'STUDENT' ? (100 * hours) : (120 * hours);
-                }
-
-                // Create Booking
-                const bookingData = {
-                    userId: user?.id,
-                    userEmail: user?.email,
-                    requesterType: user?.role === 'STUDENT' ? 'Student' : (user?.role === 'PARENT' ? 'Parent' : 'Staff'),
-                    requesterName: `${user?.firstName} ${user?.lastName}`,
-                    facility,
-                    date,
-                    timeSlot: startTime,
-                    duration: duration,
-                    personInCharge,
-                    numberOfStudents: (facility === 'Badminton Courts' && user?.role === 'STUDENT') ? numberOfStudents : null,
-                    gender,
-                    price: price,
-                    membership: (facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership') ? true : false,
-                    status: 'Pending',
-                    createdAt: new Date().toISOString()
-                };
-
-                const docRef = await addDoc(collection(db, 'sports_facility_bookings'), bookingData);
-
-                // Notify Sports Coordinator
-                const coordQuery = query(
-                    collection(db, 'users'),
-                    where('email', 'in', [
-                        SPORTS_COORDINATOR_EMAIL,
-                        SPORTS_COORDINATOR_EMAIL.toLowerCase(),
-                        SPORTS_COORDINATOR_EMAIL.toUpperCase()
-                    ])
-                );
-
-                const coordSnap = await getDocs(coordQuery);
-                if (!coordSnap.empty) {
-                    const uniqueIds = Array.from(new Set(coordSnap.docs.map(d => d.id)));
-                    for (const id of uniqueIds) {
-                        await sendNotification(
-                            id,
-                            `New booking request by ${bookingData.requesterName} for ${facility} on ${date} at ${startTime}.`,
-                            '/facilities-booking'
-                        );
-                    }
-                }
-
-                // Dedect hour if using membership
-                if (facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership') {
-                    const memDocRef = doc(db, 'badminton_memberships', activeMembership.id);
-                    await updateDoc(memDocRef, {
-                        remainingHours: activeMembership.remainingHours - 1
-                    });
-                }
-
-                setSuccessMsg("Booking Request Sent for Approval");
-                setActiveTab('my-bookings');
-                // Reset form
-                setDate('');
-                setStartTime('16:00');
-            } catch (err) {
-                console.error(err);
-                alert("Failed to submit booking.");
+            if (facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership') {
+                price = 0; // Membership covers it
+            } else if (facility === 'Badminton Courts') {
+                price = user?.role === 'STUDENT' ? (10 * students * hours) : (60 * hours);
+            } else if (facility === 'Basketball Courts' || facility === 'Football Ground') {
+                price = user?.role === 'STUDENT' ? (100 * hours) : (120 * hours);
             }
+
+            // Create Booking
+            const bookingData = {
+                userId: user?.id,
+                userEmail: user?.email,
+                requesterType: user?.role === 'STUDENT' ? 'Student' : (user?.role === 'PARENT' ? 'Parent' : 'Staff'),
+                requesterName: `${user?.firstName} ${user?.lastName}`,
+                facility,
+                date,
+                timeSlot: startTime,
+                duration: duration,
+                personInCharge,
+                numberOfStudents: (facility === 'Badminton Courts' && user?.role === 'STUDENT') ? numberOfStudents : null,
+                gender,
+                price: price,
+                membership: (facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership') ? true : false,
+                status: 'Pending',
+                createdAt: new Date().toISOString()
+            };
+
+            const docRef = await addDoc(collection(db, 'sports_facility_bookings'), bookingData);
+
+            // Notify Sports Coordinator
+            const coordQuery = query(
+                collection(db, 'users'),
+                where('email', 'in', [
+                    SPORTS_COORDINATOR_EMAIL,
+                    SPORTS_COORDINATOR_EMAIL.toLowerCase(),
+                    SPORTS_COORDINATOR_EMAIL.toUpperCase()
+                ])
+            );
+
+            const coordSnap = await getDocs(coordQuery);
+            if (!coordSnap.empty) {
+                const uniqueIds = Array.from(new Set(coordSnap.docs.map(d => d.id)));
+                for (const id of uniqueIds) {
+                    await sendNotification(
+                        id,
+                        `New booking request by ${bookingData.requesterName} for ${facility} on ${date} at ${startTime}.`,
+                        '/facilities-booking'
+                    );
+                }
+            }
+
+            // Dedect hour if using membership
+            if (facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership') {
+                const memDocRef = doc(db, 'badminton_memberships', activeMembership.id);
+                await updateDoc(memDocRef, {
+                    remainingHours: activeMembership.remainingHours - 1
+                });
+            }
+
+            setSuccessMsg("Booking request submitted for approval successfully.");
+            setActiveTab('my-bookings');
+            // Reset form
+            setDate('');
+            setStartTime('16:00');
+            setFormStep('editing');
+        } catch (err) {
+            console.error(err);
+            alert("Failed to submit booking.");
         }
         setSubmitting(false);
     };
@@ -655,16 +676,16 @@ const UserFacilitiesBooking: React.FC = () => {
                             </div>
 
                             <button
-                                onClick={handleSubmit}
+                                onClick={formStep === 'editing' ? handleSaveDetails : handleSubmit}
                                 disabled={submitting}
-                                className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                                className={`w-full py-5 ${formStep === 'editing' ? 'bg-slate-800 hover:bg-slate-900' : 'bg-emerald-500 hover:bg-emerald-600'} text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50`}
                             >
-                                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlusCircle className="w-5 h-5" />}
-                                PAY NOW
+                                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (formStep === 'editing' ? <Save className="w-5 h-5" /> : <PlusCircle className="w-5 h-5" />)}
+                                {formStep === 'editing' ? 'SAVE DETAILS' : 'PAY'}
                             </button>
 
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed px-4">
-                                Clicking pay now will submit your request for archival processing.
+                                {formStep === 'editing' ? 'Save details to proceed with payment.' : 'Clicking pay will submit your request for approval.'}
                             </p>
                         </div>
                     </div>

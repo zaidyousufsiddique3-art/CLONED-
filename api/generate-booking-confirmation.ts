@@ -103,21 +103,22 @@ export default async function handler(req: any, res: any) {
         page.drawText("Booking Details", { x: leftX, y: currentY, size: 12, font: fontBold });
         currentY -= 20;
 
-        // Details
+        // Bullet point details
         const details = [
-            `Facility Booked: ${payload.facility}`,
-            `Date: ${payload.date}`,
-            `Time: ${payload.time}`, // Expecting "Start - End" passed from payload
-            `Gender: ${payload.gender || 'N/A'}`,
-            `Person-in-Charge: ${payload.personInCharge}`,
-            payload.paymentMethod === 'Membership'
-                ? `Payment Method: Paid by Membership`
-                : `Total Cost: ${payload.price ? payload.price + ' SAR' : 'N/A'}`,
-            `Booking Reference: ${payload.bookingRef || 'N/A'}`
+            { label: 'Facility', value: payload.facility },
+            { label: 'Date', value: payload.date },
+            { label: 'Time', value: payload.time },
+            { label: 'Gender Category', value: payload.gender || 'N/A' },
+            { label: 'Person-in-Charge', value: payload.personInCharge },
+            {
+                label: 'Total Charges',
+                value: payload.paymentMethod === 'Membership' ? 'Paid by Membership' : (payload.price ? payload.price + ' SAR' : 'N/A')
+            },
+            { label: 'Booking Reference', value: payload.bookingRef || 'N/A' }
         ];
 
         for (const det of details) {
-            page.drawText(det, { x: leftX, y: currentY, size: 10, font: font }); // Removed extra indent
+            page.drawText(`• ${det.label}: ${det.value}`, { x: leftX + 10, y: currentY, size: 10, font: font });
             currentY -= 15;
         }
         currentY -= 20;
@@ -145,17 +146,53 @@ export default async function handler(req: any, res: any) {
         ];
 
         for (const t of terms) {
-            currentY = drawWrappedText(t, leftX, currentY, boxWidth, font, fontSize); // Removed extra indent
-            currentY -= 5; // Tighter spacing for list feel
+            currentY = drawWrappedText(t, leftX, currentY, boxWidth, font, fontSize);
+            currentY -= 5;
         }
-        currentY -= 30;
+        currentY -= 40;
 
-        // Authorization
+        // Authorization / Signature Section
         page.drawText("Authorization", { x: leftX, y: currentY, size: 12, font: fontBold });
-        currentY -= 20;
-        page.drawText("Authorized by Sports Coordinator", { x: leftX, y: currentY, size: 10, font: font });
-        currentY -= 15;
-        page.drawText("This is a system-generated confirmation document. No physical signature or stamp is required.", { x: leftX, y: currentY, size: 10, font: font }); // Removed color to ensure no 'restyling' complaints
+        currentY -= 40;
+
+        const sigLineLength = 150;
+        const lineY = currentY + 15;
+
+        // Draw dotted line
+        for (let x = leftX; x < leftX + sigLineLength; x += 4) {
+            page.drawLine({
+                start: { x, y: lineY },
+                end: { x: x + 2, y: lineY },
+                thickness: 0.5,
+                color: rgb(0, 0, 0),
+            });
+        }
+
+        // Embed signature if provided
+        if (payload.signatureUrl) {
+            try {
+                const imageBytes = payload.signatureUrl.startsWith('data:image/png;base64,')
+                    ? Buffer.from(payload.signatureUrl.split(',')[1], 'base64')
+                    : new Uint8Array(await (await fetch(payload.signatureUrl)).arrayBuffer());
+                const sigImage = await pdfDoc.embedPng(imageBytes);
+
+                const targetWidth = 100;
+                const targetHeight = (sigImage.height / sigImage.width) * targetWidth;
+
+                page.drawImage(sigImage, {
+                    x: leftX + (sigLineLength / 2) - (targetWidth / 2),
+                    y: lineY - 12,
+                    width: targetWidth,
+                    height: targetHeight,
+                });
+            } catch (err) {
+                console.error("Signature embedding failed:", err);
+            }
+        }
+
+        page.drawText(payload.coordinatorName || "Sports Coordinator", { x: leftX, y: currentY, size: 10, font: fontBold });
+        currentY -= 12;
+        page.drawText("Sports Coordinator", { x: leftX, y: currentY, size: 10, font: font });
 
         // Footer (Bottom of page)
         const footerY = 50;
