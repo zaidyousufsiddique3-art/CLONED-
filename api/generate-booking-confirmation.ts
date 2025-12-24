@@ -110,7 +110,9 @@ export default async function handler(req: any, res: any) {
             `Time: ${payload.time}`, // Expecting "Start - End" passed from payload
             `Gender: ${payload.gender || 'N/A'}`,
             `Person-in-Charge: ${payload.personInCharge}`,
-            `Total Cost: ${payload.price ? payload.price + ' SAR' : 'N/A'}`,
+            payload.paymentMethod === 'Membership'
+                ? `Payment Method: Paid by Membership`
+                : `Total Cost: ${payload.price ? payload.price + ' SAR' : 'N/A'}`,
             `Booking Reference: ${payload.bookingRef || 'N/A'}`
         ];
 

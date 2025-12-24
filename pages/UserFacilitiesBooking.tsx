@@ -72,6 +72,7 @@ const UserFacilitiesBooking: React.FC = () => {
     const [gender, setGender] = useState('Male');
     const [submitting, setSubmitting] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
+    const [paymentOption, setPaymentOption] = useState<'Pay Now' | 'Use Membership'>('Pay Now');
 
     // My Bookings State
     const [myBookings, setMyBookings] = useState<any[]>([]);
@@ -105,8 +106,8 @@ const UserFacilitiesBooking: React.FC = () => {
             const unsubscribeMem = onSnapshot(memQ, (snap) => {
                 if (!snap.empty) {
                     const mem = { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
-                    // Check expiry date
-                    if (new Date(mem.expiryDate) < new Date()) {
+                    // Check expiry date or zero hours
+                    if (new Date(mem.expiryDate) < new Date() || mem.remainingHours <= 0) {
                         setActiveMembership(null);
                     } else {
                         setActiveMembership(mem);
@@ -160,7 +161,8 @@ const UserFacilitiesBooking: React.FC = () => {
                     personInCharge: booking.personInCharge,
                     bookingRef: booking.id,
                     personName: booking.requesterName,
-                    price: booking.membership ? "Membership" : booking.price,
+                    price: booking.price,
+                    paymentMethod: booking.membership ? "Membership" : "Direct",
                     gender: booking.gender
                 })
             });
@@ -189,7 +191,7 @@ const UserFacilitiesBooking: React.FC = () => {
         }
 
         // 2. Membership Specific Validation (Badminton)
-        if (facility === 'Badminton Courts' && activeMembership) {
+        if (facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership') {
             if (parseInt(duration) > 60) {
                 alert("Membership bookings are limited to a maximum of 1 hour per session.");
                 return false;
@@ -254,7 +256,7 @@ const UserFacilitiesBooking: React.FC = () => {
                 const students = parseInt(numberOfStudents) || 1;
                 let price = 0;
 
-                if (facility === 'Badminton Courts' && activeMembership) {
+                if (facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership') {
                     price = 0; // Membership covers it
                 } else if (facility === 'Badminton Courts') {
                     price = user?.role === 'STUDENT' ? (10 * students * hours) : (60 * hours);
@@ -276,7 +278,7 @@ const UserFacilitiesBooking: React.FC = () => {
                     numberOfStudents: (facility === 'Badminton Courts' && user?.role === 'STUDENT') ? numberOfStudents : null,
                     gender,
                     price: price,
-                    membership: (facility === 'Badminton Courts' && activeMembership) ? true : false,
+                    membership: (facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership') ? true : false,
                     status: 'Pending',
                     createdAt: new Date().toISOString()
                 };
@@ -306,7 +308,7 @@ const UserFacilitiesBooking: React.FC = () => {
                 }
 
                 // Dedect hour if using membership
-                if (facility === 'Badminton Courts' && activeMembership) {
+                if (facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership') {
                     const memDocRef = doc(db, 'badminton_memberships', activeMembership.id);
                     await updateDoc(memDocRef, {
                         remainingHours: activeMembership.remainingHours - 1
@@ -415,7 +417,10 @@ const UserFacilitiesBooking: React.FC = () => {
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Facility</label>
                                     <select
                                         value={facility}
-                                        onChange={(e) => setFacility(e.target.value)}
+                                        onChange={(e) => {
+                                            setFacility(e.target.value);
+                                            setPaymentOption('Pay Now');
+                                        }}
                                         className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
                                     >
                                         {FACILITIES.map(f => <option key={f} value={f}>{f}</option>)}
@@ -433,6 +438,32 @@ const UserFacilitiesBooking: React.FC = () => {
                                     </select>
                                 </div>
                             </div>
+
+                            {/* Payment Method Option - Only for Badminton with Active Membership */}
+                            {facility === 'Badminton Courts' && activeMembership && (
+                                <div className="p-6 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Payment Option</label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPaymentOption('Pay Now')}
+                                            className={`p-4 rounded-xl border-2 font-bold transition-all flex flex-col items-center gap-2 ${paymentOption === 'Pay Now' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600' : 'border-slate-200 dark:border-white/10 text-slate-400'}`}
+                                        >
+                                            <span className="text-sm">Pay Now</span>
+                                            <span className="text-[10px] opacity-60">Standard Pricing</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={activeMembership.remainingHours <= 0}
+                                            onClick={() => setPaymentOption('Use Membership')}
+                                            className={`p-4 rounded-xl border-2 font-bold transition-all flex flex-col items-center gap-2 ${paymentOption === 'Use Membership' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600' : 'border-slate-200 dark:border-white/10 text-slate-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        >
+                                            <span className="text-sm">Use Membership</span>
+                                            <span className="text-[10px] opacity-60">{activeMembership.remainingHours} Hours Left</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Conditional: Number of Students for Badminton (Student Role Only) */}
                             {facility === 'Badminton Courts' && user?.role === 'STUDENT' && (
@@ -512,7 +543,7 @@ const UserFacilitiesBooking: React.FC = () => {
                                 <p className="text-xs font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">Total Pricing</p>
                                 <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
                                     {(() => {
-                                        if (facility === 'Badminton Courts' && activeMembership) return "0.00";
+                                        if (facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership') return "0.00";
                                         const hours = parseInt(duration) / 60;
                                         const students = parseInt(numberOfStudents) || 1;
                                         let price = 0;
@@ -525,7 +556,7 @@ const UserFacilitiesBooking: React.FC = () => {
                                     })()}
                                     <span className="text-lg ml-1 font-bold">SAR</span>
                                 </h2>
-                                {facility === 'Badminton Courts' && activeMembership && (
+                                {facility === 'Badminton Courts' && activeMembership && paymentOption === 'Use Membership' && (
                                     <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mt-2 animate-pulse">
                                         Membership Applied (-1 Hour)
                                     </p>
