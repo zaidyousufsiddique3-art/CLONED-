@@ -161,6 +161,18 @@ const UserFacilitiesBooking: React.FC = () => {
         setSubmitting(true);
         if (await validateSubmission()) {
             try {
+                // Calculate Price
+                const hours = parseInt(duration) / 60;
+                const students = parseInt(numberOfStudents) || 1;
+                let price = 0;
+                if (facility === 'Badminton Courts') {
+                    price = user?.role === 'STUDENT' ? (10 * students * hours) : (60 * hours);
+                } else if (facility === 'Basketball Courts') {
+                    price = user?.role === 'STUDENT' ? (100 * hours) : (120 * hours);
+                } else if (facility === 'Football Ground') {
+                    price = user?.role === 'STUDENT' ? 100 : 120;
+                }
+
                 // Create Booking
                 const bookingData = {
                     userId: user?.id,
@@ -173,6 +185,7 @@ const UserFacilitiesBooking: React.FC = () => {
                     duration: duration,
                     personInCharge,
                     numberOfStudents: facility === 'Badminton Courts' ? numberOfStudents : null,
+                    price: price,
                     status: 'Pending',
                     createdAt: new Date().toISOString()
                 };
@@ -204,7 +217,7 @@ const UserFacilitiesBooking: React.FC = () => {
                     console.warn("Sports Coordinator not found for notification");
                 }
 
-                setSuccessMsg("Booking request submitted successfully!");
+                setSuccessMsg("Booking Request Sent for Approval");
                 setActiveTab('my-bookings');
                 // Reset form
                 setDate('');
@@ -246,102 +259,143 @@ const UserFacilitiesBooking: React.FC = () => {
             </div>
 
             {activeTab === 'new' ? (
-                <div className="bg-white dark:bg-[#070708] p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-xl max-w-2xl">
-                    <div className="space-y-6">
-                        {/* Facility */}
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Facility</label>
-                            <select
-                                value={facility}
-                                onChange={(e) => setFacility(e.target.value)}
-                                className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
-                            >
-                                {FACILITIES.map(f => <option key={f} value={f}>{f}</option>)}
-                            </select>
-                        </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    {/* Booking Form */}
+                    <div className="lg:col-span-2 bg-white dark:bg-[#070708] p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-xl">
+                        <div className="space-y-6">
+                            {/* Facility */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Facility</label>
+                                <select
+                                    value={facility}
+                                    onChange={(e) => setFacility(e.target.value)}
+                                    className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
+                                >
+                                    {FACILITIES.map(f => <option key={f} value={f}>{f}</option>)}
+                                </select>
+                            </div>
 
-                        {/* Conditional: Number of Students for Badminton */}
-                        {facility === 'Badminton Courts' && (
-                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Number of Students</label>
+                            {/* Conditional: Number of Students for Badminton */}
+                            {facility === 'Badminton Courts' && (
+                                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Number of Students</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={numberOfStudents}
+                                        onChange={(e) => setNumberOfStudents(e.target.value)}
+                                        placeholder="e.g., 4"
+                                        className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Date */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Date</label>
                                 <input
-                                    type="number"
-                                    min="1"
-                                    value={numberOfStudents}
-                                    onChange={(e) => setNumberOfStudents(e.target.value)}
-                                    placeholder="e.g., 4"
+                                    type="date"
+                                    value={date}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    onChange={(e) => setDate(e.target.value)}
                                     className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
                                 />
                             </div>
-                        )}
 
-                        {/* Date */}
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Date</label>
-                            <input
-                                type="date"
-                                value={date}
-                                min={new Date().toISOString().split('T')[0]}
-                                onChange={(e) => setDate(e.target.value)}
-                                className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
-                            />
-                        </div>
+                            {/* Time & Duration */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Start Time</label>
+                                    <select
+                                        value={startTime}
+                                        onChange={(e) => setStartTime(e.target.value)}
+                                        className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
+                                    >
+                                        {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Duration</label>
+                                    <select
+                                        value={duration}
+                                        onChange={(e) => setDuration(e.target.value)}
+                                        className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
+                                    >
+                                        <option value="30">30 Minutes</option>
+                                        <option value="60">1 Hour</option>
+                                        <option value="90">1.5 Hours</option>
+                                        <option value="120">2 Hours</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                        {/* Time & Duration */}
-                        <div className="grid grid-cols-2 gap-4">
+                            {/* Person in Charge */}
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Start Time</label>
-                                <select
-                                    value={startTime}
-                                    onChange={(e) => setStartTime(e.target.value)}
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Person-in-Charge</label>
+                                <input
+                                    type="text"
+                                    value={personInCharge}
+                                    onChange={(e) => setPersonInCharge(e.target.value)}
                                     className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
-                                >
-                                    {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
-                                </select>
+                                />
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Pricing Card (Green Reference Area) */}
+                    <div className="lg:sticky lg:top-24">
+                        <div className="p-8 rounded-[2.5rem] bg-emerald-500/5 border-2 border-emerald-500/30 backdrop-blur-xl flex flex-col items-center text-center space-y-6">
+                            <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center">
+                                <FileText className="w-8 h-8 text-emerald-500" />
+                            </div>
+
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Duration</label>
-                                <select
-                                    value={duration}
-                                    onChange={(e) => setDuration(e.target.value)}
-                                    className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
-                                >
-                                    <option value="30">30 Minutes</option>
-                                    <option value="60">1 Hour</option>
-                                    <option value="90">1.5 Hours</option>
-                                    <option value="120">2 Hours</option>
-                                </select>
+                                <p className="text-xs font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">Total Pricing</p>
+                                <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
+                                    {(() => {
+                                        const hours = parseInt(duration) / 60;
+                                        const students = parseInt(numberOfStudents) || 1;
+                                        let price = 0;
+                                        if (facility === 'Badminton Courts') {
+                                            price = user?.role === 'STUDENT' ? (10 * students * hours) : (60 * hours);
+                                        } else if (facility === 'Basketball Courts') {
+                                            price = user?.role === 'STUDENT' ? (100 * hours) : (120 * hours);
+                                        } else if (facility === 'Football Ground') {
+                                            price = user?.role === 'STUDENT' ? 100 : 120;
+                                        }
+                                        return price.toFixed(2);
+                                    })()}
+                                    <span className="text-lg ml-1 font-bold">SAR</span>
+                                </h2>
                             </div>
-                        </div>
 
-                        {/* Person in Charge */}
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Person-in-Charge</label>
-                            <input
-                                type="text"
-                                value={personInCharge}
-                                onChange={(e) => setPersonInCharge(e.target.value)}
-                                className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
-                            />
-                        </div>
-
-                        {/* Payment */}
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Payment</label>
-                            <div className="p-4 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 font-medium text-sm flex items-center justify-between">
-                                <span>No payment required for this booking type.</span>
-                                <span>$0.00</span>
+                            <div className="w-full pt-4 space-y-3">
+                                <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-2">
+                                    <span>Rate Type</span>
+                                    <span className="text-slate-900 dark:text-white">
+                                        {facility === 'Football Ground' ? 'Fixed' : 'Hourly'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-2">
+                                    <span>Category</span>
+                                    <span className="text-slate-900 dark:text-white">{user?.role}</span>
+                                </div>
+                                <div className="h-px bg-emerald-500/20 w-full" />
                             </div>
-                        </div>
 
-                        <button
-                            onClick={handleSubmit}
-                            disabled={submitting}
-                            className="w-full py-4 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2"
-                        >
-                            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlusCircle className="w-5 h-5" />}
-                            SUBMIT REQUEST
-                        </button>
+                            <button
+                                onClick={handleSubmit}
+                                disabled={submitting}
+                                className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                            >
+                                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlusCircle className="w-5 h-5" />}
+                                PAY NOW
+                            </button>
+
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed px-4">
+                                Clicking pay now will submit your request for archival processing.
+                            </p>
+                        </div>
                     </div>
                 </div>
             ) : (
