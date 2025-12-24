@@ -72,8 +72,7 @@ export default async function handler(req: any, res: any) {
         });
         currentY -= 40;
 
-        // Intro
-        const introText = "This document serves as an official confirmation that the following facility booking request has been reviewed and approved by the Sports Coordination Department.";
+        // Simple wrapping helper
         const boxWidth = rightX - leftX;
 
         // Simple wrapping helper
@@ -96,12 +95,16 @@ export default async function handler(req: any, res: any) {
             return y - 15;
         }
 
-        currentY = drawWrappedText(introText, leftX, currentY, boxWidth, font, fontSize);
         currentY -= 20;
 
-        // Booking Details Header
+        // 1. Intro Text
+        const introText = "This document serves as an official confirmation that the following facility booking request has been reviewed and approved by the Sports Coordination Department.";
+        currentY = drawWrappedText(introText, leftX, currentY, boxWidth, font, fontSize);
+
+        // Section: Booking Details
+        currentY -= 24; // 24px above title
         page.drawText("Booking Details", { x: leftX, y: currentY, size: 12, font: fontBold });
-        currentY -= 20;
+        currentY -= 12; // 12px below title
 
         // Bullet point details
         const details = [
@@ -121,32 +124,33 @@ export default async function handler(req: any, res: any) {
             page.drawText(`• ${det.label}: ${det.value}`, { x: leftX + 10, y: currentY, size: 10, font: font });
             currentY -= 15;
         }
-        currentY -= 20;
 
-        // Approval Status Header
+        // Section: Approval Status
+        currentY -= 24;
         page.drawText("Approval Status", { x: leftX, y: currentY, size: 12, font: fontBold });
-        currentY -= 20;
+        currentY -= 12;
 
-        const part1 = "This booking has been officially ";
-        const partBold = "approved and confirmed";
-        const part2 = ", and the facility has been reserved exclusively for the date and time stated above.";
+        // Line 1: Bold keywords
+        const line1Part1 = "This booking has been officially ";
+        const line1Bold = "approved and confirmed";
+        const line1Part2 = ".";
 
-        // Manual wrap for single line requirement with bolding
-        page.drawText(part1, { x: leftX, y: currentY, size: fontSize, font: font });
-        const xBold = leftX + font.widthOfTextAtSize(part1, fontSize);
-        page.drawText(partBold, { x: xBold, y: currentY, size: fontSize, font: fontBold });
-        const xPart2 = xBold + fontBold.widthOfTextAtSize(partBold, fontSize);
+        page.drawText(line1Part1, { x: leftX, y: currentY, size: fontSize, font: font });
+        const xl1 = leftX + font.widthOfTextAtSize(line1Part1, fontSize);
+        page.drawText(line1Bold, { x: xl1, y: currentY, size: fontSize, font: fontBold });
+        const xl2 = xl1 + fontBold.widthOfTextAtSize(line1Bold, fontSize);
+        page.drawText(line1Part2, { x: xl2, y: currentY, size: fontSize, font: font });
+        currentY -= 15;
 
-        // This part definitely wraps.
-        const remainingText = part2;
-        currentY = drawWrappedText(remainingText, xPart2, currentY, rightX - xPart2, font, fontSize);
-        currentY -= 20;
+        // Line 2: No bold
+        page.drawText("The facility has been reserved exclusively for the date and time stated above.", { x: leftX, y: currentY, size: fontSize, font: font });
+        currentY -= 15;
 
         // Terms Header
+        currentY -= 24;
         page.drawText("Terms & Conditions", { x: leftX, y: currentY, size: 12, font: fontBold });
-        currentY -= 20;
+        currentY -= 12;
 
-        // Numbered T&Cs
         const terms = [
             "1. The person-in-charge must arrive within 20 minutes of the scheduled start time.",
             "2. Failure to do so will result in automatic cancellation of the booking.",
@@ -159,16 +163,37 @@ export default async function handler(req: any, res: any) {
             currentY = drawWrappedText(t, leftX, currentY, boxWidth, font, fontSize);
             currentY -= 5;
         }
-        currentY -= 40;
 
-        // Authorization / Signature Section
+        // Section: Authorized By
+        currentY -= 35; // Positioned upward
         page.drawText("Authorized by", { x: leftX, y: currentY, size: 12, font: fontBold });
-        currentY -= 45;
+        currentY -= 10;
 
+        // 1. Signature Image (Above Line)
+        const sigPath = path.join(process.cwd(), "assets", "sports-coordinator-sig.png");
+        let sigH = 40;
+        if (fs.existsSync(sigPath)) {
+            try {
+                const sigBytes = fs.readFileSync(sigPath);
+                const sigImage = await pdfDoc.embedPng(sigBytes);
+                const targetW = 100;
+                sigH = (sigImage.height / sigImage.width) * targetW;
+
+                page.drawImage(sigImage, {
+                    x: leftX + 10,
+                    y: currentY - sigH + 10, // Slight overlap
+                    width: targetW,
+                    height: sigH,
+                });
+            } catch (err) {
+                console.error("Sig embed error:", err);
+            }
+        }
+        currentY -= (sigH - 5);
+
+        // 2. Dotted Line
         const sigLineLength = 200;
-        const lineY = currentY + 15;
-
-        // Draw dotted line
+        const lineY = currentY;
         for (let x = leftX; x < leftX + sigLineLength; x += 4) {
             page.drawLine({
                 start: { x, y: lineY },
@@ -178,29 +203,7 @@ export default async function handler(req: any, res: any) {
             });
         }
 
-        // Hardcoded Sports Coordinator Signature
-        const sigPath = path.join(process.cwd(), "assets", "sports-coordinator-sig.png");
-        if (fs.existsSync(sigPath)) {
-            try {
-                const sigBytes = fs.readFileSync(sigPath);
-                const sigImage = await pdfDoc.embedPng(sigBytes);
-
-                const targetWidth = 110;
-                const targetHeight = (sigImage.height / sigImage.width) * targetWidth;
-
-                // Adjust Y to look "realistic" / touching / slightly over the line
-                page.drawImage(sigImage, {
-                    x: leftX + 10,
-                    y: lineY - 8,
-                    width: targetWidth,
-                    height: targetHeight,
-                });
-            } catch (err) {
-                console.error("Signature embedding failed:", err);
-            }
-        }
-
-        // Hardcoded Coordinator Credentials
+        // 3. Credentials (Below Line)
         currentY = lineY - 15;
         page.drawText("Chandana Kulathunga", { x: leftX, y: currentY, size: 10, font: fontBold });
         currentY -= 12;
@@ -210,16 +213,16 @@ export default async function handler(req: any, res: any) {
         currentY -= 12;
         page.drawText("Riyadh, KSA", { x: leftX, y: currentY, size: 10, font: font });
 
-        // Footer (Bottom of page) - One long line
-        const footerY = 50;
-        const footerText = "Generated automatically by the Facilities Booking System. This document is valid only for the approved date and time. A downloaded copy is considered an official confirmation.";
-        page.drawText(footerText, {
-            x: leftX,
-            y: footerY,
-            size: 8,
-            font: font,
-            color: rgb(0.5, 0.5, 0.5)
-        });
+        // Footer: Centered, small, two lines
+        const footerY = 60;
+        const fLine1 = "Generated automatically by the Facilities Booking System.";
+        const fLine2 = "This confirmation is valid only for the approved date and time.";
+
+        const f1W = font.widthOfTextAtSize(fLine1, 8);
+        const f2W = font.widthOfTextAtSize(fLine2, 8);
+
+        page.drawText(fLine1, { x: centerX - (f1W / 2), y: footerY + 12, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
+        page.drawText(fLine2, { x: centerX - (f2W / 2), y: footerY, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
 
         const pdfBytes = await pdfDoc.save();
 
