@@ -164,7 +164,7 @@ const UserFacilitiesBooking: React.FC = () => {
                 const bookingData = {
                     userId: user?.id,
                     userEmail: user?.email,
-                    requesterType: user?.role === 'STUDENT' ? 'Student' : 'Staff',
+                    requesterType: user?.role === 'STUDENT' ? 'Student' : (user?.role === 'PARENT' ? 'Parent' : 'Staff'),
                     requesterName: `${user?.firstName} ${user?.lastName}`,
                     facility,
                     date,

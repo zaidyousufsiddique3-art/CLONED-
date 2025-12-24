@@ -129,7 +129,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
             <NavItem to="/notifications" icon={Bell} label="Notifications" badge={unreadNotifications} />
 
-            {(user.role === UserRole.STUDENT) && (
+            {(user.role === UserRole.STUDENT || user.role === UserRole.PARENT) && (
               <>
                 <NavItem to="/new-request" icon={PlusCircle} label="New Request" />
                 <NavItem to="/my-requests" icon={FileText} label="My Requests" />

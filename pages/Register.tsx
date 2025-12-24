@@ -21,7 +21,8 @@ const Register: React.FC = () => {
     phone: '',
     password: '',
     confirmPassword: '',
-    designation: ''
+    designation: '',
+    numberOfChildren: '' // New field for Parent
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -54,7 +55,11 @@ const Register: React.FC = () => {
         newUser.admissionNumber = formData.admissionNumber;
         newUser.gender = formData.gender;
       } else {
-        newUser.designation = formData.designation;
+        if (regType === UserRole.PARENT) {
+          newUser.numberOfChildren = formData.numberOfChildren;
+        } else {
+          newUser.designation = formData.designation;
+        }
       }
 
       await registerUser(newUser, formData.password);
@@ -103,6 +108,7 @@ const Register: React.FC = () => {
                     className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm appearance-none transition-all cursor-pointer hover:bg-slate-900/80"
                   >
                     <option value={UserRole.STUDENT}>Student</option>
+                    <option value={UserRole.PARENT}>Parent</option>
                     <option value={UserRole.STAFF}>Staff</option>
                     <option value={UserRole.ADMIN}>Admin</option>
                   </select>
@@ -126,6 +132,11 @@ const Register: React.FC = () => {
                 <input type="email" name="email" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
               </div>
 
+              <div className="space-y-1.5 group">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Phone Number</label>
+                <input name="phone" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+              </div>
+
               {regType === UserRole.STUDENT ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1.5 group">
@@ -140,10 +151,15 @@ const Register: React.FC = () => {
                     </select>
                   </div>
                 </div>
+              ) : regType === UserRole.PARENT ? (
+                <div className="space-y-1.5 group">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Number of Children Currently Studying</label>
+                  <input name="numberOfChildren" type="number" min="0" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+                </div>
               ) : (
                 <div className="space-y-1.5 group">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Designation / Title</label>
-                  <input name="designation" onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+                  <input name="designation" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
                 </div>
               )}
 

@@ -53,7 +53,7 @@ const Dashboard: React.FC = () => {
       setRequests(data);
     };
 
-    if (user.role === UserRole.STUDENT) {
+    if (user.role === UserRole.STUDENT || user.role === UserRole.PARENT) {
       unsubscribe = subscribeToStudentRequests(user.id, handleData);
     } else if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) {
       unsubscribe = subscribeToAllRequests(handleData);
@@ -81,7 +81,7 @@ const Dashboard: React.FC = () => {
       // Strict Role-based filtering for Password Requests
       if (user.role === UserRole.STAFF) {
         pwdData = pwdData.filter((r: any) => r.assignedToId === user.id);
-      } else if (user.role === UserRole.STUDENT) {
+      } else if (user.role === UserRole.STUDENT || user.role === UserRole.PARENT) {
         pwdData = pwdData.filter((r: any) => r.email === user.email);
       }
 
@@ -90,7 +90,7 @@ const Dashboard: React.FC = () => {
       setPasswordRequests(pwdData);
     });
 
-    if (user.role !== UserRole.STUDENT) {
+    if (user.role !== UserRole.STUDENT && user.role !== UserRole.PARENT) {
       getPotentialAssignees().then(setAssignees);
     }
 
@@ -284,7 +284,7 @@ const Dashboard: React.FC = () => {
         ) : (
           <>
             <StatCard title="Total Requests" value={stats.total} icon={FileText} colorClass="bg-brand-500" iconColor="text-brand-500" className="" />
-            {user?.role !== UserRole.STUDENT && stats.actionNeeded > 0 ? (
+            {user?.role !== UserRole.STUDENT && user?.role !== UserRole.PARENT && stats.actionNeeded > 0 ? (
               <StatCard title="Action Needed" value={stats.actionNeeded} icon={AlertTriangle} colorClass="bg-red-500" iconColor="text-red-500" className="" />
             ) : (
               <StatCard title="Pending" value={stats.pending} icon={Clock} colorClass="bg-amber-500" iconColor="text-amber-500" className="" />
@@ -295,7 +295,7 @@ const Dashboard: React.FC = () => {
         )}
       </div>
 
-      {user?.role === UserRole.STUDENT && (
+      {(user?.role === UserRole.STUDENT || user?.role === UserRole.PARENT) && (
         <div className="bg-gradient-to-r from-brand-600 to-brand-800 rounded-3xl p-10 text-white shadow-xl relative overflow-hidden border border-white/5">
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
@@ -361,7 +361,7 @@ const Dashboard: React.FC = () => {
                   <th className="px-8 py-5 font-semibold">User Info</th>
                   <th className="px-8 py-5 font-semibold">Expected Date</th>
                   <th className="px-8 py-5 font-semibold">Status</th>
-                  {user?.role !== UserRole.STUDENT && <th className="px-8 py-5 font-semibold">Assigned To</th>}
+                  {user?.role !== UserRole.STUDENT && user?.role !== UserRole.PARENT && <th className="px-8 py-5 font-semibold">Assigned To</th>}
                   <th className="px-8 py-5 font-semibold">Action</th>
                 </tr>
               </thead>
@@ -389,7 +389,7 @@ const Dashboard: React.FC = () => {
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-2">
                         <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusStyle(req.status)}`}>
-                          {req.type === DocumentType.SPORTS_CAPTAIN && req.status === RequestStatus.ASSIGNED && user?.role === UserRole.STUDENT
+                          {req.type === DocumentType.SPORTS_CAPTAIN && req.status === RequestStatus.ASSIGNED && (user?.role === UserRole.STUDENT || user?.role === UserRole.PARENT)
                             ? 'Pending Action'
                             : (req.status === RequestStatus.APPLICATION_RECEIVED ? 'Assigned' : req.status)}
                         </span>
@@ -399,11 +399,11 @@ const Dashboard: React.FC = () => {
                         )}
                       </div>
                     </td>
-                    {user?.role !== UserRole.STUDENT && (
+                    {user?.role !== UserRole.STUDENT && user?.role !== UserRole.PARENT && (
                       <td className="px-8 py-5 text-sm text-slate-800 dark:text-white">{req.assignedToName || 'Unassigned'}</td>
                     )}
                     <td className="px-8 py-5 flex items-center space-x-3">
-                      {req.type === DocumentType.SPORTS_CAPTAIN && user?.role === UserRole.STUDENT ? (
+                      {req.type === DocumentType.SPORTS_CAPTAIN && (user?.role === UserRole.STUDENT || user?.role === UserRole.PARENT) ? (
                         <Link
                           to="/sports-captain/apply"
                           className="text-brand-600 dark:text-brand-400 hover:text-brand-700 font-medium text-sm"
@@ -435,7 +435,7 @@ const Dashboard: React.FC = () => {
                   <th className="px-8 py-5 font-semibold">User Info</th>
                   <th className="px-8 py-5 font-semibold">Role</th>
                   <th className="px-8 py-5 font-semibold">Status</th>
-                  {user?.role !== UserRole.STUDENT && <th className="px-8 py-5 font-semibold">Assigned To</th>}
+                  {user?.role !== UserRole.STUDENT && user?.role !== UserRole.PARENT && <th className="px-8 py-5 font-semibold">Assigned To</th>}
                   <th className="px-8 py-5 font-semibold">Action</th>
                 </tr>
               </thead>
@@ -452,7 +452,7 @@ const Dashboard: React.FC = () => {
                     <td className="px-8 py-5">
                       <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusStyle(req.status)}`}>{req.status}</span>
                     </td>
-                    {user?.role !== UserRole.STUDENT && (
+                    {user?.role !== UserRole.STUDENT && user?.role !== UserRole.PARENT && (
                       <td className="px-8 py-5 text-sm text-slate-500">{req.assignedToName || 'Unassigned'}</td>
                     )}
                     <td className="px-8 py-5 flex items-center space-x-3">

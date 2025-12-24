@@ -160,6 +160,7 @@ const Login: React.FC = () => {
         switch (role) {
             case UserRole.ADMIN: return Shield;
             case UserRole.STAFF: return Users;
+            case UserRole.PARENT: return Users;
             case UserRole.STUDENT: return GraduationCap;
             default: return Users;
         }
@@ -241,7 +242,7 @@ const Login: React.FC = () => {
                                     <form onSubmit={handleLoginSubmit} className="space-y-5">
                                         <InputField
                                             label="ACCESS ROLE"
-                                            options={[UserRole.STUDENT, UserRole.STAFF, UserRole.ADMIN]}
+                                            options={[UserRole.STUDENT, UserRole.PARENT, UserRole.STAFF, UserRole.ADMIN]}
                                             value={selectedRole}
                                             onChange={(e: any) => {
                                                 setSelectedRole(e.target.value as UserRole);
@@ -315,7 +316,7 @@ const Login: React.FC = () => {
                                         <form onSubmit={handleResetSubmit} className="space-y-3.5">
                                             <InputField
                                                 label="RESTORATION ROLE"
-                                                options={[UserRole.STUDENT, UserRole.STAFF, UserRole.ADMIN]}
+                                                options={[UserRole.STUDENT, UserRole.PARENT, UserRole.STAFF, UserRole.ADMIN]}
                                                 value={resetRole}
                                                 onChange={(e: any) => setResetRole(e.target.value as UserRole)}
                                             />

@@ -17,7 +17,7 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'STUDENT' | 'STAFF' | 'ADMIN'>('STUDENT');
+  const [activeTab, setActiveTab] = useState<'STUDENT' | 'PARENT' | 'STAFF' | 'ADMIN'>('STUDENT');
 
   // Create Modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -30,7 +30,8 @@ const UserManagement: React.FC = () => {
     admissionNumber: '',
     phone: '',
     gender: 'Male',
-    designation: ''
+    designation: '',
+    numberOfChildren: ''
   });
   const [creatingUser, setCreatingUser] = useState(false);
 
@@ -62,11 +63,12 @@ const UserManagement: React.FC = () => {
       lastName: '',
       email: '',
       password: '',
-      role: activeTab === 'STUDENT' ? UserRole.STUDENT : activeTab === 'STAFF' ? UserRole.STAFF : UserRole.ADMIN,
+      role: activeTab === 'STUDENT' ? UserRole.STUDENT : activeTab === 'PARENT' ? UserRole.PARENT : activeTab === 'STAFF' ? UserRole.STAFF : UserRole.ADMIN,
       admissionNumber: '',
       phone: '',
       gender: 'Male',
-      designation: ''
+      designation: '',
+      numberOfChildren: ''
     });
     setIsCreateModalOpen(true);
   };
@@ -81,6 +83,7 @@ const UserManagement: React.FC = () => {
       admissionNumber: user.admissionNumber || '',
       gender: user.gender || 'Male',
       designation: user.designation || '',
+      numberOfChildren: user.numberOfChildren || '',
       hasRecommendationAccess: user.hasRecommendationAccess || false
     });
     setIsEditModalOpen(true);
@@ -169,6 +172,8 @@ const UserManagement: React.FC = () => {
       if (createData.role === UserRole.STUDENT) {
         userPayload.admissionNumber = createData.admissionNumber;
         userPayload.gender = createData.gender;
+      } else if (createData.role === UserRole.PARENT) {
+        userPayload.numberOfChildren = createData.numberOfChildren;
       } else {
         userPayload.designation = createData.designation;
       }
@@ -202,7 +207,7 @@ const UserManagement: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400 text-sm">Manage system access and roles</p>
         </div>
         <div className="flex space-x-1 bg-white dark:bg-[#070708] p-1 rounded-xl border border-slate-200 dark:border-white/10 backdrop-blur-md w-full sm:w-auto overflow-x-auto">
-          {(['STUDENT', 'STAFF', 'ADMIN'] as const).map(tab => (
+          {(['STUDENT', 'PARENT', 'STAFF', 'ADMIN'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -232,6 +237,7 @@ const UserManagement: React.FC = () => {
                 <th className="px-6 py-5 font-semibold">Phone</th>
                 {activeTab === 'STUDENT' && <th className="px-6 py-5 font-semibold">Gender</th>}
                 {activeTab === 'STAFF' && <th className="px-6 py-5 font-semibold">Designation</th>}
+                {activeTab === 'PARENT' && <th className="px-6 py-5 font-semibold">No. of Children</th>}
                 <th className="px-6 py-5 font-semibold">Role</th>
                 <th className="px-6 py-5 font-semibold text-right">Actions</th>
               </tr>
@@ -249,11 +255,13 @@ const UserManagement: React.FC = () => {
                   <td className="px-6 py-5 text-sm text-slate-500">{u.phone || '-'}</td>
                   {activeTab === 'STUDENT' && <td className="px-6 py-5 text-sm text-slate-500">{u.gender}</td>}
                   {activeTab === 'STAFF' && <td className="px-6 py-5 text-sm text-slate-500">{u.designation}</td>}
+                  {activeTab === 'PARENT' && <td className="px-6 py-5 text-sm text-slate-500">{u.numberOfChildren || '-'}</td>}
                   <td className="px-6 py-5">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold ${u.role === UserRole.SUPER_ADMIN ? 'bg-purple-100 text-purple-600' :
                       u.role === UserRole.ADMIN ? 'bg-indigo-100 text-indigo-600' :
                         u.role === UserRole.STAFF ? 'bg-brand-100 text-brand-600' :
-                          'bg-slate-100 text-slate-600'
+                          u.role === UserRole.PARENT ? 'bg-teal-100 text-teal-600' :
+                            'bg-slate-100 text-slate-600'
                       }`}>
                       {u.role}
                     </span>
@@ -335,6 +343,13 @@ const UserManagement: React.FC = () => {
                 </div>
               )}
 
+              {activeTab === 'PARENT' && (
+                <div className="animate-fade-in">
+                  <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Number of Children</label>
+                  <input type="number" min="0" value={createData.numberOfChildren} onChange={e => setCreateData({ ...createData, numberOfChildren: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Password</label>
                 <input type="password" required value={createData.password} onChange={e => setCreateData({ ...createData, password: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
@@ -402,6 +417,13 @@ const UserManagement: React.FC = () => {
                 <div>
                   <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Designation</label>
                   <input value={editFormData.designation} onChange={e => setEditFormData({ ...editFormData, designation: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                </div>
+              )}
+
+              {editingUser.role === UserRole.PARENT && (
+                <div>
+                  <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Number of Children</label>
+                  <input type="number" min="0" value={editFormData.numberOfChildren} onChange={e => setEditFormData({ ...editFormData, numberOfChildren: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
                 </div>
               )}
 

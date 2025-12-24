@@ -4,6 +4,7 @@ export enum UserRole {
   ADMIN = 'ADMIN',
   STAFF = 'STAFF',
   STUDENT = 'STUDENT',
+  PARENT = 'PARENT',
 }
 
 export enum RequestStatus {
@@ -48,6 +49,7 @@ export interface User {
   signatureUrl?: string; // URL to signature image
   principalStampUrl?: string; // Principal's official stamp
   hasRecommendationAccess?: boolean;
+  numberOfChildren?: string; // Parents only
   createdAt: string;
 }
 

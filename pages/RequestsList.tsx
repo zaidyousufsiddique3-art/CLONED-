@@ -36,7 +36,7 @@ const RequestsList: React.FC = () => {
             setRequests(data);
         };
 
-        if (user.role === UserRole.STUDENT) {
+        if (user.role === UserRole.STUDENT || user.role === UserRole.PARENT) {
             unsubscribe = subscribeToStudentRequests(user.id, handleData);
         } else if (user.role === UserRole.SUPER_ADMIN) {
             unsubscribe = subscribeToAllRequests(handleData);
@@ -45,7 +45,7 @@ const RequestsList: React.FC = () => {
         }
 
         // 2. Password Resets (Visible to All Admins/Staff/SuperAdmin)
-        if (user.role !== UserRole.STUDENT) {
+        if (user.role !== UserRole.STUDENT && user.role !== UserRole.PARENT) {
             const q = query(collection(db, 'password_resets'));
             unsubscribePwd = onSnapshot(q, (snapshot) => {
                 const pwdData = snapshot.docs.map(doc => ({
@@ -233,7 +233,7 @@ const RequestsList: React.FC = () => {
                 <div className="flex flex-col md:flex-row gap-4 w-full xl:w-auto items-center">
 
                     {/* Category Switcher - Pill Style */}
-                    {user?.role !== UserRole.STUDENT && (
+                    {user?.role !== UserRole.STUDENT && user?.role !== UserRole.PARENT && (
                         <div className="bg-slate-200 dark:bg-[#070708] p-1 rounded-xl flex overflow-x-auto scrollbar-hide shrink-0 border border-white/5 w-full md:w-auto">
                             <button
                                 onClick={() => setCategory('documents')}
@@ -299,7 +299,7 @@ const RequestsList: React.FC = () => {
                                 <th className="px-8 py-5 font-semibold">User Info</th>
                                 <th className="px-8 py-5 font-semibold">Expected Date</th>
                                 <th className="px-8 py-5 font-semibold">Status</th>
-                                {user?.role !== UserRole.STUDENT && <th className="px-8 py-5 font-semibold">Assigned To</th>}
+                                {user?.role !== UserRole.STUDENT && user?.role !== UserRole.PARENT && <th className="px-8 py-5 font-semibold">Assigned To</th>}
                                 <th className="px-8 py-5 font-semibold">Action</th>
                             </tr>
                         </thead>
@@ -331,19 +331,19 @@ const RequestsList: React.FC = () => {
                                     </td>
                                     <td className="px-8 py-5">
                                         <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusStyle(req.status)}`}>
-                                            {req.type === DocumentType.SPORTS_CAPTAIN && req.status === RequestStatus.ASSIGNED && user?.role === UserRole.STUDENT
+                                            {req.type === DocumentType.SPORTS_CAPTAIN && req.status === RequestStatus.ASSIGNED && (user?.role === UserRole.STUDENT || user?.role === UserRole.PARENT)
                                                 ? 'Pending Action'
                                                 : (req.status === RequestStatus.APPLICATION_RECEIVED ? 'Assigned' : req.status)}
                                         </span>
                                     </td>
-                                    {user?.role !== UserRole.STUDENT && <td className="px-8 py-5 text-sm text-slate-800 dark:text-white">{req.assignedToName || 'Unassigned'}</td>}
+                                    {user?.role !== UserRole.STUDENT && user?.role !== UserRole.PARENT && <td className="px-8 py-5 text-sm text-slate-800 dark:text-white">{req.assignedToName || 'Unassigned'}</td>}
                                     <td className="px-8 py-5 flex items-center gap-3">
                                         {req.isPasswordReset ? (
                                             <button onClick={(e) => openPwdModal(req, e)} className="text-brand-600 hover:text-brand-700 font-bold text-sm">Manage</button>
                                         ) : (
                                             <Link
                                                 to={req.type === DocumentType.SPORTS_CAPTAIN
-                                                    ? (user?.role === UserRole.STUDENT ? "/sports-captain/apply" : `/sports-captain?studentId=${req.studentId}`)
+                                                    ? ((user?.role === UserRole.STUDENT || user?.role === UserRole.PARENT) ? "/sports-captain/apply" : `/sports-captain?studentId=${req.studentId}`)
                                                     : `/requests/${req.id}`
                                                 }
                                                 className="text-brand-600 hover:text-brand-700 font-bold text-sm"
