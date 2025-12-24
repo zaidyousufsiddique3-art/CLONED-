@@ -12,7 +12,7 @@ interface FacilityBooking {
     requesterType: 'Student' | 'Parent' | 'Staff' | 'Admin';
     requesterName: string;
     userId: string;
-    facility: 'Badminton Courts' | 'Football Ground';
+    facility: 'Badminton Courts' | 'Football Ground' | 'Basketball Courts';
     date: string;
     timeSlot: string;
     duration: string;
@@ -211,7 +211,9 @@ const SportsFacilitiesBooking: React.FC = () => {
                                         <td className="p-6">
                                             <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${booking.facility === 'Badminton Courts'
                                                 ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/30'
-                                                : 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30'
+                                                : booking.facility === 'Football Ground'
+                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30'
+                                                    : 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-900/30'
                                                 }`}>
                                                 {booking.facility}
                                             </span>

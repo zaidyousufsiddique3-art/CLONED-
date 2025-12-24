@@ -7,7 +7,7 @@ import { sendNotification } from '../firebase/notificationService';
 import { SPORTS_COORDINATOR_EMAIL } from '../constants';
 import { Calendar, Clock, User, CheckCircle, AlertCircle, FileText, PlusCircle, Loader2, Download } from 'lucide-react';
 
-const FACILITIES = ['Badminton Courts', 'Football Ground'];
+const FACILITIES = ['Badminton Courts', 'Football Ground', 'Basketball Courts'];
 const TIME_SLOTS = [
     '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
     '19:00', '19:30', '20:00', '20:30', '21:00', '21:30',
