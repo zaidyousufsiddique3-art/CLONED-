@@ -111,7 +111,7 @@ const UserFacilitiesBooking: React.FC = () => {
 
     const validateSubmission = async () => {
         // 1. Basic Fields
-        if (!date || !startTime || !personInCharge || (facility === 'Badminton Courts' && !numberOfStudents)) {
+        if (!date || !startTime || !personInCharge || (facility === 'Badminton Courts' && user?.role === 'STUDENT' && !numberOfStudents)) {
             alert("Please fill in all required fields.");
             return false;
         }
@@ -182,7 +182,7 @@ const UserFacilitiesBooking: React.FC = () => {
                     timeSlot: startTime,
                     duration: duration,
                     personInCharge,
-                    numberOfStudents: facility === 'Badminton Courts' ? numberOfStudents : null,
+                    numberOfStudents: (facility === 'Badminton Courts' && user?.role === 'STUDENT') ? numberOfStudents : null,
                     price: price,
                     status: 'Pending',
                     createdAt: new Date().toISOString()
@@ -273,8 +273,8 @@ const UserFacilitiesBooking: React.FC = () => {
                                 </select>
                             </div>
 
-                            {/* Conditional: Number of Students for Badminton */}
-                            {facility === 'Badminton Courts' && (
+                            {/* Conditional: Number of Students for Badminton (Student Role Only) */}
+                            {facility === 'Badminton Courts' && user?.role === 'STUDENT' && (
                                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Number of Students</label>
                                     <input
