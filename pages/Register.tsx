@@ -74,7 +74,7 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-[#070708] flex flex-col font-sans selection:bg-brand-500/30 selection:text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#070708] flex flex-col font-sans selection:bg-brand-500/30 selection:text-white relative overflow-x-hidden">
 
       {/* Premium Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
