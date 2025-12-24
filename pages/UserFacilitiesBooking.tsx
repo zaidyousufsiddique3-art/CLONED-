@@ -167,10 +167,8 @@ const UserFacilitiesBooking: React.FC = () => {
                 let price = 0;
                 if (facility === 'Badminton Courts') {
                     price = user?.role === 'STUDENT' ? (10 * students * hours) : (60 * hours);
-                } else if (facility === 'Basketball Courts') {
+                } else if (facility === 'Basketball Courts' || facility === 'Football Ground') {
                     price = user?.role === 'STUDENT' ? (100 * hours) : (120 * hours);
-                } else if (facility === 'Football Ground') {
-                    price = user?.role === 'STUDENT' ? 100 : 120;
                 }
 
                 // Create Booking
@@ -358,10 +356,8 @@ const UserFacilitiesBooking: React.FC = () => {
                                         let price = 0;
                                         if (facility === 'Badminton Courts') {
                                             price = user?.role === 'STUDENT' ? (10 * students * hours) : (60 * hours);
-                                        } else if (facility === 'Basketball Courts') {
+                                        } else {
                                             price = user?.role === 'STUDENT' ? (100 * hours) : (120 * hours);
-                                        } else if (facility === 'Football Ground') {
-                                            price = user?.role === 'STUDENT' ? 100 : 120;
                                         }
                                         return price.toFixed(2);
                                     })()}
@@ -372,9 +368,7 @@ const UserFacilitiesBooking: React.FC = () => {
                             <div className="w-full pt-4 space-y-3">
                                 <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-2">
                                     <span>Rate Type</span>
-                                    <span className="text-slate-900 dark:text-white">
-                                        {facility === 'Football Ground' ? 'Fixed' : 'Hourly'}
-                                    </span>
+                                    <span className="text-slate-900 dark:text-white">Hourly</span>
                                 </div>
                                 <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-wider px-2">
                                     <span>Category</span>
