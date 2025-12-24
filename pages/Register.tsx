@@ -132,24 +132,24 @@ const Register: React.FC = () => {
                 <input type="email" name="email" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
               </div>
 
-              <div className="space-y-1.5 group">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Phone Number</label>
-                <input name="phone" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1.5 group">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Phone Number</label>
+                  <input name="phone" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+                </div>
+                <div className="space-y-1.5 group">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Gender</label>
+                  <select name="gender" onChange={handleChange} defaultValue="Male" className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm appearance-none transition-all cursor-pointer hover:bg-slate-900/80">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
               </div>
 
               {regType === UserRole.STUDENT ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-1.5 group">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Admission Number</label>
-                    <input name="admissionNumber" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
-                  </div>
-                  <div className="space-y-1.5 group">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Gender</label>
-                    <select name="gender" onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm appearance-none transition-all cursor-pointer hover:bg-slate-900/80">
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
+                <div className="space-y-1.5 group">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Admission Number</label>
+                  <input name="admissionNumber" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
                 </div>
               ) : regType === UserRole.PARENT ? (
                 <div className="space-y-1.5 group">

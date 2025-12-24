@@ -21,6 +21,8 @@ interface FacilityBooking {
     createdAt: string;
     expectedCollectionDate?: string;
     numberOfStudents?: string;
+    price?: number;
+    gender?: 'Male' | 'Female';
 }
 
 const SportsFacilitiesBooking: React.FC = () => {
@@ -233,6 +235,16 @@ const SportsFacilitiesBooking: React.FC = () => {
                                                     {booking.numberOfStudents && (
                                                         <span className="text-[10px] font-bold bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">
                                                             {booking.numberOfStudents} Students
+                                                        </span>
+                                                    )}
+                                                    {booking.gender && (
+                                                        <span className="text-[10px] font-bold bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">
+                                                            {booking.gender}
+                                                        </span>
+                                                    )}
+                                                    {booking.price !== undefined && (
+                                                        <span className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded text-emerald-700 dark:text-emerald-400">
+                                                            {booking.price.toFixed(2)} SAR
                                                         </span>
                                                     )}
                                                 </div>

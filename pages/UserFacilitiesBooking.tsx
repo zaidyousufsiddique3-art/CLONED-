@@ -25,6 +25,7 @@ const UserFacilitiesBooking: React.FC = () => {
     const [duration, setDuration] = useState('60'); // Minutes
     const [personInCharge, setPersonInCharge] = useState('');
     const [numberOfStudents, setNumberOfStudents] = useState('');
+    const [gender, setGender] = useState('Male');
     const [submitting, setSubmitting] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
 
@@ -35,6 +36,7 @@ const UserFacilitiesBooking: React.FC = () => {
     useEffect(() => {
         if (user) {
             setPersonInCharge(`${user.firstName} ${user.lastName}`);
+            if (user.gender) setGender(user.gender);
 
             // Listen to My Bookings
             const q = query(
@@ -89,7 +91,9 @@ const UserFacilitiesBooking: React.FC = () => {
                     time: `${booking.timeSlot} – ${calculateEndTime(booking.timeSlot, parseInt(booking.duration)).label}`, // En-dash
                     personInCharge: booking.personInCharge,
                     bookingRef: booking.id,
-                    personName: booking.requesterName
+                    personName: booking.requesterName,
+                    price: booking.price,
+                    gender: booking.gender
                 })
             });
 
@@ -183,6 +187,7 @@ const UserFacilitiesBooking: React.FC = () => {
                     duration: duration,
                     personInCharge,
                     numberOfStudents: (facility === 'Badminton Courts' && user?.role === 'STUDENT') ? numberOfStudents : null,
+                    gender,
                     price: price,
                     status: 'Pending',
                     createdAt: new Date().toISOString()
@@ -262,15 +267,28 @@ const UserFacilitiesBooking: React.FC = () => {
                     <div className="lg:col-span-2 bg-white dark:bg-[#070708] p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-xl">
                         <div className="space-y-6">
                             {/* Facility */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Facility</label>
-                                <select
-                                    value={facility}
-                                    onChange={(e) => setFacility(e.target.value)}
-                                    className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
-                                >
-                                    {FACILITIES.map(f => <option key={f} value={f}>{f}</option>)}
-                                </select>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Facility</label>
+                                    <select
+                                        value={facility}
+                                        onChange={(e) => setFacility(e.target.value)}
+                                        className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
+                                    >
+                                        {FACILITIES.map(f => <option key={f} value={f}>{f}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Gender</label>
+                                    <select
+                                        value={gender}
+                                        onChange={(e) => setGender(e.target.value)}
+                                        className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
+                                    >
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                    </select>
+                                </div>
                             </div>
 
                             {/* Conditional: Number of Students for Badminton (Student Role Only) */}
@@ -421,6 +439,9 @@ const UserFacilitiesBooking: React.FC = () => {
                                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{b.date}</span>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-xs text-slate-500">{b.timeSlot} ({b.duration} mins)</span>
+                                                    <span className="text-[10px] font-bold bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">
+                                                        {b.gender}
+                                                    </span>
                                                     {b.numberOfStudents && (
                                                         <span className="text-[10px] font-bold bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">
                                                             {b.numberOfStudents} Students

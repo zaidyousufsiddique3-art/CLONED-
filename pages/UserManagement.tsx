@@ -169,9 +169,10 @@ const UserManagement: React.FC = () => {
         createdAt: new Date().toISOString()
       };
 
+      userPayload.gender = createData.gender;
+
       if (createData.role === UserRole.STUDENT) {
         userPayload.admissionNumber = createData.admissionNumber;
-        userPayload.gender = createData.gender;
       } else if (createData.role === UserRole.PARENT) {
         userPayload.numberOfChildren = createData.numberOfChildren;
       } else {
@@ -235,7 +236,7 @@ const UserManagement: React.FC = () => {
                 {activeTab === 'STUDENT' && <th className="px-6 py-5 font-semibold">Admission No</th>}
                 <th className="px-6 py-5 font-semibold">Email</th>
                 <th className="px-6 py-5 font-semibold">Phone</th>
-                {activeTab === 'STUDENT' && <th className="px-6 py-5 font-semibold">Gender</th>}
+                <th className="px-6 py-5 font-semibold">Gender</th>
                 {activeTab === 'STAFF' && <th className="px-6 py-5 font-semibold">Designation</th>}
                 {activeTab === 'PARENT' && <th className="px-6 py-5 font-semibold">No. of Children</th>}
                 <th className="px-6 py-5 font-semibold">Role</th>
@@ -253,7 +254,7 @@ const UserManagement: React.FC = () => {
                   )}
                   <td className="px-6 py-5 text-sm text-slate-600 dark:text-slate-300">{u.email}</td>
                   <td className="px-6 py-5 text-sm text-slate-500">{u.phone || '-'}</td>
-                  {activeTab === 'STUDENT' && <td className="px-6 py-5 text-sm text-slate-500">{u.gender}</td>}
+                  <td className="px-6 py-5 text-sm text-slate-500">{u.gender || '-'}</td>
                   {activeTab === 'STAFF' && <td className="px-6 py-5 text-sm text-slate-500">{u.designation}</td>}
                   {activeTab === 'PARENT' && <td className="px-6 py-5 text-sm text-slate-500">{u.numberOfChildren || '-'}</td>}
                   <td className="px-6 py-5">
@@ -320,21 +321,21 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
 
-              {activeTab === 'STUDENT' && (
-                <div className="grid grid-cols-2 gap-5 animate-fade-in">
-                  <div>
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Gender</label>
+                  <select value={createData.gender} onChange={e => setCreateData({ ...createData, gender: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+                {activeTab === 'STUDENT' && (
+                  <div className="animate-fade-in">
                     <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Admission Number</label>
                     <input required value={createData.admissionNumber} onChange={e => setCreateData({ ...createData, admissionNumber: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Gender</label>
-                    <select value={createData.gender} onChange={e => setCreateData({ ...createData, gender: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white">
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {activeTab === 'STAFF' && (
                 <div className="animate-fade-in">
@@ -397,21 +398,21 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
 
-              {editingUser.role === UserRole.STUDENT && (
-                <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Gender</label>
+                  <select value={editFormData.gender} onChange={e => setEditFormData({ ...editFormData, gender: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+                {editingUser.role === UserRole.STUDENT && (
                   <div>
                     <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Admission Number</label>
                     <input required value={editFormData.admissionNumber} onChange={e => setEditFormData({ ...editFormData, admissionNumber: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Gender</label>
-                    <select value={editFormData.gender} onChange={e => setEditFormData({ ...editFormData, gender: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white">
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {editingUser.role === UserRole.STAFF && (
                 <div>

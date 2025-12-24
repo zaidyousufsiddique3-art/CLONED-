@@ -108,7 +108,9 @@ export default async function handler(req: any, res: any) {
             `Facility Booked: ${payload.facility}`,
             `Date: ${payload.date}`,
             `Time: ${payload.time}`, // Expecting "Start - End" passed from payload
+            `Gender: ${payload.gender || 'N/A'}`,
             `Person-in-Charge: ${payload.personInCharge}`,
+            `Total Cost: ${payload.price ? payload.price + ' SAR' : 'N/A'}`,
             `Booking Reference: ${payload.bookingRef || 'N/A'}`
         ];
 
