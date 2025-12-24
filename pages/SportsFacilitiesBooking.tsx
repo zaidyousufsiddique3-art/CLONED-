@@ -20,6 +20,7 @@ interface FacilityBooking {
     status: 'Pending' | 'Approved' | 'Rejected' | 'Completed';
     createdAt: string;
     expectedCollectionDate?: string;
+    numberOfStudents?: string;
 }
 
 const SportsFacilitiesBooking: React.FC = () => {
@@ -224,10 +225,17 @@ const SportsFacilitiesBooking: React.FC = () => {
                                                     <Calendar className="w-3.5 h-3.5 mr-2 text-slate-400" />
                                                     {new Date(booking.date).toLocaleDateString()}
                                                 </span>
-                                                <span className="flex items-center text-xs text-slate-500">
-                                                    <Clock className="w-3.5 h-3.5 mr-2 text-slate-400" />
-                                                    {booking.timeSlot} ({booking.duration}m)
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="flex items-center text-xs text-slate-500">
+                                                        <Clock className="w-3.5 h-3.5 mr-2 text-slate-400" />
+                                                        {booking.timeSlot} ({booking.duration}m)
+                                                    </span>
+                                                    {booking.numberOfStudents && (
+                                                        <span className="text-[10px] font-bold bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">
+                                                            {booking.numberOfStudents} Students
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="p-6">

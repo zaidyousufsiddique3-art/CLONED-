@@ -24,6 +24,7 @@ const UserFacilitiesBooking: React.FC = () => {
     const [startTime, setStartTime] = useState('16:00');
     const [duration, setDuration] = useState('60'); // Minutes
     const [personInCharge, setPersonInCharge] = useState('');
+    const [numberOfStudents, setNumberOfStudents] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
 
@@ -110,7 +111,7 @@ const UserFacilitiesBooking: React.FC = () => {
 
     const validateSubmission = async () => {
         // 1. Basic Fields
-        if (!date || !startTime || !personInCharge) {
+        if (!date || !startTime || !personInCharge || (facility === 'Badminton Courts' && !numberOfStudents)) {
             alert("Please fill in all required fields.");
             return false;
         }
@@ -171,6 +172,7 @@ const UserFacilitiesBooking: React.FC = () => {
                     timeSlot: startTime,
                     duration: duration,
                     personInCharge,
+                    numberOfStudents: facility === 'Badminton Courts' ? numberOfStudents : null,
                     status: 'Pending',
                     createdAt: new Date().toISOString()
                 };
@@ -257,6 +259,21 @@ const UserFacilitiesBooking: React.FC = () => {
                                 {FACILITIES.map(f => <option key={f} value={f}>{f}</option>)}
                             </select>
                         </div>
+
+                        {/* Conditional: Number of Students for Badminton */}
+                        {facility === 'Badminton Courts' && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Number of Students</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={numberOfStudents}
+                                    onChange={(e) => setNumberOfStudents(e.target.value)}
+                                    placeholder="e.g., 4"
+                                    className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
+                                />
+                            </div>
+                        )}
 
                         {/* Date */}
                         <div>
@@ -354,7 +371,14 @@ const UserFacilitiesBooking: React.FC = () => {
                                         <td className="p-6">
                                             <div className="flex flex-col gap-1">
                                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{b.date}</span>
-                                                <span className="text-xs text-slate-500">{b.timeSlot} ({b.duration} mins)</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-slate-500">{b.timeSlot} ({b.duration} mins)</span>
+                                                    {b.numberOfStudents && (
+                                                        <span className="text-[10px] font-bold bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">
+                                                            {b.numberOfStudents} Students
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 {b.expectedCollectionDate && (
                                                     <span className="text-[10px] uppercase font-bold text-brand-600 dark:text-brand-500 mt-1">
                                                         Collect by: {b.expectedCollectionDate}
