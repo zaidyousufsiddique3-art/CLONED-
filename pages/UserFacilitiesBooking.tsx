@@ -5,7 +5,7 @@ import { collection, addDoc, query, where, getDocs, orderBy, onSnapshot, doc, up
 import { db } from '../firebase/firebaseConfig';
 import { sendNotification } from '../firebase/notificationService';
 import { SPORTS_COORDINATOR_EMAIL } from '../constants';
-import { Calendar, Clock, User, CheckCircle, AlertCircle, FileText, PlusCircle, Loader2, Download } from 'lucide-react';
+import { Calendar, Clock, User, CheckCircle, AlertCircle, FileText, PlusCircle, Loader2, Download, Star } from 'lucide-react';
 
 const FACILITIES = ['Badminton Courts', 'Football Ground', 'Basketball Courts'];
 const TIME_SLOTS = [
@@ -368,11 +368,10 @@ const UserFacilitiesBooking: React.FC = () => {
                     <p className="text-slate-500 text-sm">Book sports facilities pending coordinator approval.</p>
                 </div>
                 {activeMembership && (
-                    <div className="flex items-center gap-3 px-6 py-3 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl animate-in zoom-in-95 duration-500">
-                        <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
-                        <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex flex-col">
-                            <span className="opacity-60">{activeMembership.type}</span>
-                            <span>{activeMembership.remainingHours} HOURS LEFT</span>
+                    <div className="flex items-center gap-3 px-6 py-3 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl animate-in zoom-in-95 duration-500 shadow-lg shadow-emerald-500/10">
+                        <Star className="w-4 h-4 text-emerald-500 fill-emerald-500" />
+                        <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                            {activeMembership.remainingHours} HOURS LEFT
                         </span>
                     </div>
                 )}
