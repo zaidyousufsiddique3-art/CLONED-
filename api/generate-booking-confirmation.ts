@@ -104,7 +104,7 @@ export default async function handler(req: any, res: any) {
         // Section: Booking Details
         currentY -= 24;
         page.drawText("Booking Details", { x: leftX, y: currentY, size: 11, font: fontBold });
-        currentY -= 4; // 1pt-like spacing
+        currentY -= 18; // Increased spacing to prevent overlap (1.5-2x spacing)
 
         // Bullet point details
         const details = [
@@ -128,7 +128,7 @@ export default async function handler(req: any, res: any) {
         // Section: Approval Status
         currentY -= 24;
         page.drawText("Approval Status", { x: leftX, y: currentY, size: 11, font: fontBold });
-        currentY -= 4; // 1pt-like spacing
+        currentY -= 18; // Increased spacing to prevent overlap
 
         // Line 1: Bold keywords
         const line1Part1 = "This booking has been officially ";
@@ -149,7 +149,7 @@ export default async function handler(req: any, res: any) {
         // Terms Header
         currentY -= 24;
         page.drawText("Terms & Conditions", { x: leftX, y: currentY, size: 11, font: fontBold });
-        currentY -= 4; // 1pt-like spacing
+        currentY -= 18; // Increased spacing to prevent overlap
 
         const terms = [
             "1. The person-in-charge must arrive within 20 minutes of the scheduled start time.",
@@ -167,7 +167,7 @@ export default async function handler(req: any, res: any) {
         // Section: Authorized by
         currentY -= 35;
         page.drawText("Authorized by", { x: leftX, y: currentY, size: 11, font: fontBold });
-        currentY -= 15;
+        currentY -= 18; // Increased spacing to prevent overlap
 
         // Credentials Only (Removed signature and dotted line)
         page.drawText("Chandana Kulathunga", { x: leftX, y: currentY, size: 10, font: fontBold });
