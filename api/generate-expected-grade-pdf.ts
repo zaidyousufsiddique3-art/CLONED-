@@ -394,104 +394,75 @@ export default async function handler(req: any, res: any) {
             color: rgb(0, 0, 0),
         });
 
-        // --- COORDINATOR SIGNATURE OVERLAY (Hajath - RIGHT) ---
-        if (payload.SIGNATURE_URL && typeof payload.SIGNATURE_URL === 'string') {
-            try {
-                let sigImage;
-                if (payload.SIGNATURE_URL.startsWith('data:image/png;base64,')) {
-                    const base64Data = payload.SIGNATURE_URL.split(',')[1];
-                    const imageBytes = Buffer.from(base64Data, 'base64');
-                    sigImage = await pdfDoc.embedPng(imageBytes);
-                } else {
-                    const resp = await fetch(payload.SIGNATURE_URL);
-                    const imageBytes = await resp.arrayBuffer();
-                    sigImage = await pdfDoc.embedPng(new Uint8Array(imageBytes));
-                }
+        // --- PARALLEL ASSET PROCESSING (Signatures & Stamp) ---
+        const [sigImage, pSigImage, stampImage] = await Promise.all([
+            // 1. Coordinator Signature
+            (async () => {
+                if (!payload.SIGNATURE_URL) return null;
+                try {
+                    const imageBytes = payload.SIGNATURE_URL.startsWith('data:image/png;base64,')
+                        ? Buffer.from(payload.SIGNATURE_URL.split(',')[1], 'base64')
+                        : new Uint8Array(await (await fetch(payload.SIGNATURE_URL)).arrayBuffer());
+                    return await pdfDoc.embedPng(imageBytes);
+                } catch (e) { console.error("Coord Sig Error:", e); return null; }
+            })(),
+            // 2. Principal Signature
+            (async () => {
+                if (!payload.PRINCIPAL_SIGNATURE_URL) return null;
+                try {
+                    const imageBytes = payload.PRINCIPAL_SIGNATURE_URL.startsWith('data:image/png;base64,')
+                        ? Buffer.from(payload.PRINCIPAL_SIGNATURE_URL.split(',')[1], 'base64')
+                        : new Uint8Array(await (await fetch(payload.PRINCIPAL_SIGNATURE_URL)).arrayBuffer());
+                    return await pdfDoc.embedPng(imageBytes);
+                } catch (e) { console.error("Principal Sig Error:", e); return null; }
+            })(),
+            // 3. Principal Stamp
+            (async () => {
+                if (!payload.PRINCIPAL_STAMP_URL) return null;
+                try {
+                    const imageBytes = payload.PRINCIPAL_STAMP_URL.startsWith('data:image/png;base64,')
+                        ? Buffer.from(payload.PRINCIPAL_STAMP_URL.split(',')[1], 'base64')
+                        : new Uint8Array(await (await fetch(payload.PRINCIPAL_STAMP_URL)).arrayBuffer());
+                    return await pdfDoc.embedPng(imageBytes);
+                } catch (e) { console.error("Stamp Error:", e); return null; }
+            })()
+        ]);
 
-                if (sigImage) {
-                    const sigDims = sigImage.scale(0.2);
-                    const targetWidth = 100;
-                    const targetHeight = (sigDims.height / sigDims.width) * targetWidth;
-
-                    // COORDINATOR SIGNATURE ON THE RIGHT
-                    page.drawImage(sigImage, {
-                        x: rightSigX + (sigLineLength / 2) - (targetWidth / 2),
-                        y: sigY - 12, // Normal alignment
-                        width: targetWidth,
-                        height: targetHeight,
-                    });
-                }
-            } catch (sigErr) {
-                console.error("Error embedding coordinator signature:", sigErr);
-            }
+        // Draw Signatures & Stamp
+        if (sigImage) {
+            const dims = sigImage.scale(0.2);
+            const targetWidth = 100;
+            const targetHeight = (dims.height / dims.width) * targetWidth;
+            page.drawImage(sigImage, {
+                x: rightSigX + (sigLineLength / 2) - (targetWidth / 2),
+                y: sigY - 12,
+                width: targetWidth,
+                height: targetHeight,
+            });
         }
 
-        // --- PRINCIPAL SIGNATURE OVERLAY (LEFT) ---
-        if (payload.PRINCIPAL_SIGNATURE_URL && typeof payload.PRINCIPAL_SIGNATURE_URL === 'string') {
-            try {
-                let pSigImage;
-                if (payload.PRINCIPAL_SIGNATURE_URL.startsWith('data:image/png;base64,')) {
-                    const base64Data = payload.PRINCIPAL_SIGNATURE_URL.split(',')[1];
-                    const imageBytes = Buffer.from(base64Data, 'base64');
-                    pSigImage = await pdfDoc.embedPng(imageBytes);
-                } else {
-                    const resp = await fetch(payload.PRINCIPAL_SIGNATURE_URL);
-                    const imageBytes = await resp.arrayBuffer();
-                    pSigImage = await pdfDoc.embedPng(new Uint8Array(imageBytes));
-                }
-
-                if (pSigImage) {
-                    const sigDims = pSigImage.scale(0.2);
-                    const targetWidth = 100;
-                    const targetHeight = (sigDims.height / sigDims.width) * targetWidth;
-
-                    // PRINCIPAL SIGNATURE ON THE LEFT
-                    // Slightly lower, touching or slightly overlapping dotted line
-                    page.drawImage(pSigImage, {
-                        x: leftSigX + (sigLineLength / 2) - (targetWidth / 2),
-                        y: sigY - 18,
-                        width: targetWidth,
-                        height: targetHeight,
-                    });
-                }
-            } catch (pSigErr) {
-                console.error("Error embedding principal signature:", pSigErr);
-            }
+        if (pSigImage) {
+            const dims = pSigImage.scale(0.2);
+            const targetWidth = 100;
+            const targetHeight = (dims.height / dims.width) * targetWidth;
+            page.drawImage(pSigImage, {
+                x: leftSigX + (sigLineLength / 2) - (targetWidth / 2),
+                y: sigY - 18,
+                width: targetWidth,
+                height: targetHeight,
+            });
         }
 
-        // --- PRINCIPAL STAMP OVERLAY (CENTERED) ---
-        if (payload.PRINCIPAL_STAMP_URL && typeof payload.PRINCIPAL_STAMP_URL === 'string') {
-            try {
-                let stampImage;
-                if (payload.PRINCIPAL_STAMP_URL.startsWith('data:image/png;base64,')) {
-                    const base64Data = payload.PRINCIPAL_STAMP_URL.split(',')[1];
-                    const imageBytes = Buffer.from(base64Data, 'base64');
-                    stampImage = await pdfDoc.embedPng(imageBytes);
-                } else {
-                    const resp = await fetch(payload.PRINCIPAL_STAMP_URL);
-                    const imageBytes = await resp.arrayBuffer();
-                    stampImage = await pdfDoc.embedPng(new Uint8Array(imageBytes));
-                }
-
-                if (stampImage) {
-                    const stampWidth = 120;
-                    const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
-
-                    // Centered between both signatures horizontally
-                    // Vertical position sitting between dotted lines relative to sigY
-                    const centerX = SAFE_AREA.CENTER_X - (stampWidth / 2);
-
-                    page.drawImage(stampImage, {
-                        x: centerX,
-                        y: sigY - (stampHeight / 2), // Balanced vertically on the sig line plane
-                        width: stampWidth,
-                        height: stampHeight,
-                        opacity: 0.85,
-                    });
-                }
-            } catch (stampErr) {
-                console.error("Error embedding principal stamp:", stampErr);
-            }
+        if (stampImage) {
+            const stampWidth = 120;
+            const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
+            page.drawImage(stampImage, {
+                x: SAFE_AREA.CENTER_X - (stampWidth / 2),
+                y: sigY - (stampHeight / 2),
+                width: stampWidth,
+                height: stampHeight,
+                opacity: 0.85,
+            });
         }
 
         // End of document signatures

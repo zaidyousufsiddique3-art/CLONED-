@@ -253,62 +253,57 @@ export default async function handler(req: any, res: any) {
             page.drawLine({ start: { x, y: lineY }, end: { x: x + 2, y: lineY }, thickness: 0.5, color: rgb(0, 0, 0) });
         }
 
-        // 1. Referee Signature (Signature URL)
-        if (signatureUrl && typeof signatureUrl === 'string' && signatureUrl.trim() !== '') {
-            try {
-                let sigImage;
-                if (signatureUrl.startsWith('data:image/png;base64,')) {
-                    sigImage = await pdfDoc.embedPng(Buffer.from(signatureUrl.split(',')[1], 'base64'));
-                } else {
-                    const resp = await fetch(signatureUrl);
-                    sigImage = await pdfDoc.embedPng(new Uint8Array(await resp.arrayBuffer()));
-                }
-                const targetWidth = 90;
-                const targetHeight = (sigImage.height / sigImage.width) * targetWidth;
-                page.drawImage(sigImage, { x: SAFE_AREA.LEFT + 10, y: lineY - 12, width: targetWidth, height: targetHeight });
-            } catch (err) { console.error('Referee Sig fail:', err); }
+        // --- PARALLEL ASSET PROCESSING (Signatures & Stamp) ---
+        const [sigImage, pSigImage, stampImage] = await Promise.all([
+            // 1. Referee Signature
+            (async () => {
+                if (!signatureUrl) return null;
+                try {
+                    const imageBytes = signatureUrl.startsWith('data:image/png;base64,')
+                        ? Buffer.from(signatureUrl.split(',')[1], 'base64')
+                        : new Uint8Array(await (await fetch(signatureUrl)).arrayBuffer());
+                    return await pdfDoc.embedPng(imageBytes);
+                } catch (e) { console.error("Referee Sig Error:", e); return null; }
+            })(),
+            // 2. Principal Signature
+            (async () => {
+                if (!PRINCIPAL_SIGNATURE_URL) return null;
+                try {
+                    const imageBytes = PRINCIPAL_SIGNATURE_URL.startsWith('data:image/png;base64,')
+                        ? Buffer.from(PRINCIPAL_SIGNATURE_URL.split(',')[1], 'base64')
+                        : new Uint8Array(await (await fetch(PRINCIPAL_SIGNATURE_URL)).arrayBuffer());
+                    return await pdfDoc.embedPng(imageBytes);
+                } catch (e) { console.error("Principal Sig Error:", e); return null; }
+            })(),
+            // 3. Principal Stamp
+            (async () => {
+                if (!PRINCIPAL_STAMP_URL) return null;
+                try {
+                    const imageBytes = PRINCIPAL_STAMP_URL.startsWith('data:image/png;base64,')
+                        ? Buffer.from(PRINCIPAL_STAMP_URL.split(',')[1], 'base64')
+                        : new Uint8Array(await (await fetch(PRINCIPAL_STAMP_URL)).arrayBuffer());
+                    return await pdfDoc.embedPng(imageBytes);
+                } catch (e) { console.error("Stamp Error:", e); return null; }
+            })()
+        ]);
+
+        // Draw Assets
+        if (sigImage) {
+            const targetWidth = 90;
+            const targetHeight = (sigImage.height / sigImage.width) * targetWidth;
+            page.drawImage(sigImage, { x: SAFE_AREA.LEFT + 10, y: lineY - 12, width: targetWidth, height: targetHeight });
         }
 
-        // 2. Principal Signature (if approved)
-        if (PRINCIPAL_SIGNATURE_URL && typeof PRINCIPAL_SIGNATURE_URL === 'string') {
-            try {
-                let pSigImage;
-                if (PRINCIPAL_SIGNATURE_URL.startsWith('data:image/png;base64,')) {
-                    pSigImage = await pdfDoc.embedPng(Buffer.from(PRINCIPAL_SIGNATURE_URL.split(',')[1], 'base64'));
-                } else {
-                    const resp = await fetch(PRINCIPAL_SIGNATURE_URL);
-                    pSigImage = await pdfDoc.embedPng(new Uint8Array(await resp.arrayBuffer()));
-                }
-                const targetWidth = 90;
-                const targetHeight = (pSigImage.height / pSigImage.width) * targetWidth;
-                // Offset slightly from referee signature
-                page.drawImage(pSigImage, { x: SAFE_AREA.LEFT + 60, y: lineY - 12, width: targetWidth, height: targetHeight });
-            } catch (err) { console.error('Principal Sig fail:', err); }
+        if (pSigImage) {
+            const targetWidth = 90;
+            const targetHeight = (pSigImage.height / pSigImage.width) * targetWidth;
+            page.drawImage(pSigImage, { x: SAFE_AREA.LEFT + 60, y: lineY - 12, width: targetWidth, height: targetHeight });
         }
 
-        // 3. Principal Stamp (if approved)
-        if (PRINCIPAL_STAMP_URL && typeof PRINCIPAL_STAMP_URL === 'string') {
-            try {
-                let stampImage;
-                if (PRINCIPAL_STAMP_URL.startsWith('data:image/png;base64,')) {
-                    stampImage = await pdfDoc.embedPng(Buffer.from(PRINCIPAL_STAMP_URL.split(',')[1], 'base64'));
-                } else {
-                    const resp = await fetch(PRINCIPAL_STAMP_URL);
-                    stampImage = await pdfDoc.embedPng(new Uint8Array(await resp.arrayBuffer()));
-                }
-                const stampWidth = 120;
-                const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
-
-                // Bring stamp a little closer to the signature (to the left)
-                // x = 335
-                page.drawImage(stampImage, {
-                    x: 335,
-                    y: 90,
-                    width: stampWidth,
-                    height: stampHeight,
-                    opacity: 0.85
-                });
-            } catch (err) { console.error('Stamp fail:', err); }
+        if (stampImage) {
+            const stampWidth = 120;
+            const stampHeight = (stampImage.height / stampImage.width) * stampWidth;
+            page.drawImage(stampImage, { x: 335, y: 90, width: stampWidth, height: stampHeight, opacity: 0.85 });
         }
 
         currentY = lineY - 20;

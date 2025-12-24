@@ -8,6 +8,38 @@ import { PRINCIPAL_EMAIL, SPORTS_COORDINATOR_EMAIL } from '../constants';
 import { uploadFile } from '../firebase/storage';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
+const compressImage = (file: File, maxWidth: number = 800): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Canvas to Blob failed'));
+        }, 'image/png');
+      };
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 // Reusable Input Component (Local)
 const InputGroup = ({ label, type = "text", value, onChange, icon: Icon, disabled = false }: any) => (
   <div className="space-y-2">
@@ -68,10 +100,10 @@ const Profile: React.FC = () => {
         alert("Only PNG files are accepted for signatures.");
         return;
       }
-      setUploadState({ field: 'signature', status: 'uploading' });
       try {
+        const compressedBlob = await compressImage(file);
         const path = `signatures/${user.id}_${Date.now()}.png`;
-        const url = await uploadFile(file, path);
+        const url = await uploadFile(compressedBlob, path);
         await updateUser({ ...user, signatureUrl: url });
         setUploadState({ field: 'signature', status: 'success' });
         setTimeout(() => setUploadState({ field: '', status: 'idle' }), 3000);
@@ -334,8 +366,9 @@ const Profile: React.FC = () => {
                                       }
                                       setUploadState({ field: 'stamp', status: 'uploading' });
                                       try {
+                                        const compressedBlob = await compressImage(file);
                                         const path = `stamps/${user.id}_${Date.now()}.png`;
-                                        const url = await uploadFile(file, path);
+                                        const url = await uploadFile(compressedBlob, path);
                                         await updateUser({ ...user, principalStampUrl: url });
                                         setUploadState({ field: 'stamp', status: 'success' });
                                         setTimeout(() => setUploadState({ field: '', status: 'idle' }), 3000);

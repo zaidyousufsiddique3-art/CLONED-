@@ -261,10 +261,9 @@ export default async function handler(req: any, res: any) {
             const signatureGap = 60; // Extra vertical spacing for signature
             currentY -= signatureGap;
 
-            const lineLength = 150;
-            const lineY = currentY + 15; // Dotted line position
-
             // 1. Draw Dotted Line
+            const lineLength = 150;
+            const lineY = currentY + 15;
             for (let x = SAFE_AREA.LEFT; x < SAFE_AREA.LEFT + lineLength; x += 4) {
                 page.drawLine({
                     start: { x, y: lineY },
@@ -274,27 +273,27 @@ export default async function handler(req: any, res: any) {
                 });
             }
 
-            // 2. Embed Signature Image
+            // 2. Parallel Fetch & Embed Asset
             try {
-                let sigImage;
-                if (signatureUrl.startsWith('data:image/png;base64,')) {
-                    const base64Data = signatureUrl.split(',')[1];
-                    const imageBytes = Buffer.from(base64Data, 'base64');
-                    sigImage = await pdfDoc.embedPng(imageBytes);
-                } else {
-                    const resp = await fetch(signatureUrl);
-                    const imageBytes = await resp.arrayBuffer();
-                    sigImage = await pdfDoc.embedPng(new Uint8Array(imageBytes));
-                }
+                const [sigImage] = await Promise.all([
+                    (async () => {
+                        if (!signatureUrl) return null;
+                        try {
+                            const imageBytes = signatureUrl.startsWith('data:image/png;base64,')
+                                ? Buffer.from(signatureUrl.split(',')[1], 'base64')
+                                : new Uint8Array(await (await fetch(signatureUrl)).arrayBuffer());
+                            return await pdfDoc.embedPng(imageBytes);
+                        } catch (e) { console.error("Sig Error:", e); return null; }
+                    })()
+                ]);
 
                 if (sigImage) {
-                    const sigDims = sigImage.scale(0.2);
                     const targetWidth = 100;
-                    const targetHeight = (sigDims.height / sigDims.width) * targetWidth;
+                    const targetHeight = (sigImage.height / sigImage.width) * targetWidth;
 
                     page.drawImage(sigImage, {
                         x: SAFE_AREA.LEFT + (lineLength / 2) - (targetWidth / 2),
-                        y: lineY - 12, // Sits on the line for natural feel
+                        y: lineY - 12,
                         width: targetWidth,
                         height: targetHeight,
                     });
