@@ -127,22 +127,32 @@ export default async function handler(req: any, res: any) {
         page.drawText("Approval Status", { x: leftX, y: currentY, size: 12, font: fontBold });
         currentY -= 20;
 
-        currentY = drawWrappedText("This booking has been officially approved and confirmed.", leftX, currentY, boxWidth, font, fontSize);
-        currentY -= 5;
-        currentY = drawWrappedText("The facility has been reserved exclusively for the date and time stated above.", leftX, currentY, boxWidth, font, fontSize);
+        const part1 = "This booking has been officially ";
+        const partBold = "approved and confirmed";
+        const part2 = ", and the facility has been reserved exclusively for the date and time stated above.";
+
+        // Manual wrap for single line requirement with bolding
+        page.drawText(part1, { x: leftX, y: currentY, size: fontSize, font: font });
+        const xBold = leftX + font.widthOfTextAtSize(part1, fontSize);
+        page.drawText(partBold, { x: xBold, y: currentY, size: fontSize, font: fontBold });
+        const xPart2 = xBold + fontBold.widthOfTextAtSize(partBold, fontSize);
+
+        // This part definitely wraps.
+        const remainingText = part2;
+        currentY = drawWrappedText(remainingText, xPart2, currentY, rightX - xPart2, font, fontSize);
         currentY -= 20;
 
         // Terms Header
         page.drawText("Terms & Conditions", { x: leftX, y: currentY, size: 12, font: fontBold });
         currentY -= 20;
 
-        // Strict Word-for-Word T&Cs (No numbers)
+        // Numbered T&Cs
         const terms = [
-            "The person-in-charge must arrive within 20 minutes of the scheduled start time.",
-            "Failure to do so will result in automatic cancellation of the booking.",
-            "The facility must be used strictly for its intended purpose.",
-            "Any damage to the facility or equipment will be the responsibility of the booking party.",
-            "The facility must be vacated immediately at the end of the approved booking time."
+            "1. The person-in-charge must arrive within 20 minutes of the scheduled start time.",
+            "2. Failure to do so will result in automatic cancellation of the booking.",
+            "3. The facility must be used strictly for its intended purpose.",
+            "4. Any damage to the facility or equipment will be the responsibility of the booking party.",
+            "5. The facility must be vacated immediately at the end of the approved booking time."
         ];
 
         for (const t of terms) {
@@ -152,10 +162,10 @@ export default async function handler(req: any, res: any) {
         currentY -= 40;
 
         // Authorization / Signature Section
-        page.drawText("Authorization", { x: leftX, y: currentY, size: 12, font: fontBold });
-        currentY -= 40;
+        page.drawText("Authorized by", { x: leftX, y: currentY, size: 12, font: fontBold });
+        currentY -= 45;
 
-        const sigLineLength = 150;
+        const sigLineLength = 200;
         const lineY = currentY + 15;
 
         // Draw dotted line
@@ -168,20 +178,20 @@ export default async function handler(req: any, res: any) {
             });
         }
 
-        // Embed signature if provided
-        if (payload.signatureUrl) {
+        // Hardcoded Sports Coordinator Signature
+        const sigPath = path.join(process.cwd(), "assets", "sports-coordinator-sig.png");
+        if (fs.existsSync(sigPath)) {
             try {
-                const imageBytes = payload.signatureUrl.startsWith('data:image/png;base64,')
-                    ? Buffer.from(payload.signatureUrl.split(',')[1], 'base64')
-                    : new Uint8Array(await (await fetch(payload.signatureUrl)).arrayBuffer());
-                const sigImage = await pdfDoc.embedPng(imageBytes);
+                const sigBytes = fs.readFileSync(sigPath);
+                const sigImage = await pdfDoc.embedPng(sigBytes);
 
-                const targetWidth = 100;
+                const targetWidth = 110;
                 const targetHeight = (sigImage.height / sigImage.width) * targetWidth;
 
+                // Adjust Y to look "realistic" / touching / slightly over the line
                 page.drawImage(sigImage, {
-                    x: leftX + (sigLineLength / 2) - (targetWidth / 2),
-                    y: lineY - 12,
+                    x: leftX + 10,
+                    y: lineY - 8,
                     width: targetWidth,
                     height: targetHeight,
                 });
@@ -190,15 +200,26 @@ export default async function handler(req: any, res: any) {
             }
         }
 
-        page.drawText(payload.coordinatorName || "Sports Coordinator", { x: leftX, y: currentY, size: 10, font: fontBold });
+        // Hardcoded Coordinator Credentials
+        currentY = lineY - 15;
+        page.drawText("Chandana Kulathunga", { x: leftX, y: currentY, size: 10, font: fontBold });
         currentY -= 12;
         page.drawText("Sports Coordinator", { x: leftX, y: currentY, size: 10, font: font });
+        currentY -= 12;
+        page.drawText("Sri Lankan International School", { x: leftX, y: currentY, size: 10, font: font });
+        currentY -= 12;
+        page.drawText("Riyadh, KSA", { x: leftX, y: currentY, size: 10, font: font });
 
-        // Footer (Bottom of page)
+        // Footer (Bottom of page) - One long line
         const footerY = 50;
-        page.drawText("Generated automatically by the Facilities Booking System", { x: leftX, y: footerY + 24, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
-        page.drawText("This document is valid only for the approved date and time", { x: leftX, y: footerY + 12, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
-        page.drawText("A downloaded copy is considered an official confirmation", { x: leftX, y: footerY, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
+        const footerText = "Generated automatically by the Facilities Booking System. This document is valid only for the approved date and time. A downloaded copy is considered an official confirmation.";
+        page.drawText(footerText, {
+            x: leftX,
+            y: footerY,
+            size: 8,
+            font: font,
+            color: rgb(0.5, 0.5, 0.5)
+        });
 
         const pdfBytes = await pdfDoc.save();
 
