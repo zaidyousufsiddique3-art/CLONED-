@@ -30,7 +30,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   useEffect(() => {
     refreshNotifications();
-    const interval = setInterval(refreshNotifications, 5000); // Poll for notifications
+    const interval = setInterval(refreshNotifications, 15000); // Poll for notifications balance performance/real-time
     return () => clearInterval(interval);
   }, [refreshNotifications]);
 
@@ -43,7 +43,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const NavItem = ({ to, icon: Icon, label, badge }: { to: string; icon: any; label: string; badge?: number }) => (
+  const NavItem = React.memo(({ to, icon: Icon, label, badge }: { to: string; icon: any; label: string; badge?: number }) => (
     <Link
       to={to}
       className={`flex items-center justify-between px-5 py-3.5 text-sm font-medium rounded-2xl transition-all duration-300 mb-1 group relative overflow-hidden ${isActive(to)
@@ -60,7 +60,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">{badge}</span>
       )}
     </Link>
-  );
+  ));
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#070708] flex font-sans selection:bg-brand-500/30 selection:text-white transition-colors duration-300">

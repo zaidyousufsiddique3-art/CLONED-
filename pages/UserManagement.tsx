@@ -12,6 +12,52 @@ import { db } from '../firebase/firebaseConfig';
 import { getAuth, createUserWithEmailAndPassword } from '@firebase/auth';
 import { initializeApp } from '@firebase/app';
 
+const UserRow = React.memo(({ u, activeTab, currentUserRole, onEdit, onDelete }: { u: User; activeTab: string; currentUserRole: string | undefined; onEdit: () => void; onDelete: () => void }) => (
+  <tr className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+    <td className="px-6 py-5">
+      <div className="text-sm font-bold text-slate-900 dark:text-white">{u.firstName} {u.lastName}</div>
+    </td>
+    {activeTab === 'STUDENT' && (
+      <td className="px-6 py-5 text-sm font-medium text-brand-600 dark:text-brand-400">{u.admissionNumber}</td>
+    )}
+    <td className="px-6 py-5 text-sm text-slate-600 dark:text-slate-300">{u.email}</td>
+    <td className="px-6 py-5 text-sm text-slate-500">{u.phone || '-'}</td>
+    <td className="px-6 py-5 text-sm text-slate-500">{u.gender || '-'}</td>
+    {activeTab === 'STAFF' && <td className="px-6 py-5 text-sm text-slate-500">{u.designation}</td>}
+    {activeTab === 'PARENT' && <td className="px-6 py-5 text-sm text-slate-500">{u.numberOfChildren || '-'}</td>}
+    <td className="px-6 py-5">
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold ${(u.role as any) === UserRole.SUPER_ADMIN ? 'bg-purple-100 text-purple-600' :
+        (u.role as any) === UserRole.ADMIN ? 'bg-indigo-100 text-indigo-600' :
+          (u.role as any) === UserRole.STAFF ? 'bg-brand-100 text-brand-600' :
+            (u.role as any) === UserRole.PARENT ? 'bg-teal-100 text-teal-600' :
+              'bg-slate-100 text-slate-600'
+        }`}>
+        {u.role}
+      </span>
+    </td>
+    <td className="px-6 py-5 text-right">
+      <div className="flex justify-end space-x-2">
+        <button
+          onClick={onEdit}
+          disabled={currentUserRole === UserRole.ADMIN && ((u.role as any) === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN)}
+          className="p-2 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 disabled:cursor-not-allowed"
+        >
+          <Edit2 className="w-4 h-4" />
+        </button>
+        {(u.role as any) !== UserRole.SUPER_ADMIN && (
+          <button
+            onClick={onDelete}
+            disabled={currentUserRole === UserRole.ADMIN && ((u.role as any) === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN)}
+            className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-20 disabled:cursor-not-allowed"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    </td>
+  </tr>
+));
+
 const UserManagement: React.FC = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
@@ -245,47 +291,14 @@ const UserManagement: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
               {filteredUsers.map(u => (
-                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-5">
-                    <div className="text-sm font-bold text-slate-900 dark:text-white">{u.firstName} {u.lastName}</div>
-                  </td>
-                  {activeTab === 'STUDENT' && (
-                    <td className="px-6 py-5 text-sm font-medium text-brand-600 dark:text-brand-400">{u.admissionNumber}</td>
-                  )}
-                  <td className="px-6 py-5 text-sm text-slate-600 dark:text-slate-300">{u.email}</td>
-                  <td className="px-6 py-5 text-sm text-slate-500">{u.phone || '-'}</td>
-                  <td className="px-6 py-5 text-sm text-slate-500">{u.gender || '-'}</td>
-                  {activeTab === 'STAFF' && <td className="px-6 py-5 text-sm text-slate-500">{u.designation}</td>}
-                  {activeTab === 'PARENT' && <td className="px-6 py-5 text-sm text-slate-500">{u.numberOfChildren || '-'}</td>}
-                  <td className="px-6 py-5">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold ${u.role === UserRole.SUPER_ADMIN ? 'bg-purple-100 text-purple-600' :
-                      u.role === UserRole.ADMIN ? 'bg-indigo-100 text-indigo-600' :
-                        u.role === UserRole.STAFF ? 'bg-brand-100 text-brand-600' :
-                          u.role === UserRole.PARENT ? 'bg-teal-100 text-teal-600' :
-                            'bg-slate-100 text-slate-600'
-                      }`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5 text-right flex justify-end space-x-2">
-                    <button
-                      onClick={() => handleEditOpen(u)}
-                      disabled={currentUser?.role === UserRole.ADMIN && (u.role === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN)}
-                      className="p-2 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 disabled:cursor-not-allowed"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    {u.role !== UserRole.SUPER_ADMIN && (
-                      <button
-                        onClick={() => handleDeleteUser(u.id)}
-                        disabled={currentUser?.role === UserRole.ADMIN && (u.role === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN)}
-                        className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-20 disabled:cursor-not-allowed"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </td>
-                </tr>
+                <UserRow
+                  key={u.id}
+                  u={u}
+                  activeTab={activeTab}
+                  currentUserRole={currentUser?.role}
+                  onEdit={() => handleEditOpen(u)}
+                  onDelete={() => handleDeleteUser(u.id)}
+                />
               ))}
             </tbody>
           </table>

@@ -30,6 +30,35 @@ import {
 import { sendNotification } from '../firebase/notificationService';
 import { PRINCIPAL_EMAIL } from '../constants';
 import { uploadFile } from '../firebase/storage';
+const RequestItem = React.memo(({ req, isSelected, onClick, activeTab }: { req: ApprovalRequest; isSelected: boolean; onClick: () => void; activeTab: string }) => (
+    <button
+        onClick={onClick}
+        className={`w-full text-left p-6 rounded-[2rem] transition-all border ${isSelected
+            ? 'bg-brand-600 border-brand-500 text-white shadow-xl shadow-brand-500/20'
+            : 'bg-white dark:bg-[#070708] border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-300 hover:border-brand-500/50'
+            }`}
+    >
+        <div className="flex items-start justify-between mb-3">
+            <div className={`p-2 rounded-xl ${isSelected ? 'bg-white/20' : 'bg-brand-500/10'}`}>
+                <FileText className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-brand-500'}`} />
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${isSelected
+                ? 'bg-white/20 text-white'
+                : activeTab === 'pending' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
+                }`}>
+                {req.status === 'Approved' ? 'Approved' : 'Pending'}
+            </span>
+        </div>
+        <p className="font-bold text-lg mb-1">{req.studentName}</p>
+        <p className={`text-xs ${isSelected ? 'text-brand-100' : 'text-slate-500'}`}>
+            {req.documentType}
+        </p>
+        <div className={`flex items-center mt-4 text-[10px] font-medium ${isSelected ? 'text-brand-200' : 'text-slate-400'}`}>
+            <Clock className="w-3 h-3 mr-1" />
+            {new Date(req.updatedAt || req.createdAt).toLocaleDateString()}
+        </div>
+    </button>
+));
 
 const Approvals: React.FC = () => {
     const { user } = useAuth();
@@ -278,34 +307,13 @@ const Approvals: React.FC = () => {
                         </div>
                     ) : (
                         filteredRequests.map(req => (
-                            <button
+                            <RequestItem
                                 key={req.id}
+                                req={req}
+                                isSelected={selectedRequest?.id === req.id}
                                 onClick={() => setSelectedRequest(req)}
-                                className={`w-full text-left p-6 rounded-[2rem] transition-all border ${selectedRequest?.id === req.id
-                                    ? 'bg-brand-600 border-brand-500 text-white shadow-xl shadow-brand-500/20'
-                                    : 'bg-white dark:bg-[#070708] border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-300 hover:border-brand-500/50'
-                                    }`}
-                            >
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className={`p-2 rounded-xl ${selectedRequest?.id === req.id ? 'bg-white/20' : 'bg-brand-500/10'}`}>
-                                        <FileText className={`w-5 h-5 ${selectedRequest?.id === req.id ? 'text-white' : 'text-brand-500'}`} />
-                                    </div>
-                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${selectedRequest?.id === req.id
-                                        ? 'bg-white/20 text-white'
-                                        : activeTab === 'pending' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
-                                        }`}>
-                                        {req.status === 'Approved' ? 'Approved' : 'Pending'}
-                                    </span>
-                                </div>
-                                <p className="font-bold text-lg mb-1">{req.studentName}</p>
-                                <p className={`text-xs ${selectedRequest?.id === req.id ? 'text-brand-100' : 'text-slate-500'}`}>
-                                    {req.documentType}
-                                </p>
-                                <div className={`flex items-center mt-4 text-[10px] font-medium ${selectedRequest?.id === req.id ? 'text-brand-200' : 'text-slate-400'}`}>
-                                    <Clock className="w-3 h-3 mr-1" />
-                                    {new Date(req.updatedAt || req.createdAt).toLocaleDateString()}
-                                </div>
-                            </button>
+                                activeTab={activeTab}
+                            />
                         ))
                     )}
                 </div>
@@ -357,7 +365,7 @@ const Approvals: React.FC = () => {
                                             className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-brand-500/20 flex items-center gap-2"
                                         >
                                             <Download className="w-4 h-4" />
-                                            Download Final PDF
+                                            Open Final PDF
                                         </button>
                                     )}
                                 </div>
