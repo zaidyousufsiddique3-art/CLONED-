@@ -8,11 +8,50 @@ import { SPORTS_COORDINATOR_EMAIL } from '../constants';
 import { Calendar, Clock, User, CheckCircle, AlertCircle, FileText, PlusCircle, Loader2, Download, Star } from 'lucide-react';
 
 const FACILITIES = ['Badminton Courts', 'Football Ground', 'Basketball Courts'];
-const TIME_SLOTS = [
-    '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
-    '19:00', '19:30', '20:00', '20:30', '21:00', '21:30',
-    '22:00', '22:30', '23:00'
-];
+const SCHEDULE: Record<string, Record<string, { start: number, startM?: number, end: number, gender?: string }>> = {
+    'Badminton Courts': {
+        'Sunday': { start: 16, end: 23, gender: 'Female' },
+        'Monday': { start: 16, end: 23, gender: 'Male' },
+        'Tuesday': { start: 16, end: 23, gender: 'Male' },
+        'Wednesday': { start: 16, end: 23, gender: 'Female' },
+        'Thursday': { start: 16, end: 23, gender: 'Male' },
+        'Friday': { start: 12, end: 23, gender: 'Male' },
+        'Saturday': { start: 13, end: 23, gender: 'Female' },
+    },
+    'Basketball Courts': {
+        'Sunday': { start: 16, end: 23 },
+        'Monday': { start: 16, end: 23 },
+        'Tuesday': { start: 16, end: 23 },
+        'Wednesday': { start: 16, end: 23 },
+        'Friday': { start: 6, end: 23 },
+        'Saturday': { start: 6, end: 14 },
+    },
+    'Football Ground': {
+        'Sunday': { start: 16, end: 23 },
+        'Monday': { start: 16, end: 23 },
+        'Tuesday': { start: 16, end: 23 },
+        'Wednesday': { start: 16, end: 23 },
+        'Thursday': { start: 16, end: 23 },
+        'Friday': { start: 6, end: 23 },
+        'Saturday': { start: 6, end: 23 },
+    }
+};
+
+const getAvailableSlots = (fac: string, dateStr: string) => {
+    if (!dateStr) return [];
+    const day = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(dateStr));
+    const sched = SCHEDULE[fac]?.[day];
+    if (!sched) return [];
+
+    const slots = [];
+    for (let h = sched.start; h < sched.end; h++) {
+        slots.push(`${String(h).padStart(2, '0')}:00`);
+        slots.push(`${String(h).padStart(2, '0')}:30`);
+    }
+    // Add the final :00 slot if it matches the end time (exclusive for booking start)
+    // But since bookings have duration, we just stop at end-1 basically.
+    return slots;
+};
 
 const MembershipOption = ({ type, hours, rate, total, validity, rules, onPurchase, loading }: any) => (
     <div className="bg-white dark:bg-[#070708] p-8 rounded-[2.5rem] border border-emerald-500/20 shadow-xl flex flex-col items-center text-center space-y-6">
@@ -65,7 +104,7 @@ const UserFacilitiesBooking: React.FC = () => {
     // Form State
     const [facility, setFacility] = useState(FACILITIES[0]);
     const [date, setDate] = useState('');
-    const [startTime, setStartTime] = useState('16:00');
+    const [startTime, setStartTime] = useState('');
     const [duration, setDuration] = useState('60'); // Minutes
     const [personInCharge, setPersonInCharge] = useState('');
     const [numberOfStudents, setNumberOfStudents] = useState('');
@@ -123,6 +162,16 @@ const UserFacilitiesBooking: React.FC = () => {
             };
         }
     }, [user]);
+
+    // Update startTime when slots change
+    useEffect(() => {
+        const slots = getAvailableSlots(facility, date);
+        if (slots.length > 0 && !slots.includes(startTime)) {
+            setStartTime(slots[0]);
+        } else if (slots.length === 0) {
+            setStartTime('');
+        }
+    }, [facility, date]);
 
     // Check query params for download action (from notification)
     useEffect(() => {
@@ -202,6 +251,32 @@ const UserFacilitiesBooking: React.FC = () => {
             }
             if (new Date(activeMembership.expiryDate) < new Date()) {
                 alert("Your membership has expired.");
+                return false;
+            }
+        }
+
+        // 3. Schedule & Gender Validation
+        const day = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(date));
+        const sched = SCHEDULE[facility]?.[day];
+
+        if (!sched) {
+            alert(`Error: ${facility} is unavailable on ${day}.`);
+            return false;
+        }
+
+        if (facility === 'Badminton Courts' && sched.gender) {
+            const userGender = user?.gender || gender;
+            const allowedGender = sched.gender; // 'Male' or 'Female'
+
+            if (userGender !== allowedGender) {
+                const girlsDays = "Sunday 4PM-11PM, Wednesday 4PM-11PM, Saturday 1PM-11PM";
+                const boysDays = "Monday, Tuesday, Thursday, Friday (4PM-11PM, except Fri 12PM-11PM)";
+
+                if (allowedGender === 'Male') {
+                    alert(`Error: ${day} Badminton timings are reserved for Boys/Men.\nGirls/Women can book Badminton on: ${girlsDays}`);
+                } else {
+                    alert(`Error: ${day} Badminton timings are reserved for Girls/Women.\nBoys/Men can book Badminton on: ${boysDays}`);
+                }
                 return false;
             }
         }
@@ -501,7 +576,11 @@ const UserFacilitiesBooking: React.FC = () => {
                                         onChange={(e) => setStartTime(e.target.value)}
                                         className="w-full p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:ring-2 focus:ring-brand-500 font-bold dark:text-white"
                                     >
-                                        {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                                        {getAvailableSlots(facility, date).length > 0 ? (
+                                            getAvailableSlots(facility, date).map(t => <option key={t} value={t}>{t}</option>)
+                                        ) : (
+                                            <option value="">No slots available</option>
+                                        )}
                                     </select>
                                 </div>
                                 <div>
