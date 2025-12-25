@@ -196,11 +196,11 @@ const Login: React.FC = () => {
 
                             <div className="space-y-6">
                                 <h1 className="text-[76px] font-black text-white tracking-tighter leading-[1.05]">
-                                    Secure Access To <br />
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-brand-500">Academic Docs</span>
+                                    Unified Hub For <br />
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-200 to-brand-500">SLISR Services</span>
                                 </h1>
                                 <p className="text-slate-400 text-lg max-w-lg leading-relaxed font-medium">
-                                    Access verified institutional records through a centralized and high-security student registry for SLISR authorized personnel.
+                                    Access academic records, book sports facilities, track requests, and manage student documents through a secure portal for students, parents, staff, and administrators.
                                 </p>
                             </div>
                         </div>
@@ -210,17 +210,17 @@ const Login: React.FC = () => {
                             <FeatureItem
                                 icon={ShieldCheck}
                                 title="Secure Records"
-                                desc="Official academic documents stored and protected under SLISR institutional policies."
+                                desc="Official documents and records stored securely under SLISR institutional policies."
                             />
                             <FeatureItem
                                 icon={Layers}
-                                title="Verified Identity"
-                                desc="Access restricted to authorized students, staff, and administrators only."
+                                title="Verified Access"
+                                desc="Portal access permitted only to authorized students, parents, staff, and administrators."
                             />
                             <FeatureItem
                                 icon={Zap}
-                                title="Up-to-Date Records"
-                                desc="Real-time access to the latest approved academic information and updates."
+                                title="Real-Time Services"
+                                desc="Facility booking, document requests, approvals, and updates processed instantly."
                             />
                         </div>
                     </div>
