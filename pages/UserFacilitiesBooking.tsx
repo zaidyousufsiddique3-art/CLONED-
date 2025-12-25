@@ -9,6 +9,51 @@ import { SPORTS_COORDINATOR_EMAIL } from '../constants';
 import { Calendar, Clock, User, CheckCircle, AlertCircle, FileText, PlusCircle, Loader2, Download, Star, Save } from 'lucide-react';
 
 const FACILITIES = ['Badminton Courts', 'Football Ground', 'Basketball Courts'];
+const CAPACITY_LIMITS: Record<string, number> = {
+    'Badminton Courts': 3,
+    'Football Ground': 1,
+    'Basketball Courts': 1
+};
+
+const timeToMinutes = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+};
+
+const minutesToTime = (m: number) => {
+    const h = Math.floor(m / 60);
+    const mm = m % 60;
+    return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+};
+
+const checkSlotCapacity = (fac: string, gen: string, start: string, duration: number, bookings: any[]) => {
+    const limit = CAPACITY_LIMITS[fac] || 1;
+    const startM = timeToMinutes(start);
+    const endM = startM + duration;
+
+    // For Badminton, filter by gender
+    const relevant = fac === 'Badminton Courts'
+        ? bookings.filter(b => b.gender === gen)
+        : bookings;
+
+    // Check concurrency at start time and all start times within our window
+    const checkTimes = new Set([startM]);
+    relevant.forEach(b => {
+        const bStart = timeToMinutes(b.timeSlot);
+        if (bStart > startM && bStart < endM) checkTimes.add(bStart);
+    });
+
+    for (const t of Array.from(checkTimes)) {
+        const concurrent = relevant.filter(b => {
+            const bStart = timeToMinutes(b.timeSlot);
+            const bEnd = bStart + parseInt(b.duration);
+            return t >= bStart && t < bEnd;
+        }).length;
+        if (concurrent >= limit) return false;
+    }
+    return true;
+};
+
 const SCHEDULE: Record<string, Record<string, { start: number, startM?: number, end: number, gender?: string }>> = {
     'Badminton Courts': {
         'Sunday': { start: 16, end: 23, gender: 'Female' },
@@ -119,6 +164,14 @@ const UserFacilitiesBooking: React.FC = () => {
     const [myBookings, setMyBookings] = useState<any[]>([]);
     const [loadingBookings, setLoadingBookings] = useState(true);
 
+    // Capacity & Suggestions State
+    const [allBookings, setAllBookings] = useState<any[]>([]);
+    const [rejectionInfo, setRejectionInfo] = useState<{
+        message: string;
+        availableToday: any[];
+        nextAvailable?: any;
+    } | null>(null);
+
     useEffect(() => {
         if (user) {
             setPersonInCharge(`${user.firstName} ${user.lastName}`);
@@ -165,14 +218,22 @@ const UserFacilitiesBooking: React.FC = () => {
         }
     }, [user]);
 
-    // Update startTime when slots change
+    // Listen to ALL bookings for the selected date & facility to handle capacity
     useEffect(() => {
-        const slots = getAvailableSlots(facility, date);
-        if (slots.length > 0 && !slots.includes(startTime)) {
-            setStartTime(slots[0]);
-        } else if (slots.length === 0) {
-            setStartTime('');
-        }
+        if (!facility || !date) return;
+
+        const q = query(
+            collection(db, 'sports_facility_bookings'),
+            where('facility', '==', facility),
+            where('date', '==', date),
+            where('status', 'in', ['Pending', 'Approved'])
+        );
+
+        const unsubscribe = onSnapshot(q, (snap) => {
+            setAllBookings(snap.docs.map(d => d.data()));
+        });
+
+        return () => unsubscribe();
     }, [facility, date]);
 
     // Check query params for download action (from notification)
@@ -198,7 +259,59 @@ const UserFacilitiesBooking: React.FC = () => {
             setFormStep('editing');
             setSuccessMsg('');
         }
+        setRejectionInfo(null);
     }, [facility, date, startTime, duration, personInCharge, numberOfStudents, gender, paymentOption]);
+
+    // Update startTime when slots change & auto-disable full slots
+    useEffect(() => {
+        const slots = getAvailableSlots(facility, date);
+        const durMins = parseInt(duration);
+        const actualSlots = slots.filter(s => checkSlotCapacity(facility, gender, s, durMins, allBookings));
+
+        if (actualSlots.length > 0 && !actualSlots.includes(startTime)) {
+            setStartTime(actualSlots[0]);
+        } else if (actualSlots.length === 0) {
+            setStartTime('');
+        }
+    }, [facility, date, duration, gender, allBookings]);
+
+    const findSuggestions = async (curFac: string, curDate: string, curGen: string, curDur: number, currentBookings: any[]) => {
+        const slots = getAvailableSlots(curFac, curDate);
+        const availableToday = [];
+        for (const s of slots) {
+            if (checkSlotCapacity(curFac, curGen, s, curDur, currentBookings)) {
+                availableToday.push({
+                    start: s,
+                    end: minutesToTime(timeToMinutes(s) + curDur)
+                });
+                if (availableToday.length >= 3) break;
+            }
+        }
+
+        let nextAvailable = null;
+        let d = new Date(curDate || new Date());
+        for (let i = 1; i <= 7; i++) {
+            d.setDate(d.getDate() + 1);
+            const dateStr = d.toISOString().split('T')[0];
+            const q = query(
+                collection(db, 'sports_facility_bookings'),
+                where('facility', '==', curFac),
+                where('date', '==', dateStr),
+                where('status', 'in', ['Pending', 'Approved'])
+            );
+            const snap = await getDocs(q);
+            const dayBookings = snap.docs.map(doc => doc.data());
+            const daySlots = getAvailableSlots(curFac, dateStr);
+            for (const s of daySlots) {
+                if (checkSlotCapacity(curFac, curGen, s, curDur, dayBookings)) {
+                    nextAvailable = { date: dateStr, start: s };
+                    break;
+                }
+            }
+            if (nextAvailable) break;
+        }
+        return { availableToday, nextAvailable };
+    };
 
     const calculateEndTime = (start: string, durationMinutes: number) => {
         const [h, m] = start.split(':').map(Number);
@@ -308,29 +421,28 @@ const UserFacilitiesBooking: React.FC = () => {
             return false;
         }
 
-        // 3. Conflict Check
-        const q = query(
-            collection(db, 'sports_facility_bookings'),
-            where('facility', '==', facility),
-            where('date', '==', date),
-            where('status', 'in', ['Pending', 'Approved'])
-        );
+        // 3. Capacity & Conflict Check
+        const isAvailable = checkSlotCapacity(facility, gender, startTime, durationMins, allBookings);
 
-        const snap = await getDocs(q);
-        const hasConflict = snap.docs.some(doc => {
-            const b = doc.data();
-            const bStartH = parseInt(b.timeSlot.split(':')[0]);
-            const bStartM = parseInt(b.timeSlot.split(':')[1]);
-            const bStartTotal = bStartH * 60 + bStartM;
-            const bEndTotal = bStartTotal + parseInt(b.duration);
+        if (!isAvailable) {
+            setSubmitting(true);
+            try {
+                const suggestions = await findSuggestions(facility, date, gender, durationMins, allBookings);
+                const isBadminton = facility === 'Badminton Courts';
+                const baseMsg = isBadminton
+                    ? "Badminton courts unavailable for the selected time — maximum bookings reached."
+                    : "Ground/Court is booked for the selected time — please choose another available slot.";
 
-            // Check overlapping ranges
-            // (StartA < EndB) and (EndA > StartB)
-            return (startTotal < bEndTotal) && (endTotal > bStartTotal);
-        });
-
-        if (hasConflict) {
-            alert("The selected date and time are not available due to another booking.");
+                setRejectionInfo({
+                    message: baseMsg,
+                    availableToday: suggestions.availableToday,
+                    nextAvailable: suggestions.nextAvailable
+                });
+            } catch (err) {
+                console.error(err);
+                alert("The selected time is unavailable.");
+            }
+            setSubmitting(false);
             return false;
         }
 
@@ -506,6 +618,56 @@ const UserFacilitiesBooking: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                     {/* Booking Form */}
                     <div className="lg:col-span-2 bg-white dark:bg-[#070708] p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-xl">
+                        {rejectionInfo && (
+                            <div className="mb-8 p-6 bg-red-500/10 border border-red-500/20 rounded-2xl animate-in slide-in-from-top-4 duration-300">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center shrink-0">
+                                        <AlertCircle className="w-6 h-6 text-red-500" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-red-600 dark:text-red-400 font-black uppercase tracking-tight mb-1">Selected time unavailable</h4>
+                                        <p className="text-red-500 text-sm font-medium mb-4">{rejectionInfo.message}</p>
+
+                                        {rejectionInfo.availableToday.length > 0 && (
+                                            <div className="mb-4">
+                                                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">Free Today:</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {rejectionInfo.availableToday.map((s, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => {
+                                                                setStartTime(s.start);
+                                                                setRejectionInfo(null);
+                                                            }}
+                                                            className="px-3 py-2 bg-white dark:bg-white/5 border border-red-500/20 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-red-500 transition-all"
+                                                        >
+                                                            {s.start}–{s.end}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {rejectionInfo.nextAvailable && (
+                                            <div>
+                                                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">Next Available Slot:</p>
+                                                <button
+                                                    onClick={() => {
+                                                        setDate(rejectionInfo.nextAvailable.date);
+                                                        setStartTime(rejectionInfo.nextAvailable.start);
+                                                        setRejectionInfo(null);
+                                                    }}
+                                                    className="px-4 py-2 bg-red-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all flex items-center gap-2"
+                                                >
+                                                    <Calendar className="w-3.5 h-3.5" />
+                                                    {new Date(rejectionInfo.nextAvailable.date).toLocaleDateString()} at {rejectionInfo.nextAvailable.start}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <div className="space-y-6">
                             {/* Facility */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
