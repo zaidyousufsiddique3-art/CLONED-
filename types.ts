@@ -50,6 +50,9 @@ export interface User {
   principalStampUrl?: string; // Principal's official stamp
   hasRecommendationAccess?: boolean;
   numberOfChildren?: string; // Parents only
+  grade?: string; // Students only (ex: Grade 6)
+  gradesTaught?: string[]; // Staff/Admin only
+  subjectsTaught?: string[]; // Staff/Admin only
   createdAt: string;
 }
 

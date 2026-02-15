@@ -22,7 +22,10 @@ const Register: React.FC = () => {
     password: '',
     confirmPassword: '',
     designation: '',
-    numberOfChildren: '' // New field for Parent
+    numberOfChildren: '', // New field for Parent
+    grade: '', // For Student
+    gradesTaught: '', // For Staff (comma separated input)
+    subjectsTaught: '' // For Staff (comma separated input)
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -54,11 +57,14 @@ const Register: React.FC = () => {
         if (!formData.admissionNumber) throw new Error("Admission Number Required");
         newUser.admissionNumber = formData.admissionNumber;
         newUser.gender = formData.gender;
+        newUser.grade = formData.grade;
       } else {
         if (regType === UserRole.PARENT) {
           newUser.numberOfChildren = formData.numberOfChildren;
         } else {
           newUser.designation = formData.designation;
+          newUser.gradesTaught = formData.gradesTaught.split(',').map(s => s.trim()).filter(s => s !== '');
+          newUser.subjectsTaught = formData.subjectsTaught.split(',').map(s => s.trim()).filter(s => s !== '');
         }
       }
 
@@ -147,9 +153,15 @@ const Register: React.FC = () => {
               </div>
 
               {regType === UserRole.STUDENT ? (
-                <div className="space-y-1.5 group">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Admission Number</label>
-                  <input name="admissionNumber" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-1.5 group">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Admission Number</label>
+                    <input name="admissionNumber" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+                  </div>
+                  <div className="space-y-1.5 group">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Study Grade (ex: Grade 6)</label>
+                    <input name="grade" required onChange={handleChange} placeholder="Grade 10" className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+                  </div>
                 </div>
               ) : regType === UserRole.PARENT ? (
                 <div className="space-y-1.5 group">
@@ -157,9 +169,21 @@ const Register: React.FC = () => {
                   <input name="numberOfChildren" type="number" min="0" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
                 </div>
               ) : (
-                <div className="space-y-1.5 group">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Designation / Title</label>
-                  <input name="designation" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+                <div className="space-y-5">
+                  <div className="space-y-1.5 group">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Designation / Title</label>
+                    <input name="designation" required onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-1.5 group">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Grades You Teach (comma separated)</label>
+                      <input name="gradesTaught" placeholder="Grade 8, Grade 9" onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+                    </div>
+                    <div className="space-y-1.5 group">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-brand-500">Subjects You Teach (comma separated)</label>
+                      <input name="subjectsTaught" placeholder="Math, Physics" onChange={handleChange} className="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-1 focus:ring-brand-600/50 focus:border-brand-600/50 outline-none text-white text-sm transition-all hover:bg-slate-900/80" />
+                    </div>
+                  </div>
                 </div>
               )}
 

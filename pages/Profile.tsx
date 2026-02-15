@@ -71,7 +71,10 @@ const Profile: React.FC = () => {
     phone: user?.phone || '',
     password: user?.password || '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    grade: user?.grade || '',
+    gradesTaught: user?.gradesTaught?.join(', ') || '',
+    subjectsTaught: user?.subjectsTaught?.join(', ') || ''
   });
 
   if (!user) return null;
@@ -130,6 +133,13 @@ const Profile: React.FC = () => {
           return;
         }
         updatedUser.password = formData.newPassword;
+      }
+
+      if (user.role === UserRole.STUDENT) {
+        updatedUser.grade = formData.grade;
+      } else if (user.role === UserRole.STAFF || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
+        updatedUser.gradesTaught = formData.gradesTaught.split(',').map(s => s.trim()).filter(s => s !== '');
+        updatedUser.subjectsTaught = formData.subjectsTaught.split(',').map(s => s.trim()).filter(s => s !== '');
       }
 
       updateUser(updatedUser);
@@ -217,6 +227,30 @@ const Profile: React.FC = () => {
                   icon={Phone}
                 />
               </div>
+
+              {user.role === UserRole.STUDENT ? (
+                <InputGroup
+                  label="Study Grade"
+                  value={formData.grade}
+                  onChange={(e: any) => setFormData({ ...formData, grade: e.target.value })}
+                  icon={Pen}
+                />
+              ) : (user.role === UserRole.STAFF || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InputGroup
+                    label="Grades Taught (comma separated)"
+                    value={formData.gradesTaught}
+                    onChange={(e: any) => setFormData({ ...formData, gradesTaught: e.target.value })}
+                    icon={Pen}
+                  />
+                  <InputGroup
+                    label="Subjects Taught (comma separated)"
+                    value={formData.subjectsTaught}
+                    onChange={(e: any) => setFormData({ ...formData, subjectsTaught: e.target.value })}
+                    icon={Pen}
+                  />
+                </div>
+              )}
 
               <div className="pt-6 border-t border-slate-200 dark:border-slate-700/50">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Change Password</h3>

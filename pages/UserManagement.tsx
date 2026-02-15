@@ -18,12 +18,20 @@ const UserRow = React.memo(({ u, activeTab, currentUserRole, onEdit, onDelete }:
       <div className="text-sm font-bold text-slate-900 dark:text-white">{u.firstName} {u.lastName}</div>
     </td>
     {activeTab === 'STUDENT' && (
-      <td className="px-6 py-5 text-sm font-medium text-brand-600 dark:text-brand-400">{u.admissionNumber}</td>
+      <>
+        <td className="px-6 py-5 text-sm font-medium text-brand-600 dark:text-brand-400">{u.admissionNumber}</td>
+        <td className="px-6 py-5 text-sm text-slate-500">{u.grade || '-'}</td>
+      </>
     )}
     <td className="px-6 py-5 text-sm text-slate-600 dark:text-slate-300">{u.email}</td>
     <td className="px-6 py-5 text-sm text-slate-500">{u.phone || '-'}</td>
     <td className="px-6 py-5 text-sm text-slate-500">{u.gender || '-'}</td>
-    {activeTab === 'STAFF' && <td className="px-6 py-5 text-sm text-slate-500">{u.designation}</td>}
+    {activeTab === 'STAFF' && (
+      <>
+        <td className="px-6 py-5 text-sm text-slate-500">{u.designation}</td>
+        <td className="px-6 py-5 text-sm text-slate-500 truncate max-w-[150px]" title={u.subjectsTaught?.join(', ')}>{u.subjectsTaught?.join(', ') || '-'}</td>
+      </>
+    )}
     {activeTab === 'PARENT' && <td className="px-6 py-5 text-sm text-slate-500">{u.numberOfChildren || '-'}</td>}
     <td className="px-6 py-5">
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold ${(u.role as any) === UserRole.SUPER_ADMIN ? 'bg-purple-100 text-purple-600' :
@@ -77,7 +85,10 @@ const UserManagement: React.FC = () => {
     phone: '',
     gender: 'Male',
     designation: '',
-    numberOfChildren: ''
+    numberOfChildren: '',
+    grade: '',
+    gradesTaught: '',
+    subjectsTaught: ''
   });
   const [creatingUser, setCreatingUser] = useState(false);
 
@@ -114,7 +125,10 @@ const UserManagement: React.FC = () => {
       phone: '',
       gender: 'Male',
       designation: '',
-      numberOfChildren: ''
+      numberOfChildren: '',
+      grade: '',
+      gradesTaught: '',
+      subjectsTaught: ''
     });
     setIsCreateModalOpen(true);
   };
@@ -130,7 +144,10 @@ const UserManagement: React.FC = () => {
       gender: user.gender || 'Male',
       designation: user.designation || '',
       numberOfChildren: user.numberOfChildren || '',
-      hasRecommendationAccess: user.hasRecommendationAccess || false
+      hasRecommendationAccess: user.hasRecommendationAccess || false,
+      grade: user.grade || '',
+      gradesTaught: user.gradesTaught?.join(', ') || '',
+      subjectsTaught: user.subjectsTaught?.join(', ') || ''
     });
     setIsEditModalOpen(true);
   };
@@ -163,10 +180,19 @@ const UserManagement: React.FC = () => {
     if (!editingUser) return;
     setUpdatingUser(true);
     try {
-      await updateUserProfile(editingUser.id, editFormData);
+      const updatePayload = { ...editFormData };
+      // Convert comma strings back to arrays
+      if (editFormData.gradesTaught !== undefined && typeof editFormData.gradesTaught === 'string') {
+        updatePayload.gradesTaught = editFormData.gradesTaught.split(',').map((s: string) => s.trim()).filter((s: string) => s !== '');
+      }
+      if (editFormData.subjectsTaught !== undefined && typeof editFormData.subjectsTaught === 'string') {
+        updatePayload.subjectsTaught = editFormData.subjectsTaught.split(',').map((s: string) => s.trim()).filter((s: string) => s !== '');
+      }
+
+      await updateUserProfile(editingUser.id, updatePayload);
 
       // Update local state
-      setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...editFormData } : u));
+      setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...updatePayload } : u));
 
       alert("User profile updated successfully.");
       setIsEditModalOpen(false);
@@ -219,10 +245,13 @@ const UserManagement: React.FC = () => {
 
       if (createData.role === UserRole.STUDENT) {
         userPayload.admissionNumber = createData.admissionNumber;
+        userPayload.grade = createData.grade;
       } else if (createData.role === UserRole.PARENT) {
         userPayload.numberOfChildren = createData.numberOfChildren;
       } else {
         userPayload.designation = createData.designation;
+        userPayload.gradesTaught = createData.gradesTaught.split(',').map(s => s.trim()).filter(s => s !== '');
+        userPayload.subjectsTaught = createData.subjectsTaught.split(',').map(s => s.trim()).filter(s => s !== '');
       }
 
       await setDoc(doc(db, 'users', uid), userPayload);
@@ -279,11 +308,21 @@ const UserManagement: React.FC = () => {
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
                 <th className="px-6 py-5 font-semibold">Name</th>
-                {activeTab === 'STUDENT' && <th className="px-6 py-5 font-semibold">Admission No</th>}
+                {activeTab === 'STUDENT' && (
+                  <>
+                    <th className="px-6 py-5 font-semibold">Admission No</th>
+                    <th className="px-6 py-5 font-semibold">Grade</th>
+                  </>
+                )}
                 <th className="px-6 py-5 font-semibold">Email</th>
                 <th className="px-6 py-5 font-semibold">Phone</th>
                 <th className="px-6 py-5 font-semibold">Gender</th>
-                {activeTab === 'STAFF' && <th className="px-6 py-5 font-semibold">Designation</th>}
+                {activeTab === 'STAFF' && (
+                  <>
+                    <th className="px-6 py-5 font-semibold">Designation</th>
+                    <th className="px-6 py-5 font-semibold">Subjects</th>
+                  </>
+                )}
                 {activeTab === 'PARENT' && <th className="px-6 py-5 font-semibold">No. of Children</th>}
                 <th className="px-6 py-5 font-semibold">Role</th>
                 <th className="px-6 py-5 font-semibold text-right">Actions</th>
@@ -351,9 +390,21 @@ const UserManagement: React.FC = () => {
               </div>
 
               {activeTab === 'STAFF' && (
-                <div className="animate-fade-in">
-                  <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Designation</label>
-                  <input value={createData.designation} onChange={e => setCreateData({ ...createData, designation: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                <div className="space-y-5 animate-fade-in">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Designation</label>
+                    <input value={createData.designation} onChange={e => setCreateData({ ...createData, designation: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Grades Taught (comma separated)</label>
+                      <input value={createData.gradesTaught} onChange={e => setCreateData({ ...createData, gradesTaught: e.target.value })} placeholder="Grade 6, Grade 7" className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Subjects Taught (comma separated)</label>
+                      <input value={createData.subjectsTaught} onChange={e => setCreateData({ ...createData, subjectsTaught: e.target.value })} placeholder="Math, English" className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -420,17 +471,35 @@ const UserManagement: React.FC = () => {
                   </select>
                 </div>
                 {editingUser.role === UserRole.STUDENT && (
-                  <div>
-                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Admission Number</label>
-                    <input required value={editFormData.admissionNumber} onChange={e => setEditFormData({ ...editFormData, admissionNumber: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                  <div className="grid grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Admission Number</label>
+                      <input required value={editFormData.admissionNumber} onChange={e => setEditFormData({ ...editFormData, admissionNumber: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Study Grade</label>
+                      <input value={editFormData.grade} onChange={e => setEditFormData({ ...editFormData, grade: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                    </div>
                   </div>
                 )}
               </div>
 
               {editingUser.role === UserRole.STAFF && (
-                <div>
-                  <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Designation</label>
-                  <input value={editFormData.designation} onChange={e => setEditFormData({ ...editFormData, designation: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Designation</label>
+                    <input value={editFormData.designation} onChange={e => setEditFormData({ ...editFormData, designation: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Grades Taught (comma separated)</label>
+                      <input value={editFormData.gradesTaught} onChange={e => setEditFormData({ ...editFormData, gradesTaught: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 ml-1 mb-1">Subjects Taught (comma separated)</label>
+                      <input value={editFormData.subjectsTaught} onChange={e => setEditFormData({ ...editFormData, subjectsTaught: e.target.value })} className="w-full px-4 py-3 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-900 dark:text-white" />
+                    </div>
+                  </div>
                 </div>
               )}
 
